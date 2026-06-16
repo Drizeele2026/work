@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>值班排班工具（飞书日历粘贴版）</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --line: #e5e7eb;
+      --text: #111827;
+      --sub: #6b7280;
+      --primary: #2563eb;
+      --success: #16a34a;
+      --weekend: #f8fafc;
+      --shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .wrap {
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    h1 { margin: 0 0 8px; font-size: 32px; }
+    .desc { color: var(--sub); margin-bottom: 20px; line-height: 1.6; }
+    .layout { display: grid; grid-template-columns: 390px 1fr; gap: 20px; align-items: start; }
+    .panel, .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+    .panel { position: sticky; top: 16px; }
+    .right { display: grid; gap: 20px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .section-title { font-size: 16px; font-weight: 700; margin: 18px 0 12px; }
+    .section-title:first-child { margin-top: 0; }
+    label { display: block; font-size: 13px; color: var(--sub); margin-bottom: 6px; }
+    input, textarea, select {
+      width: 100%; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px;
+      font-size: 14px; outline: none; background: #fff;
+    }
+    select { cursor: pointer; }
+    textarea { min-height: 130px; resize: vertical; line-height: 1.6; }
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+    #tsvText {
+      min-height: 220px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+      white-space: pre;
+    }
+    .team-box {
+      border: 1px solid var(--line); border-radius: 16px; padding: 12px; margin-bottom: 12px; background: #fcfdff;
+    }
+    .team-box h3 { margin: 0 0 10px; font-size: 15px; }
+    .hint { font-size: 12px; color: var(--sub); line-height: 1.5; margin-top: 6px; }
+    .btns { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+    button {
+      border: 0; border-radius: 12px; padding: 10px 14px; font-size: 14px; cursor: pointer;
+      background: #eef2ff; color: #1f2937;
+    }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button.primary { background: var(--primary); color: #fff; }
+    button.success { background: var(--success); color: #fff; }
+    .head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+    .head h2 { margin: 0; font-size: 28px; }
+    .head-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .head-controls select { width: auto; min-width: 130px; }
+    .legend { display: flex; gap: 10px; flex-wrap: wrap; color: var(--sub); font-size: 13px; }
+    .dot { display: inline-block; width: 10px; height: 10px; border-radius: 999px; margin-right: 6px; vertical-align: middle; }
+    .calendar-grid {
+      display: grid; grid-template-columns: repeat(7, 1fr);
+      border-top: 1px solid var(--line); border-left: 1px solid var(--line);
+    }
+    .week-head, .day-cell { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .week-head { padding: 12px 10px; background: #fafafa; font-weight: 700; }
+    .day-cell { min-height: 150px; padding: 10px; background: #fff; }
+    .day-cell.empty { background: #fafafa; }
+    .day-cell.weekend { background: var(--weekend); }
+    .day-num { font-size: 16px; font-weight: 800; margin-bottom: 8px; }
+    .duty-list { display: flex; flex-direction: column; gap: 6px; }
+    .pill {
+      display: flex; align-items: center; gap: 8px; border-radius: 999px; padding: 6px 10px;
+      font-size: 13px; width: fit-content; max-width: 100%; line-height: 1.2;
+    }
+    .pill span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .placeholder { padding: 40px 16px; text-align: center; color: var(--sub); }
+    .summary { margin-top: 18px; padding-top: 16px; border-top: 1px dashed var(--line); }
+    .summary table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 10px; }
+    .summary th, .summary td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; }
+    .summary th { background: #fafafa; }
+    .preview-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; }
+    .paste-preview {
+      width: 100%; border-collapse: collapse; table-layout: fixed; min-width: 980px;
+    }
+    .paste-preview th, .paste-preview td {
+      border: 1px solid var(--line); vertical-align: top; padding: 10px; min-height: 130px;
+    }
+    .paste-preview th { background: #fafafa; text-align: left; }
+    .paste-preview td { height: 140px; white-space: pre-line; }
+    .paste-preview .empty { background: #fafafa; }
+    .paste-preview .day-title { font-size: 16px; font-weight: 800; margin-bottom: 8px; }
+    .error, .ok {
+      padding: 10px 12px; border-radius: 12px; margin-top: 12px; display: none; font-size: 13px;
+    }
+    .error { color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; }
+    .ok { color: #166534; background: #f0fdf4; border: 1px solid #bbf7d0; }
+    @media (max-width: 1180px) {
+      .layout { grid-template-columns: 1fr; }
+      .panel { position: static; }
+    }
+    @media print {
+      body { background: #fff; }
+      .panel, .copy-card, .head-controls { display: none; }
+      .wrap { max-width: none; padding: 0; }
+      .card { box-shadow: none; border: 0; padding: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>值班排班工具（飞书日历粘贴版）</h1>
+    <div class="desc">
+      排班数据存在 GitHub 仓库里，团队成员打开页面即可<b>只读查看</b>当月值班；负责人在<b>管理模式</b>里配置并保存到云端。支持把月历网格或明细表复制到飞书表格。
+    </div>
+
+    <div class="layout">
+      <div class="panel">
+        <div class="section-title">数据源</div>
+        <div id="repoStatus" class="hint">正在识别仓库…</div>
+        <div class="btns" style="margin-top:10px;">
+          <button id="reloadBtn">刷新数据</button>
+          <button id="toggleManageBtn">管理模式</button>
+        </div>
+
+        <div id="managePanel" style="display:none;">
+          <div class="section-title">连接设置</div>
+          <label for="mToken">GitHub Token（PAT，仅存本机浏览器）</label>
+          <input id="mToken" type="password" placeholder="github_pat_... 或 ghp_..." autocomplete="off" />
+          <div class="btns" style="margin-top:8px;">
+            <button class="primary" id="saveTokenBtn">保存 token</button>
+            <button id="clearTokenBtn">清除 token</button>
+          </div>
+          <label for="mRepo" style="margin-top:12px;">仓库 owner/repo（自动识别失败时手填）</label>
+          <input id="mRepo" placeholder="例如 drizeele2026/duty" autocomplete="off" />
+          <div class="btns" style="margin-top:8px;">
+            <button id="saveRepoBtn">保存仓库</button>
+            <button id="clearRepoBtn">清除手填</button>
+          </div>
+          <div class="hint" style="margin-top:6px;">
+            token 只保存在你当前浏览器，不会进仓库。建议用细粒度 PAT，权限只勾这个仓库的
+            <b>Contents：Read and write</b>，其余都不给；随时可在 GitHub 撤销。
+          </div>
+
+          <div class="section-title">本月排班</div>
+          <div class="row">
+            <div>
+              <label for="mYear">年份</label>
+              <input id="mYear" type="number" min="2020" max="2100" />
+            </div>
+            <div>
+              <label for="mMonth">月份</label>
+              <input id="mMonth" type="number" min="1" max="12" />
+            </div>
+          </div>
+
+          <div class="team-box">
+            <h3>团队 1</h3>
+            <label for="team1Name">团队名称</label>
+            <input id="team1Name" />
+            <label for="team1Members">成员名单（每行一个）</label>
+            <textarea id="team1Members"></textarea>
+            <label for="team1Last">上月最后一天值班人</label>
+            <input id="team1Last" placeholder="新月份会自动从上月接龙；首次手填" />
+          </div>
+
+          <div class="team-box">
+            <h3>团队 2</h3>
+            <label for="team2Name">团队名称</label>
+            <input id="team2Name" />
+            <label for="team2Members">成员名单（每行一个）</label>
+            <textarea id="team2Members"></textarea>
+            <label for="team2Last">上月最后一天值班人</label>
+            <input id="team2Last" placeholder="新月份会自动从上月接龙；首次手填" />
+          </div>
+
+          <div class="team-box">
+            <h3>团队 3</h3>
+            <label for="team3Name">团队名称</label>
+            <input id="team3Name" />
+            <label for="team3Members">成员名单（每行一个）</label>
+            <textarea id="team3Members"></textarea>
+            <label for="team3Last">上月最后一天值班人</label>
+            <input id="team3Last" placeholder="新月份会自动从上月接龙；首次手填" />
+          </div>
+
+          <div class="btns">
+            <button class="primary" id="generateBtn">生成排班</button>
+            <button id="autofillBtn">从上月接龙</button>
+            <button id="resetDefaultsBtn">恢复默认成员</button>
+            <button class="success" id="saveBtn">保存到云端</button>
+          </div>
+        </div>
+
+        <div class="error" id="errorBox"></div>
+        <div class="ok" id="okBox"></div>
+      </div>
+
+      <div class="right">
+        <div class="card">
+          <div class="head">
+            <h2 id="calendarTitle">排班表</h2>
+            <div class="head-controls">
+              <select id="monthPicker" title="切换月份"></select>
+              <button id="printBtn">打印 / 导出 PDF</button>
+            </div>
+            <div class="legend" id="legend"></div>
+          </div>
+          <div class="calendar-grid" id="calendarGrid"></div>
+          <div class="placeholder" id="placeholder" style="display:none;"></div>
+          <div class="summary" id="summary"></div>
+        </div>
+
+        <div class="card copy-card">
+          <div class="head">
+            <h2>复制到飞书表格</h2>
+            <div class="btns" style="margin-top:0;">
+              <button class="success" id="copyMonthGridBtn">复制月历网格</button>
+              <button id="copyTSVBtn">复制明细表</button>
+              <button id="selectTSVBtn">全选明细内容</button>
+            </div>
+          </div>
+
+          <div class="section-title">月历网格预览</div>
+          <div class="hint">这个区域对应 7 列月历。点"复制月历网格"后，去飞书表格选中左上角起始单元格直接粘贴。</div>
+          <div class="preview-wrap" id="monthGridPreviewWrap"></div>
+
+          <div class="section-title">明细表内容</div>
+          <div class="hint">这是稳妥的 Tab 明细格式，适合做统计、筛选和留档。</div>
+          <textarea id="tsvText" spellcheck="false" placeholder="切换或生成月份后这里会出现内容"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    "use strict";
+
+    // ===== 常量 =====
+    const weekdayNames = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
+    const weekdayNamesByDate = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+    const teamColors = [
+      { bg: "#dbeafe", text: "#1d4ed8" },
+      { bg: "#dcfce7", text: "#15803d" },
+      { bg: "#f3e8ff", text: "#7e22ce" }
+    ];
+
+    // 首次使用时的种子配置
+    const DEFAULT_CONFIG = {
+      teams: [
+        { name: "前端", members: ["郑刘利", "林颖", "林胜聪", "刘红辉", "方思琪"] },
+        { name: "后端", members: ["綦鹏", "陈琦", "张凯", "张家南", "李尚忠", "俞如滃", "杨朋举", "郭绍东"] },
+        { name: "测试", members: ["许绵绵", "郑成清", "谭贤", "钟右梅"] }
+      ]
+    };
+
+    const DATA_PATH = "data/schedule.json";
+    const LS_TOKEN = "duty_pat";
+    const LS_REPO = "duty_repo_override";
+
+    // ===== 内存状态 =====
+    let repo = null;            // { owner, repo, source }
+    let appData = null;         // 云端读到的数据
+    let displayMonthKey = null; // 当前展示的月份 key (YYYY-MM)
+    let pendingMonth = null;    // 管理模式下生成、待保存的月份快照
+    let managePrefilled = false;
+
+    let lastGeneratedTSV = "";
+    let lastGeneratedMonthGridHTML = "";
+    let lastGeneratedMonthGridPlain = "";
+
+    // ===== 小工具 =====
+    const $ = (id) => document.getElementById(id);
+    const pad2 = (n) => String(n).padStart(2, "0");
+    const monthKey = (y, m) => `${y}-${pad2(m)}`;
+
+    function escapeHtml(text) {
+      return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    // UTF-8 安全的 base64 编解码（中文姓名需要）
+    function b64encode(str) {
+      const bytes = new TextEncoder().encode(str);
+      let bin = "";
+      bytes.forEach((b) => { bin += String.fromCharCode(b); });
+      return btoa(bin);
+    }
+    function b64decode(b64) {
+      const bin = atob(String(b64).replace(/\s/g, ""));
+      const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+      return new TextDecoder().decode(bytes);
+    }
+
+    function parseMembers(text) {
+      return text
+        .replace(/@/g, "")
+        .split(/\n|,/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+
+    function showError(msg) {
+      $("errorBox").style.display = "block";
+      $("errorBox").textContent = msg;
+      hideOk();
+    }
+    function hideError() {
+      $("errorBox").style.display = "none";
+      $("errorBox").textContent = "";
+    }
+    function showOk(msg) {
+      $("okBox").style.display = "block";
+      $("okBox").textContent = msg;
+    }
+    function hideOk() {
+      $("okBox").style.display = "none";
+      $("okBox").textContent = "";
+    }
+
+    // ===== 仓库识别 =====
+    function detectRepo() {
+      const override = localStorage.getItem(LS_REPO);
+      if (override && override.includes("/")) {
+        const [owner, name] = override.split("/").map((s) => s.trim());
+        if (owner && name) return { owner, repo: name, source: "override" };
+      }
+      const host = location.hostname;
+      const m = host.match(/^([^.]+)\.github\.io$/i);
+      if (m) {
+        const owner = m[1];
+        const seg = location.pathname.split("/").filter(Boolean);
+        const repoName = seg.length ? seg[0] : `${owner}.github.io`;
+        return { owner, repo: repoName, source: "auto" };
+      }
+      return null;
+    }
+
+    function renderRepoStatus() {
+      const el = $("repoStatus");
+      const hasToken = !!localStorage.getItem(LS_TOKEN);
+      if (repo) {
+        el.innerHTML = `已连接：<b>${escapeHtml(repo.owner)}/${escapeHtml(repo.repo)}</b>` +
+          `（${repo.source === "override" ? "手填" : "自动识别"}）。token：` +
+          (hasToken ? "已配置，可写入" : "未配置，仅只读");
+      } else {
+        el.innerHTML = `未识别到 GitHub 仓库。若在本地预览，请进"管理模式"填 owner/repo。`;
+      }
+    }
+
+    // ===== 云端读写 =====
+    const Store = {
+      apiUrl() {
+        return `https://api.github.com/repos/${repo.owner}/${repo.repo}/contents/${DATA_PATH}`;
+      },
+
+      async load() {
+        const token = localStorage.getItem(LS_TOKEN);
+        const headers = { "Accept": "application/vnd.github+json" };
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+        const res = await fetch(this.apiUrl() + `?t=${Date.now()}`, { headers, cache: "no-store" });
+        if (res.status === 404) return { data: null };
+        if (res.status === 403) throw new Error("读取被限流（未登录每小时 60 次），稍后再试或配置 token。");
+        if (!res.ok) throw new Error(`读取云端失败（${res.status}）。`);
+        const json = await res.json();
+        return { data: JSON.parse(b64decode(json.content)) };
+      },
+
+      async save(data, attempt) {
+        attempt = attempt || 0;
+        const token = localStorage.getItem(LS_TOKEN);
+        if (!token) throw new Error("未配置 token，无法写入。");
+        const headers = {
+          "Accept": "application/vnd.github+json",
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        };
+
+        // 取当前 sha（不存在则创建）
+        let sha = null;
+        const head = await fetch(this.apiUrl() + `?t=${Date.now()}`, { headers, cache: "no-store" });
+        if (head.status === 200) sha = (await head.json()).sha;
+        else if (head.status === 401) throw new Error("token 无效或已过期，请重新填写 PAT。");
+        else if (head.status !== 404) throw new Error(`保存前读取失败（${head.status}）。`);
+
+        const body = {
+          message: `更新排班数据 ${monthKey(new Date().getFullYear(), new Date().getMonth() + 1)}`,
+          content: b64encode(JSON.stringify(data, null, 2))
+        };
+        if (sha) body.sha = sha;
+
+        const res = await fetch(this.apiUrl(), { method: "PUT", headers, body: JSON.stringify(body) });
+        if (res.status === 401) throw new Error("token 无效或已过期，请重新填写 PAT。");
+        if (res.status === 403) throw new Error("没有写权限，请确认 PAT 勾了该仓库的 Contents 读写。");
+        if (res.status === 409 && attempt < 2) return this.save(data, attempt + 1);
+        if (!res.ok) {
+          const txt = await res.text().catch(() => "");
+          throw new Error(`保存失败（${res.status}）${txt ? "：" + txt.slice(0, 120) : ""}`);
+        }
+        return true;
+      }
+    };
+
+    // ===== 排班计算（纯函数，沿用原轮班算法）=====
+    function computeSchedule(year, month, teams) {
+      const daysInMonth = new Date(year, month, 0).getDate();
+      const firstDay = new Date(year, month - 1, 1);
+      const startWeekday = (firstDay.getDay() + 6) % 7;
+
+      const counts = {};
+      teams.forEach((t) => { counts[t.name] = Object.fromEntries(t.members.map((m) => [m, 0])); });
+
+      const dailyAssignments = [];
+      for (let day = 1; day <= daysInMonth; day++) {
+        const cur = new Date(year, month - 1, day);
+        const item = {
+          day,
+          dateStr: `${year}/${pad2(month)}/${pad2(day)}`,
+          weekdayStr: weekdayNamesByDate[cur.getDay()],
+          teams: []
+        };
+        teams.forEach((t, i) => {
+          const len = t.members.length;
+          const lastIdx = t.members.indexOf(t.last); // 找不到返回 -1，day1 即从第 0 个开始
+          const personIdx = (((lastIdx + day) % len) + len) % len;
+          const person = t.members[personIdx];
+          item.teams.push({ name: t.name, person, color: teamColors[i % teamColors.length] });
+          counts[t.name][person] += 1;
+        });
+        dailyAssignments.push(item);
+      }
+      return { dailyAssignments, counts, startWeekday, daysInMonth };
+    }
+
+    // 从一个已存月份快照，推算它最后一天各团队的值班人（给下月接龙用）
+    function deriveLast(snapshot) {
+      const { dailyAssignments } = computeSchedule(snapshot.year, snapshot.month, snapshot.teams);
+      const lastDay = dailyAssignments[dailyAssignments.length - 1];
+      const map = {};
+      lastDay.teams.forEach((t) => { map[t.name] = t.person; });
+      return map;
+    }
+
+    // ===== 渲染 =====
+    function renderLegend(teams) {
+      $("legend").innerHTML = teams.map((team, i) =>
+        `<span><i class="dot" style="background:${teamColors[i % teamColors.length].text}"></i>${escapeHtml(team.name)}</span>`
+      ).join("");
+    }
+
+    function renderCalendar(year, month, computed) {
+      $("calendarTitle").textContent = `${year}年 ${month}月 值班表`;
+      $("placeholder").style.display = "none";
+      $("calendarGrid").style.display = "grid";
+      const grid = $("calendarGrid");
+      grid.innerHTML = "";
+
+      weekdayNames.forEach((name) => {
+        const head = document.createElement("div");
+        head.className = "week-head";
+        head.textContent = name;
+        grid.appendChild(head);
+      });
+
+      const { startWeekday, daysInMonth, dailyAssignments } = computed;
+      const totalCells = Math.ceil((startWeekday + daysInMonth) / 7) * 7;
+      for (let i = 0; i < totalCells; i++) {
+        const day = i - startWeekday + 1;
+        const cell = document.createElement("div");
+        const weekday = i % 7;
+
+        if (day < 1 || day > daysInMonth) {
+          cell.className = "day-cell empty";
+          grid.appendChild(cell);
+          continue;
+        }
+        cell.className = "day-cell" + (weekday === 5 || weekday === 6 ? " weekend" : "");
+
+        const data = dailyAssignments[day - 1];
+        cell.innerHTML = `<div class="day-num">${day}</div>`;
+        const list = document.createElement("div");
+        list.className = "duty-list";
+
+        data.teams.forEach((team) => {
+          const pill = document.createElement("div");
+          pill.className = "pill";
+          pill.style.background = team.color.bg;
+          pill.style.color = team.color.text;
+          pill.innerHTML = `<span>${escapeHtml(team.name)}</span><span>${escapeHtml(team.person)}</span>`;
+          list.appendChild(pill);
+        });
+
+        cell.appendChild(list);
+        grid.appendChild(cell);
+      }
+    }
+
+    function renderSummary(year, month, teams, counts, dailyAssignments) {
+      const summary = $("summary");
+      const lastDay = dailyAssignments[dailyAssignments.length - 1];
+
+      let html = `<h3 style="margin:0 0 8px;">${year}年${month}月排班汇总</h3>`;
+      html += `<div class="hint">下个月排班时，"上月最后值班人"会自动从这里接龙，不用手填。</div>`;
+
+      teams.forEach((team) => {
+        html += `<div style="margin-top:14px;"><b>${escapeHtml(team.name)}</b></div>`;
+        html += `<table><thead><tr><th>成员</th><th>本月值班天数</th></tr></thead><tbody>`;
+        team.members.forEach((member) => {
+          html += `<tr><td>${escapeHtml(member)}</td><td>${counts[team.name][member] || 0}</td></tr>`;
+        });
+        const lastPerson = (lastDay.teams.find((t) => t.name === team.name) || {}).person || "-";
+        html += `</tbody></table>`;
+        html += `<div class="hint">本月最后一天值班人：${escapeHtml(lastPerson)}</div>`;
+      });
+
+      summary.innerHTML = html;
+    }
+
+    function renderTSV(teams, dailyAssignments) {
+      const headers = ["日期", "星期", ...teams.map((t) => t.name)];
+      const lines = [headers.join("\t")];
+
+      dailyAssignments.forEach((item) => {
+        const row = [item.dateStr, item.weekdayStr];
+        teams.forEach((team) => {
+          const found = item.teams.find((t) => t.name === team.name);
+          row.push(found ? found.person : "");
+        });
+        lines.push(row.join("\t"));
+      });
+
+      lastGeneratedTSV = lines.join("\n");
+      $("tsvText").value = lastGeneratedTSV;
+    }
+
+    function buildMonthGridMatrix(computed) {
+      const { startWeekday, daysInMonth, dailyAssignments } = computed;
+      const totalCells = Math.ceil((startWeekday + daysInMonth) / 7) * 7;
+      const rows = [];
+
+      for (let i = 0; i < totalCells; i += 7) {
+        const row = [];
+        for (let j = 0; j < 7; j++) {
+          const idx = i + j;
+          const day = idx - startWeekday + 1;
+          if (day < 1 || day > daysInMonth) {
+            row.push({ empty: true, text: "" });
+          } else {
+            const data = dailyAssignments[day - 1];
+            const lines = [String(day)];
+            data.teams.forEach((team) => lines.push(`${team.name}：${team.person}`));
+            row.push({ empty: false, text: lines.join("\n"), day });
+          }
+        }
+        rows.push(row);
+      }
+      return rows;
+    }
+
+    function renderMonthGridCopy(computed) {
+      const matrix = buildMonthGridMatrix(computed);
+
+      let html = `<table class="paste-preview"><thead><tr>`;
+      weekdayNames.forEach((name) => { html += `<th>${escapeHtml(name)}</th>`; });
+      html += `</tr></thead><tbody>`;
+
+      matrix.forEach((row) => {
+        html += `<tr>`;
+        row.forEach((cell) => {
+          if (cell.empty) {
+            html += `<td class="empty"></td>`;
+          } else {
+            const lines = cell.text.split("\n");
+            const title = escapeHtml(lines[0]);
+            const rest = lines.slice(1).map(escapeHtml).join("<br>");
+            html += `<td><div class="day-title">${title}</div>${rest}</td>`;
+          }
+        });
+        html += `</tr>`;
+      });
+      html += `</tbody></table>`;
+
+      $("monthGridPreviewWrap").innerHTML = html;
+
+      const copyHtml =
+        `<table border="1" cellspacing="0" cellpadding="8">` +
+        `<thead><tr>${weekdayNames.map((n) => `<th>${escapeHtml(n)}</th>`).join("")}</tr></thead>` +
+        `<tbody>` +
+        matrix.map((row) => {
+          return `<tr>` + row.map((cell) => {
+            if (cell.empty) return `<td></td>`;
+            const lines = cell.text.split("\n");
+            return `<td><div><b>${escapeHtml(lines[0])}</b></div>${lines.slice(1).map(escapeHtml).join("<br>")}</td>`;
+          }).join("") + `</tr>`;
+        }).join("") +
+        `</tbody></table>`;
+
+      const plainLines = [weekdayNames.join("\t")];
+      matrix.forEach((row) => {
+        plainLines.push(row.map((cell) => cell.text.replace(/\n/g, " / ")).join("\t"));
+      });
+
+      lastGeneratedMonthGridHTML = copyHtml;
+      lastGeneratedMonthGridPlain = plainLines.join("\n");
+    }
+
+    function showPlaceholder(msg) {
+      $("calendarTitle").textContent = "排班表";
+      $("calendarGrid").innerHTML = "";
+      $("calendarGrid").style.display = "none";
+      $("placeholder").style.display = "block";
+      $("placeholder").textContent = msg;
+      $("legend").innerHTML = "";
+      $("summary").innerHTML = "";
+      $("monthGridPreviewWrap").innerHTML = "";
+      $("tsvText").value = "";
+      lastGeneratedTSV = "";
+      lastGeneratedMonthGridHTML = "";
+      lastGeneratedMonthGridPlain = "";
+    }
+
+    function renderMonth(year, month, teams) {
+      const computed = computeSchedule(year, month, teams);
+      renderLegend(teams);
+      renderCalendar(year, month, computed);
+      renderSummary(year, month, teams, computed.counts, computed.dailyAssignments);
+      renderTSV(teams, computed.dailyAssignments);
+      renderMonthGridCopy(computed);
+    }
+
+    // ===== 月份选择与展示 =====
+    function savedMonthKeys() {
+      if (!appData || !appData.months) return [];
+      return Object.keys(appData.months).sort().reverse();
+    }
+
+    function refreshMonthPicker() {
+      const sel = $("monthPicker");
+      const keys = savedMonthKeys();
+      sel.innerHTML = keys.map((k) => {
+        const [y, m] = k.split("-");
+        return `<option value="${k}">${y}年${Number(m)}月</option>`;
+      }).join("");
+      sel.disabled = keys.length === 0;
+      if (displayMonthKey) sel.value = displayMonthKey;
+    }
+
+    function renderDisplayMonth() {
+      if (!appData || !displayMonthKey || !appData.months || !appData.months[displayMonthKey]) {
+        showPlaceholder(repo ? "云端暂无排班数据。负责人进入管理模式生成并保存即可。" : "未连接仓库，无法读取数据。");
+        return;
+      }
+      const snap = appData.months[displayMonthKey];
+      renderMonth(snap.year, snap.month, snap.teams);
+      $("monthPicker").value = displayMonthKey;
+    }
+
+    async function reload() {
+      hideError();
+      if (!repo) {
+        appData = null;
+        renderRepoStatus();
+        refreshMonthPicker();
+        showPlaceholder("未识别到 GitHub 仓库。本地预览请在管理模式填 owner/repo。");
+        return;
+      }
+      try {
+        const { data } = await Store.load();
+        appData = data;
+      } catch (e) {
+        appData = null;
+        showError(e.message || "读取失败。");
+      }
+      renderRepoStatus();
+
+      // 默认展示当月，没有则展示最新已存月份
+      const now = new Date();
+      const wantKey = monthKey(now.getFullYear(), now.getMonth() + 1);
+      const keys = savedMonthKeys();
+      displayMonthKey = keys.includes(wantKey) ? wantKey : (keys[0] || null);
+
+      refreshMonthPicker();
+      renderDisplayMonth();
+    }
+
+    // ===== 管理模式 =====
+    function fillManagementForm() {
+      const cfg = (appData && appData.config && appData.config.teams && appData.config.teams.length)
+        ? appData.config : DEFAULT_CONFIG;
+      const now = new Date();
+      if (!$("mYear").value) $("mYear").value = now.getFullYear();
+      if (!$("mMonth").value) $("mMonth").value = now.getMonth() + 1;
+      for (let i = 0; i < 3; i++) {
+        const t = cfg.teams[i];
+        $(`team${i + 1}Name`).value = t ? t.name : "";
+        $(`team${i + 1}Members`).value = t ? t.members.join("\n") : "";
+      }
+      autofillLast();
+    }
+
+    function applyDefaultMembers() {
+      DEFAULT_CONFIG.teams.forEach((t, i) => {
+        $(`team${i + 1}Name`).value = t.name;
+        $(`team${i + 1}Members`).value = t.members.join("\n");
+      });
+    }
+
+    // 根据当前年月，从上一个已存月份接龙填入"上月最后值班人"
+    function autofillLast() {
+      const y = Number($("mYear").value);
+      const m = Number($("mMonth").value);
+      if (!y || !m) return;
+      const prev = new Date(y, m - 2, 1); // 上一个月
+      const prevSnap = appData && appData.months
+        ? appData.months[monthKey(prev.getFullYear(), prev.getMonth() + 1)] : null;
+      if (!prevSnap) return;
+      const map = deriveLast(prevSnap);
+      for (let i = 1; i <= 3; i++) {
+        const name = $(`team${i}Name`).value.trim();
+        if (map[name]) $(`team${i}Last`).value = map[name];
+      }
+    }
+
+    function buildTeamsFromForm() {
+      const teams = [1, 2, 3].map((i) => {
+        const name = $(`team${i}Name`).value.trim();
+        const members = parseMembers($(`team${i}Members`).value);
+        const last = $(`team${i}Last`).value.trim().replace(/@/g, "");
+        return { name, members, last };
+      }).filter((t) => t.name && t.members.length > 0);
+
+      if (!teams.length) throw new Error("至少要配置一个团队和成员名单。");
+      teams.forEach((t) => {
+        if (!t.last) throw new Error(`团队【${t.name}】请填写"上月最后一天值班人"。`);
+        if (!t.members.includes(t.last)) {
+          throw new Error(`团队【${t.name}】中找不到"${t.last}"，请确认成员名单和上月最后值班人一致。`);
+        }
+      });
+      return teams;
+    }
+
+    function generatePreview() {
+      hideError();
+      hideOk();
+      try {
+        const year = Number($("mYear").value);
+        const month = Number($("mMonth").value);
+        if (!year || !month || month < 1 || month > 12) throw new Error("请先填写正确的年份和月份。");
+
+        const teams = buildTeamsFromForm();
+        renderMonth(year, month, teams);
+        displayMonthKey = monthKey(year, month);
+        pendingMonth = {
+          year, month,
+          teams: teams.map((t) => ({ name: t.name, members: t.members.slice(), last: t.last })),
+          updatedAt: new Date().toISOString()
+        };
+        showOk("已生成预览。确认无误后点“保存到云端”。");
+      } catch (e) {
+        showError(e.message || "生成失败，请检查配置。");
+      }
+    }
+
+    async function saveToCloud() {
+      hideError();
+      hideOk();
+      if (!repo) { showError("没识别出仓库，请在管理模式填 owner/repo。"); return; }
+      if (!localStorage.getItem(LS_TOKEN)) { showError("请先填写并保存 token。"); return; }
+      if (!pendingMonth) { showError("请先点“生成排班”生成本月数据。"); return; }
+
+      $("saveBtn").disabled = true;
+      try {
+        // 先拉最新，基于最新合并，尽量不覆盖别人/别的月份
+        let base = { version: 1, config: { teams: [] }, months: {} };
+        try {
+          const fresh = await Store.load();
+          if (fresh.data) base = fresh.data;
+        } catch (_) { /* 读不到就用空底子 */ }
+
+        base.version = base.version || 1;
+        base.months = base.months || {};
+        base.config = { teams: pendingMonth.teams.map((t) => ({ name: t.name, members: t.members.slice() })) };
+        base.months[monthKey(pendingMonth.year, pendingMonth.month)] = pendingMonth;
+
+        await Store.save(base);
+        appData = base;
+        displayMonthKey = monthKey(pendingMonth.year, pendingMonth.month);
+        renderRepoStatus();
+        refreshMonthPicker();
+        renderDisplayMonth();
+        showOk("已保存到云端。其他人刷新页面即可看到。");
+      } catch (e) {
+        showError(e.message || "保存失败。");
+      } finally {
+        $("saveBtn").disabled = false;
+      }
+    }
+
+    // ===== 复制到剪贴板 =====
+    async function copyMonthGrid() {
+      if (!lastGeneratedMonthGridHTML) { showError("当前没有可复制的排班，请先切换或生成月份。"); return; }
+      try {
+        if (navigator.clipboard && window.ClipboardItem) {
+          const item = new ClipboardItem({
+            "text/html": new Blob([lastGeneratedMonthGridHTML], { type: "text/html" }),
+            "text/plain": new Blob([lastGeneratedMonthGridPlain], { type: "text/plain" })
+          });
+          await navigator.clipboard.write([item]);
+          showOk("月历网格已复制。到飞书表格选中左上角单元格后直接粘贴即可。");
+          return;
+        }
+        throw new Error("ClipboardItem 不可用");
+      } catch (e) {
+        showError("当前浏览器不支持富文本复制。可先用“复制明细表”或换 Chrome 再试。");
+      }
+    }
+
+    async function copyTSV() {
+      if (!lastGeneratedTSV) { showError("当前没有可复制的明细，请先切换或生成月份。"); return; }
+      try {
+        await navigator.clipboard.writeText(lastGeneratedTSV);
+        showOk("明细表已复制，直接粘贴到飞书表格即可。");
+      } catch (e) {
+        $("tsvText").focus();
+        $("tsvText").select();
+        showOk("浏览器未直接复制，已帮你选中明细内容，请按 Ctrl+C。");
+      }
+    }
+
+    function selectTSV() {
+      if (!lastGeneratedTSV) { showError("当前没有可复制的明细，请先切换或生成月份。"); return; }
+      $("tsvText").focus();
+      $("tsvText").select();
+      showOk("明细内容已选中，可直接 Ctrl+C 复制。");
+    }
+
+    // ===== 事件绑定 =====
+    $("reloadBtn").addEventListener("click", reload);
+
+    $("toggleManageBtn").addEventListener("click", () => {
+      const p = $("managePanel");
+      const open = p.style.display === "none";
+      p.style.display = open ? "block" : "none";
+      if (open && !managePrefilled) { fillManagementForm(); managePrefilled = true; }
+    });
+
+    $("saveTokenBtn").addEventListener("click", () => {
+      const v = $("mToken").value.trim();
+      if (!v) { showError("请先粘贴 token。"); return; }
+      localStorage.setItem(LS_TOKEN, v);
+      renderRepoStatus();
+      showOk("token 已保存在本机浏览器。");
+    });
+    $("clearTokenBtn").addEventListener("click", () => {
+      localStorage.removeItem(LS_TOKEN);
+      $("mToken").value = "";
+      renderRepoStatus();
+      showOk("token 已清除。");
+    });
+
+    $("saveRepoBtn").addEventListener("click", () => {
+      const v = $("mRepo").value.trim();
+      if (!v.includes("/")) { showError("格式应为 owner/repo。"); return; }
+      localStorage.setItem(LS_REPO, v);
+      repo = detectRepo();
+      renderRepoStatus();
+      showOk("仓库已保存，正在重新读取…");
+      reload();
+    });
+    $("clearRepoBtn").addEventListener("click", () => {
+      localStorage.removeItem(LS_REPO);
+      $("mRepo").value = "";
+      repo = detectRepo();
+      renderRepoStatus();
+      reload();
+    });
+
+    $("mYear").addEventListener("change", autofillLast);
+    $("mMonth").addEventListener("change", autofillLast);
+    $("generateBtn").addEventListener("click", generatePreview);
+    $("autofillBtn").addEventListener("click", () => { autofillLast(); showOk("已尝试从上月接龙填入。"); });
+    $("resetDefaultsBtn").addEventListener("click", () => { applyDefaultMembers(); hideOk(); });
+    $("saveBtn").addEventListener("click", saveToCloud);
+
+    $("monthPicker").addEventListener("change", (e) => {
+      displayMonthKey = e.target.value;
+      renderDisplayMonth();
+    });
+    $("printBtn").addEventListener("click", () => window.print());
+    $("copyMonthGridBtn").addEventListener("click", copyMonthGrid);
+    $("copyTSVBtn").addEventListener("click", copyTSV);
+    $("selectTSVBtn").addEventListener("click", selectTSV);
+
+    // ===== 启动 =====
+    (function init() {
+      repo = detectRepo();
+      if (repo && repo.source === "override") $("mRepo").value = `${repo.owner}/${repo.repo}`;
+      renderRepoStatus();
+      reload();
+    })();
+  </script>
+</body>
+</html>
