@@ -1200,7 +1200,9 @@
             <li>仓库地址是 <a href="https://github.com/Drizeele2026/work" target="_blank" rel="noopener noreferrer">Drizeele2026/work</a>。</li>
           </ul>
           <h3>为什么这么设计</h3>
-          <p>团队成员不需要登录。负责人只在可信电脑上配置一次 GitHub PAT，保存就是一次普通 commit，天然有历史记录。</p>
+          <p>这个工具不需要服务器。公开页直接读取仓库里的排班文件，团队成员打开链接就能看，不需要登录，也不需要配置 token。</p>
+          <p>需要改排班时，只有负责人进入管理地址，在可信电脑上配置一次 GitHub PAT。点击写入仓库时，本质上就是把新的 <code>data/schedule.json</code> 提交到 GitHub。</p>
+          <p>所以仓库就是持久化存储，commit 就是保存记录。每次修改都有提交历史，出了问题可以对比、追溯，也可以回滚。</p>
           <h3>当前版本</h3>
           <p>这版把普通查看和管理页面分开。团队成员看排班和复制内容，负责人使用单独管理地址改成员、重排后续月份和保存。</p>
         </section>
