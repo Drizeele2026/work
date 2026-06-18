@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-06-18T18:05:28.030Z",
+  "updatedAt": "2026-06-18T18:05:31.756Z",
   "config": {
     "teams": [
       {
@@ -47,7 +47,7 @@
     "2026-06": {
       "year": 2026,
       "month": 6,
-      "generatedAt": "2026-06-18T18:05:28.030Z",
+      "generatedAt": "2026-06-18T18:05:31.756Z",
       "teams": [
         {
           "name": "前端",
