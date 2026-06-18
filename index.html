@@ -527,7 +527,7 @@
       <div class="topbar-status">
         <button class="chip chip-button primary" id="repoChip" type="button" title="打开 GitHub 设置"><strong>仓库</strong> · 本地预览</button>
         <button class="chip chip-button success" id="tokenChip" type="button" title="打开 GitHub 设置"><strong>token</strong> · 未配置</button>
-        <button class="chip chip-button warn" id="saveChip" type="button" title="查看复制与导出"><strong>保存</strong> · 未提交预览</button>
+        <button class="chip chip-button warn" id="saveChip" type="button" title="查看复制与导出"><strong>保存</strong> · 草稿未持久化</button>
         <button class="chip chip-button" id="modeChip" type="button" title="展开或收起管理区"><strong>管理模式</strong> · 收起</button>
       </div>
     </header>
@@ -540,7 +540,7 @@
             <button class="nav-link active" type="button" data-view="schedule"><span>排班表</span><strong>当前月</strong></button>
             <button class="nav-link" type="button" data-view="about"><span>系统介绍</span><strong>README</strong></button>
             <button class="nav-link" type="button" data-view="manage"><span>成员与团队</span><strong>管理</strong></button>
-            <button class="nav-link" type="button" data-view="generate"><span>生成排班</span><strong>12 个月</strong></button>
+            <button class="nav-link" type="button" data-view="generate"><span>生成排班</span><strong>滚动草稿</strong></button>
           </div>
         </div>
 
@@ -555,7 +555,7 @@
         </div>
 
         <div class="section" id="generateSection">
-          <div class="section-title">本地生成</div>
+          <div class="section-title">起算月份</div>
           <div class="field-grid">
             <div>
               <label for="year">年份</label>
@@ -567,7 +567,7 @@
             </div>
           </div>
           <div class="action-grid">
-            <button class="primary" id="generateBtn" type="button">生成当前月</button>
+            <button class="primary" id="generateBtn" type="button">生成滚动草稿</button>
             <div class="button-row">
               <button id="fillCurrentBtn" type="button">回到今天</button>
               <button id="resetDefaultsBtn" type="button">恢复默认</button>
@@ -646,7 +646,7 @@
         <section class="card" id="summaryView">
           <div class="footer-panel">
             <div>
-              <h2>本月值班汇总</h2>
+              <h2>当前展示月汇总</h2>
               <table class="summary-table" id="summaryTable"></table>
             </div>
             <div class="copy-actions">
@@ -688,7 +688,8 @@
           <div class="section-title">同步状态</div>
           <div class="status-line"><span>最近生成</span><strong id="syncTime">-</strong></div>
           <div class="status-line"><span>当前月份</span><strong id="inspectorMonth">-</strong></div>
-          <div class="status-line"><span>保存状态</span><strong id="dirtyState">未提交预览</strong></div>
+          <div class="status-line"><span>草稿范围</span><strong id="draftRange">未生成</strong></div>
+          <div class="status-line"><span>保存状态</span><strong id="dirtyState">草稿未持久化</strong></div>
           <div class="status-line"><span>锁定冲突</span><strong>0</strong></div>
         </div>
         <div class="section">
@@ -701,7 +702,7 @@
           <div class="section-title">变更摘要</div>
           <div class="note"><span class="bullet blue"></span><span id="noteRoster">花名册来自左侧配置，本次只生成本地预览。</span></div>
           <div class="note"><span class="bullet amber"></span><span id="noteMonth">还没有生成排班。</span></div>
-          <div class="note"><span class="bullet green"></span><span>当前不会写回仓库，确认后再接 GitHub 保存。</span></div>
+          <div class="note"><span class="bullet green"></span><span id="notePersistence">未做持久化确认，未来月份会继续按草稿推算。</span></div>
         </div>
       </aside>
     </div>
@@ -737,6 +738,8 @@
     const SCHEDULE_PATH = "data/schedule.json";
     const API_BASE = "https://api.github.com";
     let pendingMonth = null;
+    let persistedMonth = null;
+    let draftSeedState = null;
     let lastGeneratedTSV = "";
     let lastGeneratedMonthGridHTML = "";
     let lastGeneratedMonthGridPlain = "";
@@ -763,6 +766,43 @@
     function shiftMonthValue(year, month, delta) {
       const date = new Date(year, month - 1 + delta, 1);
       return { year: date.getFullYear(), month: date.getMonth() + 1 };
+    }
+
+    function monthSerial(year, month) {
+      return year * 12 + month - 1;
+    }
+
+    function monthFromSerial(serial) {
+      return { year: Math.floor(serial / 12), month: (serial % 12) + 1 };
+    }
+
+    function daysInMonthValue(year, month) {
+      return new Date(year, month, 0).getDate();
+    }
+
+    function monthStartDayOffset(fromYear, fromMonth, toYear, toMonth) {
+      const from = monthSerial(fromYear, fromMonth);
+      const to = monthSerial(toYear, toMonth);
+      if (from === to) return 0;
+
+      let days = 0;
+      if (to > from) {
+        for (let serial = from; serial < to; serial++) {
+          const item = monthFromSerial(serial);
+          days += daysInMonthValue(item.year, item.month);
+        }
+        return days;
+      }
+
+      for (let serial = to; serial < from; serial++) {
+        const item = monthFromSerial(serial);
+        days -= daysInMonthValue(item.year, item.month);
+      }
+      return days;
+    }
+
+    function wrapIndex(index, length) {
+      return ((index % length) + length) % length;
     }
 
     function nowTime() {
@@ -843,12 +883,16 @@
 
     function syncTopbar() {
       const hasToken = Boolean(localStorage.getItem(LS_TOKEN));
+      const saveText = pendingMonth ? "草稿未持久化" : (persistedMonth ? `${persistedMonth} 已持久化` : "待生成");
+      const badgeText = pendingMonth
+        ? "<strong>草稿</strong> · 未持久化"
+        : (persistedMonth ? "<strong>已确认</strong> · 仓库" : "<strong>待生成</strong> · 草稿");
       $("repoChip").innerHTML = `<strong>仓库</strong> · ${githubState.repoSlug || DEFAULT_REPO}`;
       $("tokenChip").innerHTML = `<strong>token</strong> · ${hasToken ? "已配置" : "未配置"}`;
-      $("saveChip").innerHTML = `<strong>保存</strong> · ${pendingMonth ? "未提交预览" : "待生成"}`;
+      $("saveChip").innerHTML = `<strong>保存</strong> · ${saveText}`;
       $("modeChip").innerHTML = `<strong>管理模式</strong> · ${$("manageDetails").open ? "展开" : "收起"}`;
-      $("previewBadge").innerHTML = `<strong>${pendingMonth ? "未保存" : "待生成"}</strong> · 预览`;
-      $("dirtyState").textContent = pendingMonth ? "未提交预览" : "待生成";
+      $("previewBadge").innerHTML = badgeText;
+      $("dirtyState").textContent = saveText;
     }
 
     function normalizeRepoSlug(value) {
@@ -1035,6 +1079,37 @@
       }));
     }
 
+    function cloneTeamsForDraft(teams) {
+      return teams.map((team) => ({
+        ...team,
+        members: [...team.members],
+        color: team.color
+      }));
+    }
+
+    function createDraftSeed(year, month, teams) {
+      draftSeedState = {
+        year,
+        month,
+        monthKey: formatMonthKey(year, month),
+        teams: cloneTeamsForDraft(teams)
+      };
+    }
+
+    function deriveTeamsForMonth(year, month) {
+      if (!draftSeedState) return null;
+      const dayOffset = monthStartDayOffset(draftSeedState.year, draftSeedState.month, year, month);
+      return draftSeedState.teams.map((team) => {
+        const lastIndex = team.members.indexOf(team.last);
+        const shiftedIndex = wrapIndex(lastIndex + dayOffset, team.members.length);
+        return {
+          ...team,
+          members: [...team.members],
+          last: team.members[shiftedIndex]
+        };
+      });
+    }
+
     function simplifyAssignments(dailyAssignments) {
       return dailyAssignments.map((item) => ({
         day: item.day,
@@ -1051,6 +1126,7 @@
     function buildScheduleDocument(state) {
       const now = new Date().toISOString();
       const teams = simplifyTeams(state.teams);
+      const configTeams = simplifyTeams(state.configTeams || state.teams);
       const monthEntry = {
         year: state.year,
         month: state.month,
@@ -1063,7 +1139,7 @@
       return {
         version: 1,
         updatedAt: now,
-        config: { teams },
+        config: { teams: configTeams },
         months: {
           [state.monthKey]: monthEntry
         }
@@ -1127,7 +1203,7 @@
     async function saveScheduleToGithub() {
       clearGithubMessage();
       if (!lastGeneratedState) {
-        throw new Error("请先生成排班，再保存到仓库。");
+        throw new Error("请先生成滚动草稿，再保存到仓库。");
       }
       const settings = readGithubSettings();
       const repoApiBase = getRepoApiBase();
@@ -1158,8 +1234,12 @@
         throw new Error(result?.message || `GitHub ${response.status}`);
       }
 
+      persistedMonth = lastGeneratedState.monthKey;
+      pendingMonth = null;
       persistGithubSettings(settings);
       persistTeamConfigToStorage();
+      $("notePersistence").textContent = `${lastGeneratedState.monthKey} 已持久化到仓库；继续翻到未来月份时会重新进入草稿态。`;
+      syncTopbar();
       setGithubMessage("ok", `已写入 ${settings.repoSlug}/${SCHEDULE_PATH}。`);
       return result;
     }
@@ -1275,6 +1355,8 @@
 
     function renderSummary(year, month, teams, counts, dailyAssignments) {
       const lastDay = dailyAssignments[dailyAssignments.length - 1];
+      const monthKey = formatMonthKey(year, month);
+      const seedKey = draftSeedState?.monthKey || monthKey;
       lastSummary = teams.map((team) => {
         const sorted = [...team.members].sort((a, b) => (counts[team.name][b] || 0) - (counts[team.name][a] || 0));
         const busiest = sorted[0];
@@ -1298,8 +1380,10 @@
         </tbody>
       `;
 
-      $("noteMonth").textContent = `${formatMonthKey(year, month)} 已生成，共 ${dailyAssignments.length} 天，${teams.length} 个团队。`;
+      $("noteMonth").textContent = `草稿从 ${seedKey} 起连续推算，当前展示 ${monthKey}，共 ${dailyAssignments.length} 天、${teams.length} 个团队。`;
       $("noteRoster").textContent = `当前花名册：${teams.map((team) => `${team.name}${team.members.length}人`).join("，")}。`;
+      $("draftRange").textContent = `${seedKey} 起，无上限向后`;
+      $("calendarSubtitle").textContent = `滚动草稿 · 起算 ${seedKey}`;
     }
 
     function renderLegends(teams) {
@@ -1401,7 +1485,11 @@
           throw new Error("请先填写正确的年份和月份。");
         }
 
-        const teams = buildTeamData();
+        const formTeams = buildTeamData();
+        if (options.resetSeed || !draftSeedState) {
+          createDraftSeed(year, month, formTeams);
+        }
+        const teams = deriveTeamsForMonth(year, month);
         const result = generateAssignments(year, month, teams);
         renderCalendar(year, month, result.startWeekday, result.daysInMonth, result.dailyAssignments);
         renderSummary(year, month, teams, result.counts, result.dailyAssignments);
@@ -1414,17 +1502,21 @@
           month,
           monthKey: formatMonthKey(year, month),
           teams,
+          configTeams: cloneTeamsForDraft(formTeams),
+          draftSeed: draftSeedState,
           result,
           summary: lastSummary,
           remotePreview: null
         };
         pendingMonth = formatMonthKey(year, month);
+        persistedMonth = null;
         updateMonthLabels(year, month);
         $("syncTime").textContent = nowTime();
+        $("notePersistence").textContent = "未做持久化确认，未来月份会继续按草稿推算。";
         syncTopbar();
 
         if (!options.silent) {
-          showOk("排班已生成。可以复制到飞书表格，也可以直接打印。");
+          showOk("滚动草稿已生成。可以继续翻未来月份检查，确认后再保存到仓库。");
         }
       } catch (error) {
         showError(error.message || "生成失败，请检查配置。");
@@ -1473,7 +1565,7 @@
 
     async function copyMonthGrid() {
       if (!lastGeneratedMonthGridHTML) {
-        showError("请先生成排班。");
+        showError("请先生成滚动草稿。");
         return;
       }
       try {
@@ -1494,7 +1586,7 @@
 
     async function copyTSV() {
       if (!lastGeneratedTSV) {
-        showError("请先生成排班。");
+        showError("请先生成滚动草稿。");
         return;
       }
       try {
@@ -1546,21 +1638,22 @@
       generateSchedule({ silent: true });
     }
 
-    $("generateBtn").addEventListener("click", () => generateSchedule());
+    $("generateBtn").addEventListener("click", () => generateSchedule({ resetSeed: true }));
     $("fillCurrentBtn").addEventListener("click", () => {
       setCurrentYearMonth();
       populateMonthPicker(Number($("year").value), Number($("month").value));
-      generateSchedule();
+      generateSchedule({ resetSeed: true });
     });
     $("resetDefaultsBtn").addEventListener("click", () => {
       applyDefaultMembers();
-      generateSchedule();
+      draftSeedState = null;
+      generateSchedule({ resetSeed: true });
     });
     $("prevMonthBtn").addEventListener("click", () => shiftMonth(-1));
     $("todayMonthBtn").addEventListener("click", () => {
       setCurrentYearMonth();
       populateMonthPicker(Number($("year").value), Number($("month").value));
-      generateSchedule();
+      generateSchedule({ resetSeed: true, silent: true });
     });
     $("nextMonthBtn").addEventListener("click", () => shiftMonth(1));
     $("monthPicker").addEventListener("change", (event) => {
