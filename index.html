@@ -154,6 +154,10 @@
     .chip-button.primary:hover { background: #e6efff; border-color: #b9ccff; color: #244bb4; }
     .chip-button.success:hover { background: #e4f8ee; border-color: #b8e5cd; color: #0b704e; }
     .chip-button.warn:hover { background: #ffe9b8; border-color: #edcb79; color: #805200; }
+    .admin-only, .nav-link.admin-nav, #generateSection, #manageDetails { display: none; }
+    body.admin-mode .admin-only { display: inline-flex; }
+    body.admin-mode .nav-link.admin-nav { display: flex; }
+    body.admin-mode #generateSection, body.admin-mode #manageDetails { display: block; }
 
     .layout {
       display: grid;
@@ -530,14 +534,14 @@
         <div class="brand-mark">值</div>
         <div class="brand-text">
           <div class="title">值班排班工作台</div>
-          <div class="sub">本地预览 · GitHub 文件持久化 · 负责人写入</div>
+          <div class="sub">公开查看 · 负责人管理模式保存到仓库</div>
         </div>
       </div>
       <div class="topbar-status">
-        <button class="chip chip-button primary" id="repoChip" type="button" title="打开 GitHub 设置"><strong>仓库</strong> · 本地预览</button>
-        <button class="chip chip-button success" id="tokenChip" type="button" title="打开 GitHub 设置"><strong>token</strong> · 未配置</button>
-        <button class="chip chip-button warn" id="saveChip" type="button" title="打开 GitHub 保存区"><strong>保存</strong> · 草稿未持久化</button>
-        <button class="chip chip-button" id="modeChip" type="button" title="展开或收起管理区"><strong>管理模式</strong> · 收起</button>
+        <button class="chip chip-button primary admin-only" id="repoChip" type="button" title="打开 GitHub 设置"><strong>仓库</strong> · 本地预览</button>
+        <button class="chip chip-button success admin-only" id="tokenChip" type="button" title="打开 GitHub 设置"><strong>token</strong> · 未配置</button>
+        <button class="chip chip-button warn admin-only" id="saveChip" type="button" title="打开 GitHub 保存区"><strong>保存</strong> · 未保存预览</button>
+        <button class="chip chip-button" id="modeChip" type="button" title="打开或收起管理功能"><strong>管理模式</strong> · 打开</button>
       </div>
     </header>
 
@@ -548,8 +552,8 @@
           <div class="nav">
             <button class="nav-link active" type="button" data-view="schedule"><span>排班表</span><strong>当前月</strong></button>
             <button class="nav-link" type="button" data-view="about"><span>系统介绍</span><strong>README</strong></button>
-            <button class="nav-link" type="button" data-view="manage"><span>成员与团队</span><strong>管理</strong></button>
-            <button class="nav-link" type="button" data-view="generate"><span>生成排班</span><strong>滚动草稿</strong></button>
+            <button class="nav-link admin-nav" type="button" data-view="manage"><span>成员与团队</span><strong>管理</strong></button>
+            <button class="nav-link admin-nav" type="button" data-view="generate"><span>后续排班</span><strong>预览</strong></button>
           </div>
         </div>
 
@@ -564,7 +568,7 @@
         </div>
 
         <div class="section" id="generateSection">
-          <div class="section-title">起算月份</div>
+          <div class="section-title">后续排班</div>
           <div class="field-grid">
             <div>
               <label for="year">年份</label>
@@ -576,7 +580,7 @@
             </div>
           </div>
           <div class="action-grid">
-            <button class="primary" id="generateBtn" type="button">生成滚动草稿</button>
+            <button class="primary" id="generateBtn" type="button">重新生成后续排班</button>
             <div class="button-row">
               <button id="fillCurrentBtn" type="button">回到今天</button>
               <button id="resetDefaultsBtn" type="button">恢复默认</button>
@@ -587,7 +591,7 @@
         </div>
 
         <details class="config" id="manageDetails">
-          <summary>成员与接龙</summary>
+          <summary>管理设置</summary>
           <div class="team-box" id="githubBox">
             <h3>GitHub 设置</h3>
             <label for="repoSlug">仓库</label>
@@ -688,7 +692,7 @@
           <h3>为什么这么设计</h3>
           <p>团队成员不需要登录。负责人只在可信电脑上配置一次 GitHub PAT，保存就是一次普通 commit，天然有历史记录。</p>
           <h3>当前版本</h3>
-          <p>这版先把 A 版工作台壳、月历生成、飞书复制和状态检查面板收紧。GitHub 读写可以继续在这个壳上接。</p>
+          <p>这版把普通查看和管理模式分开。团队成员看排班和复制内容，负责人展开管理模式后再改成员、重排后续月份和保存。</p>
         </section>
       </main>
 
@@ -697,8 +701,8 @@
           <div class="section-title">同步状态</div>
           <div class="status-line"><span>最近生成</span><strong id="syncTime">-</strong></div>
           <div class="status-line"><span>当前月份</span><strong id="inspectorMonth">-</strong></div>
-          <div class="status-line"><span>草稿范围</span><strong id="draftRange">未生成</strong></div>
-          <div class="status-line"><span>保存状态</span><strong id="dirtyState">草稿未持久化</strong></div>
+          <div class="status-line"><span>后续范围</span><strong id="draftRange">未生成</strong></div>
+          <div class="status-line"><span>保存状态</span><strong id="dirtyState">未保存预览</strong></div>
           <div class="status-line"><span>锁定冲突</span><strong>0</strong></div>
         </div>
         <div class="section">
@@ -711,7 +715,7 @@
           <div class="section-title">变更摘要</div>
           <div class="note"><span class="bullet blue"></span><span id="noteRoster">花名册来自左侧配置，本次只生成本地预览。</span></div>
           <div class="note"><span class="bullet amber"></span><span id="noteMonth">还没有生成排班。</span></div>
-          <div class="note"><span class="bullet green"></span><span id="notePersistence">未做持久化确认，未来月份会继续按草稿推算。</span></div>
+          <div class="note"><span class="bullet green"></span><span id="notePersistence">保存前只是预览，未来月份会继续接着推算。</span></div>
         </div>
       </aside>
     </div>
@@ -755,6 +759,7 @@
     let lastSummary = [];
     let githubState = { repoSlug: DEFAULT_REPO, token: "" };
     let lastGeneratedState = null;
+    let currentView = "schedule";
 
     function pad2(num) {
       return String(num).padStart(2, "0");
@@ -892,18 +897,48 @@
 
     function syncTopbar() {
       const hasToken = Boolean(localStorage.getItem(LS_TOKEN));
-      const saveText = pendingMonth ? "草稿未持久化" : (persistedMonth ? `${persistedMonth} 已持久化` : "待生成");
+      const adminOpen = $("manageDetails").open;
+      const saveText = pendingMonth ? "未保存预览" : (persistedMonth ? `${persistedMonth} 已保存` : "本地预览");
       const badgeText = pendingMonth
-        ? "<strong>草稿</strong> · 未持久化"
-        : (persistedMonth ? "<strong>已确认</strong> · 仓库" : "<strong>待生成</strong> · 草稿");
+        ? "<strong>预览</strong> · 未保存"
+        : (persistedMonth ? "<strong>已确认</strong> · 仓库" : "<strong>预览</strong> · 本地");
       $("repoChip").innerHTML = `<strong>仓库</strong> · ${githubState.repoSlug || DEFAULT_REPO}`;
       $("tokenChip").innerHTML = `<strong>token</strong> · ${hasToken ? "已配置" : "未配置"}`;
-      $("saveChip").className = `chip chip-button ${pendingMonth ? "warn" : (persistedMonth ? "success" : "warn")}`;
+      $("saveChip").className = `chip chip-button admin-only ${pendingMonth ? "warn" : (persistedMonth ? "success" : "warn")}`;
       $("saveChip").innerHTML = `<strong>保存</strong> · ${saveText}`;
-      $("modeChip").innerHTML = `<strong>管理模式</strong> · ${$("manageDetails").open ? "展开" : "收起"}`;
+      $("modeChip").innerHTML = `<strong>管理模式</strong> · ${adminOpen ? "已开启" : "打开"}`;
       $("previewBadge").className = `chip ${pendingMonth ? "warn" : (persistedMonth ? "success" : "warn")}`;
       $("previewBadge").innerHTML = badgeText;
       $("dirtyState").textContent = saveText;
+    }
+
+    function isAdminMode() {
+      return $("manageDetails").open;
+    }
+
+    function applyViewState() {
+      const admin = isAdminMode();
+      document.body.classList.toggle("admin-mode", admin);
+      if (!admin && (currentView === "manage" || currentView === "generate")) {
+        currentView = "schedule";
+      }
+
+      document.querySelectorAll(".nav-link").forEach((button) => {
+        button.classList.toggle("active", button.dataset.view === currentView);
+      });
+
+      const isAbout = currentView === "about";
+      $("aboutView").classList.toggle("visible", isAbout);
+      $("scheduleView").style.display = isAbout ? "none" : "";
+      $("summaryView").style.display = isAbout ? "none" : "";
+      $("generateSection").style.display = admin && !isAbout ? "" : "none";
+    }
+
+    function setAdminMode(open) {
+      $("manageDetails").open = Boolean(open);
+      updateStoredUiState();
+      applyViewState();
+      syncTopbar();
     }
 
     function normalizeRepoSlug(value) {
@@ -1029,8 +1064,10 @@
     }
 
     function openGithubSettings(targetId) {
+      currentView = "manage";
       $("manageDetails").open = true;
       updateStoredUiState();
+      applyViewState();
       $("githubBox").scrollIntoView({ block: "nearest" });
       if (targetId && $(targetId)) {
         $(targetId).focus();
@@ -1044,8 +1081,10 @@
     }
 
     function openPublishPanel() {
+      currentView = "manage";
       $("manageDetails").open = true;
       updateStoredUiState();
+      applyViewState();
       $("githubBox").scrollIntoView({ block: "nearest" });
       $("publishGithubBtn").focus();
       syncTopbar();
@@ -1222,7 +1261,7 @@
     async function saveScheduleToGithub() {
       clearGithubMessage();
       if (!lastGeneratedState) {
-        throw new Error("请先生成滚动草稿，再保存到仓库。");
+        throw new Error("请先重新生成后续排班，再保存到仓库。");
       }
       const settings = readGithubSettings();
       const repoApiBase = getRepoApiBase();
@@ -1257,7 +1296,7 @@
       pendingMonth = null;
       persistGithubSettings(settings);
       persistTeamConfigToStorage();
-      $("notePersistence").textContent = `${lastGeneratedState.monthKey} 已持久化到仓库；继续翻到未来月份时会重新进入草稿态。`;
+      $("notePersistence").textContent = `${lastGeneratedState.monthKey} 已保存到仓库；继续翻到未来月份时会按这个结果接着推算。`;
       syncTopbar();
       setGithubMessage("ok", `已写入 ${settings.repoSlug}/${SCHEDULE_PATH}。`);
       return result;
@@ -1399,10 +1438,10 @@
         </tbody>
       `;
 
-      $("noteMonth").textContent = `草稿从 ${seedKey} 起连续推算，当前展示 ${monthKey}，共 ${dailyAssignments.length} 天、${teams.length} 个团队。`;
+      $("noteMonth").textContent = `从 ${seedKey} 起连续推算，当前展示 ${monthKey}，共 ${dailyAssignments.length} 天、${teams.length} 个团队。`;
       $("noteRoster").textContent = `当前花名册：${teams.map((team) => `${team.name}${team.members.length}人`).join("，")}。`;
       $("draftRange").textContent = `${seedKey} 起，无上限向后`;
-      $("calendarSubtitle").textContent = `滚动草稿 · 起算 ${seedKey}`;
+      $("calendarSubtitle").textContent = `从 ${seedKey} 起自动接龙`;
     }
 
     function renderLegends(teams) {
@@ -1531,11 +1570,11 @@
         persistedMonth = null;
         updateMonthLabels(year, month);
         $("syncTime").textContent = nowTime();
-        $("notePersistence").textContent = "未做持久化确认，未来月份会继续按草稿推算。";
+        $("notePersistence").textContent = "保存前只是预览，未来月份会继续接着推算。";
         syncTopbar();
 
         if (!options.silent) {
-          showOk("滚动草稿已生成。可以继续翻未来月份检查，确认后再保存到仓库。");
+          showOk("后续排班已生成。可以继续翻未来月份检查，确认后再保存到仓库。");
         }
       } catch (error) {
         showError(error.message || "生成失败，请检查配置。");
@@ -1554,6 +1593,7 @@
 
     function syncGithubBoxState() {
       updateStoredUiState();
+      applyViewState();
       syncTopbar();
     }
 
@@ -1584,7 +1624,7 @@
 
     async function copyMonthGrid() {
       if (!lastGeneratedMonthGridHTML) {
-        showError("请先生成滚动草稿。");
+        showError("请先重新生成后续排班。");
         return;
       }
       try {
@@ -1605,7 +1645,7 @@
 
     async function copyTSV() {
       if (!lastGeneratedTSV) {
-        showError("请先生成滚动草稿。");
+        showError("请先重新生成后续排班。");
         return;
       }
       try {
@@ -1620,17 +1660,14 @@
     }
 
     function selectView(view) {
-      document.querySelectorAll(".nav-link").forEach((button) => {
-        button.classList.toggle("active", button.dataset.view === view);
-      });
-
-      $("aboutView").classList.toggle("visible", view === "about");
-      $("scheduleView").style.display = view === "about" ? "none" : "";
-      $("summaryView").style.display = view === "about" ? "none" : "";
-      $("generateSection").style.display = view === "about" ? "none" : "";
+      currentView = view;
+      if (view === "manage" || view === "generate") {
+        $("manageDetails").open = true;
+        updateStoredUiState();
+      }
+      applyViewState();
 
       if (view === "manage") {
-        $("manageDetails").open = true;
         $("manageDetails").scrollIntoView({ block: "nearest" });
       }
       if (view === "generate") {
@@ -1653,6 +1690,7 @@
           lastGeneratedState.remotePreview = remotePreview;
         }
       });
+      applyViewState();
       syncTopbar();
       generateSchedule({ silent: true });
     }
@@ -1692,8 +1730,10 @@
     $("tokenChip").addEventListener("click", () => openGithubSettings("githubToken"));
     $("saveChip").addEventListener("click", openPublishPanel);
     $("modeChip").addEventListener("click", () => {
-      $("manageDetails").open = !$("manageDetails").open;
-      syncGithubBoxState();
+      setAdminMode(!$("manageDetails").open);
+      if ($("manageDetails").open) {
+        $("manageDetails").scrollIntoView({ block: "nearest" });
+      }
     });
     $("saveGithubBtn").addEventListener("click", saveGithubSettings);
     $("testGithubBtn").addEventListener("click", handleTestGithub);
