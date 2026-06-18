@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="data:," />
   <title>值班排班工作台</title>
   <style>
     :root {
@@ -248,6 +249,17 @@
     details.config summary::after { content: "展开"; color: var(--sub); font-size: 12px; font-weight: 700; }
     details.config[open] summary::after { content: "收起"; }
 
+    .config-tip {
+      margin: 0 13px 12px;
+      padding: 10px 11px;
+      border: 1px solid #d5e3ff;
+      border-radius: var(--radius);
+      background: #f5f8ff;
+      color: #395783;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
     .team-box {
       margin: 0 13px 12px;
       padding: 11px;
@@ -257,6 +269,167 @@
     }
     .team-box h3 { margin: 0 0 10px; font-size: 13px; line-height: 1.2; }
     .team-box label:not(:first-of-type) { margin-top: 8px; }
+
+    .manage-workbench {
+      display: none;
+      overflow: visible;
+    }
+    .manage-workbench.visible { display: block; }
+    .team-config {
+      padding: 14px;
+      display: grid;
+      gap: 14px;
+    }
+    .team-config-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #e3e8ef;
+    }
+    .team-config-head h2 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.2;
+    }
+    .team-config-head p {
+      margin: 5px 0 0;
+      max-width: 72ch;
+      color: var(--sub);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .team-config-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+      flex: 0 0 auto;
+    }
+    .team-editor-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .team-editor {
+      border: 1px solid #dfe5ee;
+      border-radius: var(--radius);
+      background: #fbfcfe;
+      min-width: 0;
+      overflow: hidden;
+    }
+    .team-editor-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px;
+      border-bottom: 1px solid #e5ebf2;
+      background: #fff;
+    }
+    .team-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .team-index {
+      width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      background: #101828;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 800;
+      flex: 0 0 auto;
+    }
+    .team-title {
+      overflow: hidden;
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 800;
+      line-height: 1.2;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .team-count {
+      height: 24px;
+      padding: 0 8px;
+      border: 1px solid #dfe5ee;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      color: var(--sub);
+      background: #f8fafc;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .team-editor-body {
+      padding: 12px;
+      display: grid;
+      gap: 11px;
+    }
+    .team-form-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(128px, 0.7fr);
+      gap: 10px;
+    }
+    .member-field { display: grid; gap: 7px; }
+    .member-field textarea {
+      min-height: 150px;
+      font-size: 14px;
+    }
+    .member-preview {
+      min-height: 42px;
+      display: flex;
+      align-items: flex-start;
+      align-content: flex-start;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .member-chip {
+      min-height: 24px;
+      max-width: 100%;
+      padding: 3px 8px 3px 4px;
+      border: 1px solid #dfe5ee;
+      border-radius: 999px;
+      background: #fff;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    .member-order {
+      width: 17px;
+      height: 17px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      background: #eef4ff;
+      color: #2f58c7;
+      font-size: 11px;
+      font-weight: 800;
+      flex: 0 0 auto;
+    }
+    .empty-preview {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .inline-help {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
 
     .message {
       display: none;
@@ -532,6 +705,7 @@
       .layout, body.admin-mode .layout { grid-template-columns: 1fr; }
       .side, .inspector { position: static; }
       .footer-panel { grid-template-columns: 1fr; }
+      .team-editor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
 
     @media (max-width: 760px) {
@@ -541,6 +715,9 @@
       .topbar-status { width: 100%; justify-content: flex-start; }
       .chip { max-width: 100%; }
       .field-grid { grid-template-columns: 1fr; }
+      .team-config-head { display: grid; }
+      .team-config-actions { justify-content: flex-start; }
+      .team-editor-grid, .team-form-grid { grid-template-columns: 1fr; }
       .layout, .main, .panel, .card, .calendar-scroll { max-width: 100%; min-width: 0; }
       .main-header { flex-direction: column; }
       .header-controls { justify-content: flex-start; }
@@ -576,9 +753,9 @@
         </div>
       </div>
       <div class="topbar-status">
-        <button class="chip chip-button primary admin-only" id="repoChip" type="button" title="打开 GitHub 设置"><strong>仓库</strong> · 本地预览</button>
+        <button class="chip chip-button primary admin-only" id="repoChip" type="button" title="打开 GitHub 设置"><strong>仓库</strong> · 待读取</button>
         <button class="chip chip-button success admin-only" id="tokenChip" type="button" title="打开 GitHub 设置"><strong>token</strong> · 未配置</button>
-        <button class="chip chip-button warn admin-only" id="saveChip" type="button" title="打开 GitHub 保存区"><strong>保存</strong> · 未保存预览</button>
+        <button class="chip chip-button warn admin-only" id="saveChip" type="button" title="打开保存到仓库操作"><strong>待保存</strong> · 本机已生成</button>
       </div>
     </header>
 
@@ -589,8 +766,8 @@
           <div class="nav">
             <button class="nav-link active" type="button" data-view="schedule"><span>排班表</span><strong>当前月</strong></button>
             <button class="nav-link" type="button" data-view="about"><span>系统介绍</span><strong>README</strong></button>
-            <button class="nav-link admin-nav" type="button" data-view="manage"><span>成员与团队</span><strong>管理</strong></button>
-            <button class="nav-link admin-nav" type="button" data-view="generate"><span>后续排班</span><strong>预览</strong></button>
+            <button class="nav-link admin-nav" type="button" data-view="manage"><span>成员与团队</span><strong>配置</strong></button>
+            <button class="nav-link admin-nav" type="button" data-view="generate"><span>生成后续</span><strong>排班</strong></button>
           </div>
         </div>
 
@@ -618,7 +795,8 @@
         </div>
 
         <details class="config" id="manageDetails">
-          <summary>管理设置</summary>
+          <summary>保存到仓库</summary>
+          <p class="config-tip">团队成员看公开页，不需要 token。这里的 token 只存在你这台电脑，用来把确认后的排班写回 GitHub。</p>
           <div class="team-box" id="githubBox">
             <h3>GitHub 设置</h3>
             <label for="repoSlug">仓库</label>
@@ -627,39 +805,12 @@
             <input id="githubToken" type="password" placeholder="Fine-grained PAT，只存本机" />
             <p class="hint">保存到仓库时会用到。权限只勾这个仓库的 <code>Contents: Read and write</code>。</p>
             <div class="button-row">
-              <button class="primary" id="saveGithubBtn" type="button">保存设置</button>
+              <button class="primary" id="saveGithubBtn" type="button">保存到本机</button>
               <button id="testGithubBtn" type="button">测试权限</button>
               <button class="success" id="publishGithubBtn" type="button">保存到仓库</button>
               <button id="clearGithubBtn" type="button">清除 token</button>
             </div>
             <div class="message info" id="githubMessage"></div>
-          </div>
-          <div class="team-box">
-            <h3>团队 1</h3>
-            <label for="team1Name">团队名称</label>
-            <input id="team1Name" />
-            <label for="team1Members">成员名单</label>
-            <textarea id="team1Members" spellcheck="false"></textarea>
-            <label for="team1Last">上月最后一天值班人</label>
-            <input id="team1Last" placeholder="例如：郑刘利" />
-          </div>
-          <div class="team-box">
-            <h3>团队 2</h3>
-            <label for="team2Name">团队名称</label>
-            <input id="team2Name" />
-            <label for="team2Members">成员名单</label>
-            <textarea id="team2Members" spellcheck="false"></textarea>
-            <label for="team2Last">上月最后一天值班人</label>
-            <input id="team2Last" placeholder="例如：陈琦" />
-          </div>
-          <div class="team-box">
-            <h3>团队 3</h3>
-            <label for="team3Name">团队名称</label>
-            <input id="team3Name" />
-            <label for="team3Members">成员名单</label>
-            <textarea id="team3Members" spellcheck="false"></textarea>
-            <label for="team3Last">上月最后一天值班人</label>
-            <input id="team3Last" placeholder="例如：钟右梅" />
           </div>
         </details>
       </aside>
@@ -683,6 +834,107 @@
           </div>
           <div class="calendar-scroll">
             <div class="calendar-grid" id="calendarGrid"></div>
+          </div>
+        </section>
+
+        <section class="card manage-workbench" id="manageView">
+          <div class="team-config">
+            <div class="team-config-head">
+              <div>
+                <h2>团队配置</h2>
+                <p>每行一个成员，顺序就是接龙顺序。接龙起点选“上月最后一天值班人”，点“套用并查看排班”后，本页会从这个起点继续往后排。</p>
+              </div>
+              <div class="team-config-actions">
+                <button class="primary" id="applyTeamsBtn" type="button">套用并查看排班</button>
+                <button id="resetTeamsBtn" type="button">恢复默认团队</button>
+              </div>
+            </div>
+
+            <div class="team-editor-grid">
+              <section class="team-editor">
+                <div class="team-editor-head">
+                  <div class="team-title-wrap">
+                    <span class="team-index">1</span>
+                    <strong class="team-title" id="team1Title">前端</strong>
+                  </div>
+                  <span class="team-count" id="team1Count">0 人</span>
+                </div>
+                <div class="team-editor-body">
+                  <div class="team-form-grid">
+                    <div>
+                      <label for="team1Name">团队名称</label>
+                      <input id="team1Name" />
+                    </div>
+                    <div>
+                      <label for="team1Last">接龙起点</label>
+                      <select id="team1Last"></select>
+                    </div>
+                  </div>
+                  <div class="member-field">
+                    <label for="team1Members">成员名单</label>
+                    <textarea id="team1Members" spellcheck="false"></textarea>
+                    <p class="inline-help">按值班顺序从上到下填写。可以直接从表格里复制一列名字粘进来。</p>
+                  </div>
+                  <div class="member-preview" id="team1Preview"></div>
+                </div>
+              </section>
+
+              <section class="team-editor">
+                <div class="team-editor-head">
+                  <div class="team-title-wrap">
+                    <span class="team-index">2</span>
+                    <strong class="team-title" id="team2Title">后端</strong>
+                  </div>
+                  <span class="team-count" id="team2Count">0 人</span>
+                </div>
+                <div class="team-editor-body">
+                  <div class="team-form-grid">
+                    <div>
+                      <label for="team2Name">团队名称</label>
+                      <input id="team2Name" />
+                    </div>
+                    <div>
+                      <label for="team2Last">接龙起点</label>
+                      <select id="team2Last"></select>
+                    </div>
+                  </div>
+                  <div class="member-field">
+                    <label for="team2Members">成员名单</label>
+                    <textarea id="team2Members" spellcheck="false"></textarea>
+                    <p class="inline-help">成员顺序会直接影响后续日期分配；要换顺序，直接调整文本行。</p>
+                  </div>
+                  <div class="member-preview" id="team2Preview"></div>
+                </div>
+              </section>
+
+              <section class="team-editor">
+                <div class="team-editor-head">
+                  <div class="team-title-wrap">
+                    <span class="team-index">3</span>
+                    <strong class="team-title" id="team3Title">测试</strong>
+                  </div>
+                  <span class="team-count" id="team3Count">0 人</span>
+                </div>
+                <div class="team-editor-body">
+                  <div class="team-form-grid">
+                    <div>
+                      <label for="team3Name">团队名称</label>
+                      <input id="team3Name" />
+                    </div>
+                    <div>
+                      <label for="team3Last">接龙起点</label>
+                      <select id="team3Last"></select>
+                    </div>
+                  </div>
+                  <div class="member-field">
+                    <label for="team3Members">成员名单</label>
+                    <textarea id="team3Members" spellcheck="false"></textarea>
+                    <p class="inline-help">下面的标签用来核对顺序，提交到仓库前还是以文本框内容为准。</p>
+                  </div>
+                  <div class="member-preview" id="team3Preview"></div>
+                </div>
+              </section>
+            </div>
           </div>
         </section>
 
@@ -725,7 +977,7 @@
           <div class="status-line"><span>最近生成</span><strong id="syncTime">-</strong></div>
           <div class="status-line"><span>当前月份</span><strong id="inspectorMonth">-</strong></div>
           <div class="status-line"><span>后续范围</span><strong id="draftRange">未生成</strong></div>
-          <div class="status-line"><span>保存状态</span><strong id="dirtyState">未保存预览</strong></div>
+          <div class="status-line"><span>保存状态</span><strong id="dirtyState">待保存到仓库</strong></div>
           <div class="status-line"><span>锁定冲突</span><strong>0</strong></div>
         </div>
         <div class="section">
@@ -736,9 +988,9 @@
         </div>
         <div class="section">
           <div class="section-title">变更摘要</div>
-          <div class="note"><span class="bullet blue"></span><span id="noteRoster">花名册来自左侧配置，本次只生成本地预览。</span></div>
+          <div class="note"><span class="bullet blue"></span><span id="noteRoster">花名册来自团队配置，套用后会更新本页排班。</span></div>
           <div class="note"><span class="bullet amber"></span><span id="noteMonth">还没有生成排班。</span></div>
-          <div class="note"><span class="bullet green"></span><span id="notePersistence">保存前只是预览，未来月份会继续接着推算。</span></div>
+          <div class="note"><span class="bullet green"></span><span id="notePersistence">当前改动只在本机。点“保存到仓库”后，团队成员刷新公开页才能看到。</span></div>
         </div>
       </aside>
     </div>
@@ -861,16 +1113,84 @@
       $("month").value = now.getMonth() + 1;
     }
 
+    function setTeamLastOptions(index, members, selectedLast) {
+      const select = $(`team${index}Last`);
+      const current = String(selectedLast || "").trim().replace(/@/g, "");
+      select.innerHTML = "";
+
+      if (!members.length) {
+        const option = document.createElement("option");
+        option.value = "";
+        option.textContent = "先填写成员";
+        select.appendChild(option);
+        return;
+      }
+
+      members.forEach((member) => {
+        const option = document.createElement("option");
+        option.value = member;
+        option.textContent = member;
+        select.appendChild(option);
+      });
+
+      if (current && !members.includes(current)) {
+        const option = document.createElement("option");
+        option.value = current;
+        option.textContent = `${current}（不在名单中）`;
+        select.appendChild(option);
+      }
+
+      select.value = current || members[0];
+    }
+
+    function setTeamForm(index, team) {
+      const members = Array.isArray(team.members) ? team.members : [];
+      $(`team${index}Name`).value = team.name || "";
+      $(`team${index}Members`).value = members.join("\n");
+      setTeamLastOptions(index, members, team.last || "");
+    }
+
+    function renderMemberPreview(index, members) {
+      const preview = $(`team${index}Preview`);
+      if (!preview) return;
+      if (!members.length) {
+        preview.innerHTML = `<span class="empty-preview">还没有成员。每行填一个名字。</span>`;
+        return;
+      }
+      preview.innerHTML = members.map((member, memberIndex) => (
+        `<span class="member-chip"><span class="member-order">${memberIndex + 1}</span>${escapeHtml(member)}</span>`
+      )).join("");
+    }
+
+    function syncTeamCards() {
+      [1, 2, 3].forEach((index) => {
+        const name = $(`team${index}Name`).value.trim() || `团队 ${index}`;
+        const members = parseMembers($(`team${index}Members`).value);
+        const currentLast = $(`team${index}Last`).value.trim().replace(/@/g, "");
+        setTeamLastOptions(index, members, currentLast);
+        $(`team${index}Title`).textContent = name;
+        $(`team${index}Count`).textContent = `${members.length} 人`;
+        renderMemberPreview(index, members);
+      });
+    }
+
     function applyDefaultMembers() {
-      $("team1Name").value = DEFAULT_CONFIG.team1Name;
-      $("team1Members").value = DEFAULT_CONFIG.team1Members.join("\n");
-      $("team1Last").value = DEFAULT_CONFIG.team1Last;
-      $("team2Name").value = DEFAULT_CONFIG.team2Name;
-      $("team2Members").value = DEFAULT_CONFIG.team2Members.join("\n");
-      $("team2Last").value = DEFAULT_CONFIG.team2Last;
-      $("team3Name").value = DEFAULT_CONFIG.team3Name;
-      $("team3Members").value = DEFAULT_CONFIG.team3Members.join("\n");
-      $("team3Last").value = DEFAULT_CONFIG.team3Last;
+      setTeamForm(1, {
+        name: DEFAULT_CONFIG.team1Name,
+        members: DEFAULT_CONFIG.team1Members,
+        last: DEFAULT_CONFIG.team1Last
+      });
+      setTeamForm(2, {
+        name: DEFAULT_CONFIG.team2Name,
+        members: DEFAULT_CONFIG.team2Members,
+        last: DEFAULT_CONFIG.team2Last
+      });
+      setTeamForm(3, {
+        name: DEFAULT_CONFIG.team3Name,
+        members: DEFAULT_CONFIG.team3Members,
+        last: DEFAULT_CONFIG.team3Last
+      });
+      syncTeamCards();
     }
 
     function populateMonthPicker(baseYear, baseMonth) {
@@ -941,14 +1261,39 @@
       }, 1800);
     }
 
+    function getSaveStatus() {
+      if (pendingMonth) {
+        return {
+          tone: "warn",
+          label: "待保存",
+          detail: `${pendingMonth} 本机已生成`,
+          rail: "待保存到仓库"
+        };
+      }
+      if (persistedMonth) {
+        return {
+          tone: "success",
+          label: "已保存",
+          detail: `${persistedMonth} 仓库已更新`,
+          rail: "已保存到仓库"
+        };
+      }
+      return {
+        tone: "warn",
+        label: "未发布",
+        detail: "本机配置",
+        rail: "还没保存到仓库"
+      };
+    }
+
     function syncTopbar() {
       const hasToken = Boolean(localStorage.getItem(LS_TOKEN));
-      const saveText = pendingMonth ? "未保存预览" : (persistedMonth ? `${persistedMonth} 已保存` : "本地预览");
+      const saveStatus = getSaveStatus();
       $("repoChip").innerHTML = `<strong>仓库</strong> · ${githubState.repoSlug || DEFAULT_REPO}`;
       $("tokenChip").innerHTML = `<strong>token</strong> · ${hasToken ? "已配置" : "未配置"}`;
-      $("saveChip").className = `chip chip-button admin-only ${pendingMonth ? "warn" : (persistedMonth ? "success" : "warn")}`;
-      $("saveChip").innerHTML = `<strong>保存</strong> · ${saveText}`;
-      if ($("dirtyState")) $("dirtyState").textContent = saveText;
+      $("saveChip").className = `chip chip-button admin-only ${saveStatus.tone}`;
+      $("saveChip").innerHTML = `<strong>${saveStatus.label}</strong> · ${saveStatus.detail}`;
+      if ($("dirtyState")) $("dirtyState").textContent = saveStatus.rail;
     }
 
     function isAdminMode() {
@@ -967,9 +1312,11 @@
       });
 
       const isAbout = currentView === "about";
+      const isManage = admin && currentView === "manage";
       $("aboutView").classList.toggle("visible", isAbout);
-      $("scheduleView").style.display = isAbout ? "none" : "";
-      $("summaryView").style.display = isAbout ? "none" : "";
+      $("manageView").classList.toggle("visible", isManage);
+      $("scheduleView").style.display = isAbout || isManage ? "none" : "";
+      $("summaryView").style.display = isAbout || isManage ? "none" : "";
       $("generateSection").style.display = admin && !isAbout ? "" : "none";
       $("brandSub").textContent = admin ? "管理排班 · 保存到仓库" : "公开查看 · 排班数据来自仓库";
     }
@@ -1057,10 +1404,13 @@
       [1, 2, 3].forEach((index) => {
         const team = teams?.[index - 1];
         if (!team) return;
-        $(`team${index}Name`).value = team.name || "";
-        $(`team${index}Members`).value = Array.isArray(team.members) ? team.members.join("\n") : "";
-        $(`team${index}Last`).value = team.last || "";
+        setTeamForm(index, {
+          name: team.name || "",
+          members: Array.isArray(team.members) ? team.members : [],
+          last: team.last || ""
+        });
       });
+      syncTeamCards();
     }
 
     function persistTeamConfigToStorage() {
@@ -1089,7 +1439,7 @@
       const storedToken = String(localStorage.getItem(LS_TOKEN) || "").trim();
       applyGithubSettings({ repoSlug: storedRepo, token: storedToken });
       loadTeamConfigFromStorage();
-      $("manageDetails").open = isAdminMode();
+      $("manageDetails").open = false;
     }
 
     function openGithubSettings(targetId) {
@@ -1318,7 +1668,7 @@
       pendingMonth = null;
       persistGithubSettings(settings);
       persistTeamConfigToStorage();
-      $("notePersistence").textContent = `${lastGeneratedState.monthKey} 已保存到仓库；继续翻到未来月份时会按这个结果接着推算。`;
+      $("notePersistence").textContent = `${lastGeneratedState.monthKey} 已保存到仓库；未来月份会接着这个结果推算。`;
       syncTopbar();
       setGithubMessage("ok", `已写入 ${settings.repoSlug}/${SCHEDULE_FILE}。`);
       return result;
@@ -1572,14 +1922,16 @@
         persistedMonth = null;
         updateMonthLabels(year, month);
         $("syncTime").textContent = nowTime();
-        $("notePersistence").textContent = "保存前只是预览，未来月份会继续接着推算。";
+        $("notePersistence").textContent = "当前改动只在本机。点“保存到仓库”后，团队成员刷新公开页才能看到。";
         syncTopbar();
 
         if (!options.silent) {
           showOk("后续排班已生成。可以继续翻未来月份检查，确认后再保存到仓库。");
         }
+        return true;
       } catch (error) {
         showError(error.message || "生成失败，请检查配置。");
+        return false;
       }
     }
 
@@ -1656,13 +2008,10 @@
 
     function selectView(view) {
       currentView = view;
-      if (view === "manage" || view === "generate") {
-        $("manageDetails").open = true;
-      }
       applyViewState();
 
       if (view === "manage") {
-        $("manageDetails").scrollIntoView({ block: "nearest" });
+        $("manageView").scrollIntoView({ block: "start" });
       }
       if (view === "generate") {
         $("generateSection").scrollIntoView({ block: "nearest" });
@@ -1673,10 +2022,34 @@
       syncTopbar();
     }
 
+    function applyTeamChanges() {
+      draftSeedState = null;
+      syncTeamCards();
+      const ok = generateSchedule({ resetSeed: true });
+      if (!ok) return;
+      currentView = "schedule";
+      applyViewState();
+      $("scheduleView").scrollIntoView({ block: "start" });
+    }
+
+    function resetTeamConfig() {
+      applyDefaultMembers();
+      applyTeamChanges();
+    }
+
+    function bindTeamConfigEvents() {
+      [1, 2, 3].forEach((index) => {
+        $(`team${index}Name`).addEventListener("input", syncTeamCards);
+        $(`team${index}Members`).addEventListener("input", syncTeamCards);
+        $(`team${index}Last`).addEventListener("change", syncTeamCards);
+      });
+    }
+
     function boot() {
       setCurrentYearMonth();
       applyDefaultMembers();
       loadLocalUiState();
+      syncTeamCards();
       populateMonthPicker(Number($("year").value), Number($("month").value));
       updateMonthLabels(Number($("year").value), Number($("month").value));
       loadRemoteSchedulePreview().then((remotePreview) => {
@@ -1696,9 +2069,7 @@
       generateSchedule({ resetSeed: true });
     });
     $("resetDefaultsBtn").addEventListener("click", () => {
-      applyDefaultMembers();
-      draftSeedState = null;
-      generateSchedule({ resetSeed: true });
+      resetTeamConfig();
     });
     $("prevMonthBtn").addEventListener("click", () => shiftMonth(-1));
     $("todayMonthBtn").addEventListener("click", () => {
@@ -1719,6 +2090,8 @@
     $("repoChip").addEventListener("click", () => openGithubSettings("repoSlug"));
     $("tokenChip").addEventListener("click", () => openGithubSettings("githubToken"));
     $("saveChip").addEventListener("click", openPublishPanel);
+    $("applyTeamsBtn").addEventListener("click", applyTeamChanges);
+    $("resetTeamsBtn").addEventListener("click", resetTeamConfig);
     $("saveGithubBtn").addEventListener("click", saveGithubSettings);
     $("testGithubBtn").addEventListener("click", handleTestGithub);
     $("publishGithubBtn").addEventListener("click", handlePublishGithub);
@@ -1729,6 +2102,7 @@
     document.querySelectorAll(".nav-link").forEach((button) => {
       button.addEventListener("click", () => selectView(button.dataset.view));
     });
+    bindTeamConfigEvents();
 
     boot();
   </script>
