@@ -1056,11 +1056,12 @@
       const storedToken = String(localStorage.getItem(LS_TOKEN) || "").trim();
       applyGithubSettings({ repoSlug: storedRepo, token: storedToken });
       loadTeamConfigFromStorage();
-      $("manageDetails").open = localStorage.getItem(LS_GITHUB_BOX) === "1";
+      localStorage.removeItem(LS_GITHUB_BOX);
+      $("manageDetails").open = false;
     }
 
     function updateStoredUiState() {
-      localStorage.setItem(LS_GITHUB_BOX, $("manageDetails").open ? "1" : "0");
+      localStorage.removeItem(LS_GITHUB_BOX);
     }
 
     function openGithubSettings(targetId) {
