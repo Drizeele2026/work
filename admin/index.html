@@ -1504,23 +1504,28 @@
 
     function renderMonthGridCopy(year, month, teams, startWeekday, daysInMonth, dailyAssignments) {
       const matrix = buildMonthGridMatrix(year, month, teams, startWeekday, daysInMonth, dailyAssignments);
+      const cellStyle = "border:1px solid #d7dee7;padding:8px 10px;vertical-align:top;text-align:left;white-space:normal;line-height:1.45;font-size:13px;color:#0f172a;";
+      const headStyle = "border:1px solid #d7dee7;padding:8px 10px;background:#f5f7fa;text-align:center;font-weight:700;color:#0f172a;";
 
       lastGeneratedMonthGridHTML =
-        `<table border="1" cellspacing="0" cellpadding="8">` +
-        `<thead><tr>${weekdayNames.map((name) => `<th>${escapeHtml(name)}</th>`).join("")}</tr></thead>` +
+        `<table cellspacing="0" cellpadding="0" style="border-collapse:collapse;table-layout:fixed;width:980px;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;">` +
+        `<thead><tr>${weekdayNames.map((name) => `<th style="${headStyle}">${escapeHtml(name)}</th>`).join("")}</tr></thead>` +
         `<tbody>` +
         matrix.map((row) => {
           return `<tr>` + row.map((cell) => {
-            if (cell.empty) return "<td></td>";
+            if (cell.empty) return `<td style="${cellStyle}">&nbsp;</td>`;
             const lines = cell.text.split("\n");
-            return `<td><div><b>${escapeHtml(lines[0])}</b></div>${lines.slice(1).map(escapeHtml).join("<br>")}</td>`;
+            return `<td style="${cellStyle}"><strong>${escapeHtml(lines[0])}</strong><br>${lines.slice(1).map(escapeHtml).join("<br>")}</td>`;
           }).join("") + `</tr>`;
         }).join("") +
         `</tbody></table>`;
 
       const plainLines = [weekdayNames.join("\t")];
       matrix.forEach((row) => {
-        plainLines.push(row.map((cell) => cell.text.replace(/\n/g, " / ")).join("\t"));
+        plainLines.push(row.map((cell) => {
+          const text = cell.text.replace(/"/g, '""');
+          return text ? `"${text}"` : "";
+        }).join("\t"));
       });
       lastGeneratedMonthGridPlain = plainLines.join("\n");
     }
