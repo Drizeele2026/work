@@ -163,13 +163,11 @@
     .chip-button.primary:hover { background: #e6efff; border-color: #b9ccff; color: #244bb4; }
     .chip-button.success:hover { background: #e4f8ee; border-color: #b8e5cd; color: #0b704e; }
     .chip-button.warn:hover { background: #ffe9b8; border-color: #edcb79; color: #805200; }
-    .admin-only, .nav-link.admin-nav, #generateSection, #manageDetails, .inspector { display: none; }
+    .admin-only, .nav-link.admin-nav, #manageDetails, .inspector { display: none; }
     body.admin-mode .admin-only { display: inline-flex; }
     body.admin-mode .nav-link.admin-nav { display: flex; }
-    body.admin-mode #generateSection, body.admin-mode #manageDetails { display: block; }
+    body.admin-mode #manageDetails { display: block; }
     body.admin-mode .inspector { display: block; }
-    body.admin-mode.confirm-mode .layout { grid-template-columns: 224px minmax(0, 1fr); }
-    body.admin-mode.confirm-mode .inspector { display: none; }
 
     .layout {
       display: grid;
@@ -951,31 +949,13 @@
             <button class="nav-link active" type="button" data-view="schedule"><span>排班表</span><strong>当前月</strong></button>
             <button class="nav-link" type="button" data-view="about"><span>系统介绍</span><strong>README</strong></button>
             <button class="nav-link admin-nav" type="button" data-view="manage"><span>修改名单</span><strong>编辑</strong></button>
-            <button class="nav-link admin-nav" type="button" data-view="confirm"><span>预览发布</span><strong>发布</strong></button>
           </div>
         </div>
 
-        <div class="section" id="generateSection">
-          <div class="section-title">预览月份</div>
-          <div class="field-grid">
-            <div>
-              <label for="year">年份</label>
-              <input id="year" type="number" min="2020" max="2100" />
-            </div>
-            <div>
-              <label for="month">月份</label>
-              <input id="month" type="number" min="1" max="12" />
-            </div>
-          </div>
-          <div class="action-grid">
-            <div class="button-row">
-              <button id="fillCurrentBtn" type="button">回到今天</button>
-              <button id="backManageBtn" type="button">返回修改名单</button>
-            </div>
-          </div>
-          <div class="message error" id="errorBox"></div>
-          <div class="message ok" id="okBox"></div>
-        </div>
+        <input id="year" type="hidden" />
+        <input id="month" type="hidden" />
+        <div class="message error" id="errorBox"></div>
+        <div class="message ok" id="okBox"></div>
 
         <details class="config" id="manageDetails">
           <summary>GitHub 设置</summary>
@@ -989,7 +969,6 @@
             <p class="hint">发布到公开页时会用到。权限只勾这个仓库的 <code>Contents: Read and write</code>。</p>
             <div class="button-row">
               <button class="primary" id="saveGithubBtn" type="button">保存到本机</button>
-              <button id="testGithubBtn" type="button">测试权限</button>
               <button id="clearGithubBtn" type="button">清除 token</button>
             </div>
             <div class="message info" id="githubMessage"></div>
@@ -1024,16 +1003,17 @@
             <div class="team-config-head">
               <div>
                 <h2>修改值班名单</h2>
-                <p>按真实值班顺序整理名单。保存后先预览本月排班，确认没问题再发布到公开页。</p>
+                <p>按真实值班顺序整理名单。改完直接发布，系统会自动生成本月排班并更新公开页。</p>
               </div>
               <div class="team-config-actions">
-                <button class="primary" id="teamNextActionBtn" type="button">保存并预览排班</button>
+                <button class="primary" id="teamNextActionBtn" type="button">发布到公开页</button>
               </div>
             </div>
             <div class="status-strip" id="teamConfigStatus">
               <span><strong>名单还没发布</strong> · 改动只保存在本机，公开页不会变化。</span>
-              <span>下一步：预览排班</span>
+              <span>下一步：发布到公开页</span>
             </div>
+            <div class="message info" id="teamPublishMessage"></div>
 
             <div class="team-editor-grid">
               <section class="team-editor">
@@ -1123,54 +1103,6 @@
           </div>
         </section>
 
-        <section class="card confirm-workbench" id="confirmView">
-          <div class="confirm-layout">
-            <div class="confirm-main">
-              <div class="confirm-head">
-                <div>
-                  <h2>预览并发布</h2>
-                  <p>先看本月排班是否符合新名单。没问题后点发布，公开页才会更新。</p>
-                </div>
-              </div>
-              <div class="confirm-grid">
-                <section class="review-box">
-                  <h3>当前名单</h3>
-                  <div class="review-body">
-                    <div class="team-review" id="confirmTeamReview"></div>
-                    <p class="publish-note">这里只读展示。要改成员或接龙起点，请返回修改名单。</p>
-                    <button id="confirmBackManageBtn" type="button">返回修改名单</button>
-                  </div>
-                </section>
-                <section class="review-box">
-                  <h3>本月排班预览</h3>
-                  <div class="review-body">
-                    <div class="mini-grid">
-                      <div class="mini-row"><span>确认月份</span><strong id="confirmMonthLabel">-</strong></div>
-                      <div class="mini-row"><span>排班范围</span><strong id="confirmRangeLabel">-</strong></div>
-                      <div class="mini-row"><span>校验结果</span><strong id="confirmValidateLabel">待生成</strong></div>
-                    </div>
-                    <div class="mini-calendar" id="confirmCalendar"></div>
-                  </div>
-                </section>
-              </div>
-            </div>
-            <aside class="publish-box">
-              <h3>发布公开页</h3>
-              <div class="publish-body">
-                <p class="publish-note" id="publishStepText">先生成本月预览。确认没问题后，同一个按钮会变成“发布到公开页”。</p>
-                <div class="mini-grid">
-                  <div class="mini-row"><span>名单</span><strong id="publishConfigState">已保存</strong></div>
-                  <div class="mini-row"><span>本月预览</span><strong id="publishPreviewState">待生成</strong></div>
-                  <div class="mini-row"><span>公开页</span><strong id="publishRepoState">未更新</strong></div>
-                </div>
-                <button class="primary" id="confirmPublishBtn" type="button">生成预览</button>
-                <button id="confirmTestGithubBtn" type="button">测试 GitHub 权限</button>
-                <div class="message info" id="confirmMessage"></div>
-              </div>
-            </aside>
-          </div>
-        </section>
-
         <section class="card" id="summaryView">
           <div class="footer-panel">
             <div>
@@ -1223,7 +1155,7 @@
         </div>
         <div class="section">
           <div class="section-title">变更摘要</div>
-          <div class="note"><span class="bullet blue"></span><span id="noteRoster">名单来自后台，保存后先预览，再发布到公开页。</span></div>
+          <div class="note"><span class="bullet blue"></span><span id="noteRoster">名单来自后台，点击发布后会直接更新公开页。</span></div>
           <div class="note"><span class="bullet amber"></span><span id="noteMonth">还没有生成排班。</span></div>
           <div class="note"><span class="bullet green"></span><span id="notePersistence">公开页只读取仓库数据；发布成功后才会更新。</span></div>
         </div>
@@ -1436,154 +1368,41 @@
       if (messageType === "error") {
         status.className = "status-strip danger";
         status.innerHTML = `<span><strong>下一步：修正名单</strong> · 请检查团队名称、成员名单和接龙起点。</span><span>修正后再保存</span>`;
-        setTeamNextAction("修正后保存");
+        setTeamNextAction("修正后发布");
         return;
       }
       if (teamConfigDirty) {
         status.className = "status-strip";
-        status.innerHTML = `<span><strong>下一步：保存并预览</strong> · 当前改动只在表单里，点右上按钮后查看排班效果。</span><span>不会更新公开页</span>`;
-        setTeamNextAction("保存并预览排班");
+        status.innerHTML = `<span><strong>下一步：发布到公开页</strong> · 点击右上按钮会保存名单、生成本月排班并发布。</span><span>失败会直接提示原因</span>`;
+        setTeamNextAction("发布到公开页");
         return;
       }
       status.className = "status-strip success";
       const savedText = teamConfigSavedAt ? `已保存 ${teamConfigSavedAt}` : "已保存到本机";
-      status.innerHTML = `<span><strong>下一步：预览排班</strong> · 名单${savedText}，公开页还不会更新。</span><span>预览后发布</span>`;
-      setTeamNextAction("预览排班");
+      status.innerHTML = `<span><strong>下一步：发布到公开页</strong> · 名单${savedText}，点击后会更新公开页。</span><span>自动生成本月排班</span>`;
+      setTeamNextAction("发布到公开页");
     }
 
-    function resetConfirmChecks() {
-      updateConfirmPublishState();
-    }
+    function resetConfirmChecks() {}
 
-    function setConfirmMessage(type, message) {
-      const box = $("confirmMessage");
+    function setTeamPublishMessage(type, message) {
+      const box = $("teamPublishMessage");
       if (!box) return;
       box.className = `message ${type}`;
       box.style.display = "block";
       box.textContent = message;
     }
 
-    function clearConfirmMessage() {
-      const box = $("confirmMessage");
+    function clearTeamPublishMessage() {
+      const box = $("teamPublishMessage");
       if (!box) return;
       box.className = "message info";
       box.style.display = "none";
       box.textContent = "";
     }
 
-    function renderConfirmTeamReview() {
-      const box = $("confirmTeamReview");
-      if (!box) return;
-      const teams = readTeamFormState().filter((team) => team.name || team.members.length || team.last);
-      if (!teams.length) {
-        box.innerHTML = `<div class="empty-preview">还没有名单。</div>`;
-        return;
-      }
-      box.innerHTML = teams.map((team) => `
-        <div class="team-review-row">
-          <strong>${escapeHtml(team.name || "未命名团队")}<span>${team.members.length} 人</span></strong>
-          <span>接龙起点：${escapeHtml(team.last || "未选择")}</span>
-          <span>成员：${team.members.map(escapeHtml).join("、") || "未填写"}</span>
-        </div>
-      `).join("");
-    }
-
-    function renderConfirmCalendar() {
-      const calendar = $("confirmCalendar");
-      if (!calendar) return;
-      const heads = weekdayNames.map((name) => `<div class="mini-calendar-head">${name}</div>`).join("");
-      const monthKey = formatMonthKey(Number($("year").value), Number($("month").value));
-      const hasCurrentSchedule = lastGeneratedState?.monthKey === monthKey;
-      const savedCurrentMonth = persistedMonth === monthKey;
-      if (!hasCurrentSchedule || (!confirmationReady && !savedCurrentMonth)) {
-        const message = savedCurrentMonth
-          ? "这个月份已发布。打开公开页查看效果。"
-          : "还没有生成本月预览。请在右侧点击“生成预览”。";
-        calendar.innerHTML = `${heads}<div class="mini-calendar-empty">${message}</div>`;
-        return;
-      }
-      const { startWeekday, daysInMonth, dailyAssignments } = lastGeneratedState.result;
-      const totalCells = Math.ceil((startWeekday + daysInMonth) / 7) * 7;
-      const cells = [];
-      for (let index = 0; index < totalCells; index++) {
-        const day = index - startWeekday + 1;
-        if (day < 1 || day > daysInMonth) {
-          cells.push(`<div class="mini-calendar-cell empty"></div>`);
-          continue;
-        }
-        const data = dailyAssignments[day - 1];
-        const lines = data.teams.slice(0, 3).map((team) => `${escapeHtml(team.name)} ${escapeHtml(team.person)}`);
-        cells.push(`
-          <div class="mini-calendar-cell">
-            <strong>${day}</strong>
-            <div class="mini-calendar-lines">${lines.map((line) => `<span>${line}</span>`).join("")}</div>
-          </div>
-        `);
-      }
-      calendar.innerHTML = heads + cells.join("");
-    }
-
-    function renderConfirmView() {
-      renderConfirmTeamReview();
-      const year = Number($("year")?.value);
-      const month = Number($("month")?.value);
-      const monthKey = year && month ? formatMonthKey(year, month) : "-";
-      const hasCurrentSchedule = lastGeneratedState?.monthKey === monthKey;
-      const savedCurrentMonth = persistedMonth === monthKey;
-      const visibleSchedule = hasCurrentSchedule && (confirmationReady || savedCurrentMonth);
-      if ($("confirmMonthLabel")) $("confirmMonthLabel").textContent = monthKey;
-      if ($("confirmRangeLabel")) {
-        $("confirmRangeLabel").textContent = visibleSchedule
-          ? `${monthKey}，共 ${lastGeneratedState.result.daysInMonth} 天`
-          : "待生成";
-      }
-      if ($("confirmValidateLabel")) {
-        $("confirmValidateLabel").textContent = teamConfigDirty
-          ? "名单未保存"
-          : (savedCurrentMonth ? "已发布" : (visibleSchedule ? "可发布" : "待生成"));
-      }
-      renderConfirmCalendar();
-      updateConfirmPublishState();
-    }
-
-    function updateConfirmPublishState() {
-      const button = $("confirmPublishBtn");
-      if (!button) return;
-      const year = Number($("year")?.value);
-      const month = Number($("month")?.value);
-      const monthKey = year && month ? formatMonthKey(year, month) : "";
-      const previewReady = confirmationReady && lastGeneratedState?.monthKey === monthKey;
-      const savedCurrentMonth = persistedMonth === monthKey;
-      const visibleSchedule = lastGeneratedState?.monthKey === monthKey && (previewReady || savedCurrentMonth);
-      const hasToken = Boolean(readGithubSettings().token);
-      button.disabled = false;
-      if (teamConfigDirty) {
-        button.textContent = "先保存名单";
-        button.className = "primary";
-      } else if (previewReady && !hasToken) {
-        button.textContent = "配置 Token 后发布";
-        button.className = "primary";
-      } else if (previewReady) {
-        button.textContent = "发布到公开页";
-        button.className = "success";
-      } else if (savedCurrentMonth) {
-        button.textContent = "查看公开页";
-        button.className = "success";
-      } else {
-        button.textContent = "生成预览";
-        button.className = "primary";
-      }
-      if ($("publishConfigState")) $("publishConfigState").textContent = teamConfigDirty ? "未保存" : "已保存";
-      if ($("publishPreviewState")) $("publishPreviewState").textContent = savedCurrentMonth ? "已发布" : (visibleSchedule ? "已生成" : "待生成");
-      if ($("publishRepoState")) $("publishRepoState").textContent = savedCurrentMonth ? "已更新" : "未更新";
-      if ($("publishStepText")) {
-        $("publishStepText").textContent = teamConfigDirty
-          ? "名单还没保存。点击下方按钮会回到修改名单。"
-          : (previewReady
-            ? (hasToken ? "预览没问题后，点击下方按钮发布到公开页。" : "预览已生成，还差 GitHub Token。点击下方按钮去配置。")
-            : (savedCurrentMonth ? "这个月份已发布。下一步可以打开公开页检查效果。" : "先生成本月预览。确认没问题后，同一个按钮会变成“发布到公开页”。"));
-      }
-    }
+    function renderConfirmView() {}
+    function updateConfirmPublishState() {}
 
     function applyDefaultMembers() {
       setTeamForm(1, {
@@ -1639,18 +1458,21 @@
     }
 
     function showError(message) {
+      if (!$("errorBox") || !$("okBox")) return;
       $("errorBox").style.display = "block";
       $("errorBox").textContent = message;
       $("okBox").style.display = "none";
     }
 
     function showOk(message) {
+      if (!$("errorBox") || !$("okBox")) return;
       $("okBox").style.display = "block";
       $("okBox").textContent = message;
       $("errorBox").style.display = "none";
     }
 
     function clearMessages() {
+      if (!$("errorBox") || !$("okBox")) return;
       $("errorBox").style.display = "none";
       $("okBox").style.display = "none";
       $("errorBox").textContent = "";
@@ -1676,16 +1498,16 @@
       if (teamConfigDirty) {
         return {
           tone: "warn",
-          label: "待保存名单",
+          label: "待发布",
           detail: "名单已修改",
-          rail: "名单未保存"
+          rail: "名单未发布"
         };
       }
       if (pendingMonth) {
         return {
           tone: "warn",
           label: "待发布",
-          detail: `${pendingMonth} 预览已生成`,
+          detail: `${pendingMonth} 排班已生成`,
           rail: "待发布公开页"
         };
       }
@@ -1724,6 +1546,8 @@
       document.body.classList.toggle("admin-mode", admin);
       if (!admin && (currentView === "manage" || currentView === "confirm")) {
         currentView = "schedule";
+      } else if (admin && currentView === "confirm") {
+        currentView = "manage";
       }
 
       document.querySelectorAll(".nav-link").forEach((button) => {
@@ -1732,14 +1556,12 @@
 
       const isAbout = currentView === "about";
       const isManage = admin && currentView === "manage";
-      const isConfirm = admin && currentView === "confirm";
+      const isConfirm = false;
       document.body.classList.toggle("confirm-mode", isConfirm);
       $("aboutView").classList.toggle("visible", isAbout);
       $("manageView").classList.toggle("visible", isManage);
-      $("confirmView").classList.toggle("visible", isConfirm);
       $("scheduleView").style.display = isAbout || isManage || isConfirm ? "none" : "";
       $("summaryView").style.display = isAbout || isManage || isConfirm ? "none" : "";
-      $("generateSection").style.display = admin && isConfirm ? "" : "none";
       $("brandSub").textContent = admin ? "管理排班 · 修改名单并发布" : "公开查看 · 排班数据来自仓库";
       renderConfirmView();
     }
@@ -1881,17 +1703,10 @@
     }
 
     function openPublishPanel() {
-      if (teamConfigDirty) {
-        currentView = "manage";
-        applyViewState();
-        $("teamNextActionBtn")?.focus();
-        $("manageView").scrollIntoView({ block: "start" });
-        syncTopbar();
-        return;
-      }
-      currentView = "confirm";
+      currentView = "manage";
       applyViewState();
-      $("confirmView").scrollIntoView({ block: "start" });
+      $("teamNextActionBtn")?.focus();
+      $("manageView").scrollIntoView({ block: "start" });
       syncTopbar();
     }
 
@@ -2009,18 +1824,6 @@
       };
     }
 
-    async function testGithubAccess() {
-      clearGithubMessage();
-      const repoApiBase = getRepoApiBase();
-      const data = await githubRequestJson(`${repoApiBase}`);
-      const contents = data.permissions?.contents || "unknown";
-      const message = contents === "write" || contents === "admin"
-        ? `仓库可访问，Contents 权限是 ${contents}。`
-        : `仓库可访问，当前 Contents 权限是 ${contents}，保存时可能会失败。`;
-      setGithubMessage(contents === "write" || contents === "admin" ? "ok" : "info", message);
-      return data;
-    }
-
     async function loadRemoteSchedulePreview() {
       try {
         const response = await fetch(`${getScheduleUrl()}?_=${Date.now()}`, { cache: "no-store" });
@@ -2066,7 +1869,7 @@
     async function saveScheduleToGithub() {
       clearGithubMessage();
       if (!lastGeneratedState) {
-        throw new Error("请先生成本月预览，再发布到公开页。");
+        throw new Error("请先生成本月排班，再发布到公开页。");
       }
       const settings = readGithubSettings();
       const repoApiBase = getRepoApiBase();
@@ -2329,7 +2132,7 @@
           throw new Error("请先填写正确的年份和月份。");
         }
         if (!options.passive && teamConfigDirty) {
-          throw new Error("名单还没保存。请先回到修改名单点“保存并预览排班”。");
+          throw new Error("名单还没保存。请先发布，系统会自动保存名单。");
         }
 
         const formTeams = buildTeamData();
@@ -2362,13 +2165,13 @@
         updateMonthLabels(year, month);
         $("syncTime").textContent = nowTime();
         $("notePersistence").textContent = options.passive
-          ? "当前只是查看排班。要发布变更，请进入“预览发布”。"
-          : "本月预览已生成。核对无误后发布到公开页。";
+          ? "当前只是查看排班。要发布变更，请进入“修改名单”。"
+          : "本月排班已生成，正在准备发布到公开页。";
         renderConfirmView();
         syncTopbar();
 
         if (!options.silent) {
-          showOk("本月预览已生成。请核对后再发布。");
+          showOk("本月排班已生成。");
         }
         return true;
       } catch (error) {
@@ -2397,82 +2200,6 @@
       persistGithubSettings(settings);
       setGithubMessage("ok", `已保存设置到本机，仓库：${settings.repoSlug}。`);
       updateConfirmPublishState();
-    }
-
-    async function handleTestGithub() {
-      try {
-        const data = await testGithubAccess();
-        const repoSlug = readGithubSettings().repoSlug;
-        setGithubMessage("ok", `仓库 ${repoSlug} 已连通，默认分支是 ${data.default_branch || "未知"}。`);
-      } catch (error) {
-        setGithubMessage("error", error.message || "测试失败。");
-      }
-    }
-
-    async function handlePublishGithub() {
-      try {
-        const result = await saveScheduleToGithub();
-        setGithubMessage("ok", `已发布到公开页，提交：${result.commit?.sha ? result.commit.sha.slice(0, 7) : "完成"}。`);
-      } catch (error) {
-        setGithubMessage("error", error.message || "保存失败。");
-      }
-    }
-
-    async function handleConfirmTestGithub() {
-      clearConfirmMessage();
-      try {
-        const data = await testGithubAccess();
-        setConfirmMessage("ok", `GitHub 权限通过，默认分支是 ${data.default_branch || "未知"}。`);
-      } catch (error) {
-        setConfirmMessage("error", error.message || "测试失败。");
-      } finally {
-        updateConfirmPublishState();
-      }
-    }
-
-    async function handleConfirmPublish() {
-      clearConfirmMessage();
-      try {
-        const year = Number($("year").value);
-        const month = Number($("month").value);
-        const monthKey = year && month ? formatMonthKey(year, month) : "";
-        updateConfirmPublishState();
-        if (teamConfigDirty) {
-          currentView = "manage";
-          applyViewState();
-          $("teamNextActionBtn")?.focus();
-          $("manageView").scrollIntoView({ block: "start" });
-          showToast("先保存名单");
-          return;
-        }
-        if (persistedMonth === monthKey && (!confirmationReady || lastGeneratedState?.monthKey !== monthKey)) {
-          window.open(getPublicPageUrl(), "_blank", "noopener");
-          return;
-        }
-        if (!confirmationReady || lastGeneratedState?.monthKey !== monthKey) {
-          const ok = generateSchedule({ resetSeed: true });
-          if (!ok) {
-            throw new Error("本月预览生成失败，请检查页面提示。");
-          }
-          setConfirmMessage("ok", "本月预览已生成。请核对中间预览，没问题再点“发布到公开页”。");
-          showToast("本月预览已生成");
-          renderConfirmView();
-          return;
-        }
-        if (!readGithubSettings().token) {
-          openGithubSettings("githubToken");
-          setConfirmMessage("info", "还差 GitHub Token。填写并保存到本机后，再点“发布到公开页”。");
-          return;
-        }
-        const result = await saveScheduleToGithub();
-        confirmationReady = false;
-        resetConfirmChecks();
-        setConfirmMessage("ok", `已发布到公开页，提交：${result.commit?.sha ? result.commit.sha.slice(0, 7) : "完成"}。下一步可以打开公开页检查效果。`);
-        showToast("已发布到公开页");
-        renderConfirmView();
-      } catch (error) {
-        setConfirmMessage("error", error.message || "发布失败。");
-      }
     }
 
     async function copyMonthGrid() {
@@ -2507,14 +2234,12 @@
     }
 
     function selectView(view) {
+      if (view === "confirm") view = "manage";
       currentView = view;
       applyViewState();
 
       if (view === "manage") {
         $("manageView").scrollIntoView({ block: "start" });
-      }
-      if (view === "confirm") {
-        $("confirmView").scrollIntoView({ block: "start" });
       }
       if (view === "about") {
         $("aboutView").scrollIntoView({ block: "start" });
@@ -2522,33 +2247,42 @@
       syncTopbar();
     }
 
-    function handleTeamNextAction() {
-      if (!teamConfigDirty) {
-        goConfirmView();
-        return;
+    async function handleTeamNextAction() {
+      const button = $("teamNextActionBtn");
+      clearTeamPublishMessage();
+      if (button) {
+        button.disabled = true;
+        button.textContent = "发布中...";
       }
       try {
         buildTeamData();
         persistTeamConfigToStorage();
-        pendingMonth = null;
-        persistedMonth = null;
-        lastGeneratedState = null;
+        setCurrentYearMonth();
+        populateMonthPicker(Number($("year").value), Number($("month").value));
+        updateMonthLabels(Number($("year").value), Number($("month").value));
+        const ok = generateSchedule({ resetSeed: true, silent: true });
+        if (!ok) {
+          throw new Error("本月排班生成失败，请检查名单和接龙起点。");
+        }
+        if (!readGithubSettings().token) {
+          openGithubSettings("githubToken");
+          setTeamPublishMessage("info", "还差 GitHub Token。填写并保存到本机后，再点“发布到公开页”。");
+          showToast("先配置 Token", "error");
+          return;
+        }
+        const result = await saveScheduleToGithub();
         confirmationReady = false;
-        draftSeedState = null;
         resetConfirmChecks();
-        goConfirmView();
-        setConfirmMessage("info", "名单已保存。下一步生成本月预览。");
-        showToast("已保存，进入预览发布");
+        setTeamPublishMessage("ok", `已发布到公开页，提交：${result.commit?.sha ? result.commit.sha.slice(0, 7) : "完成"}。`);
+        showToast("已发布到公开页");
       } catch (error) {
-        renderTeamConfigStatus("error");
-        showToast(error.message || "名单有问题", "error");
+        setTeamPublishMessage("error", error.message || "发布失败。");
+        showToast(error.message || "发布失败", "error");
+      } finally {
+        if (button) button.disabled = false;
+        renderTeamConfigStatus();
+        syncTopbar();
       }
-    }
-
-    function goConfirmView() {
-      currentView = "confirm";
-      applyViewState();
-      $("confirmView").scrollIntoView({ block: "start" });
     }
 
     function bindTeamConfigEvents() {
@@ -2586,13 +2320,6 @@
       generateSchedule({ silent: true, passive: true });
     }
 
-    $("fillCurrentBtn").addEventListener("click", () => {
-      setCurrentYearMonth();
-      populateMonthPicker(Number($("year").value), Number($("month").value));
-      updateMonthLabels(Number($("year").value), Number($("month").value));
-      renderConfirmView();
-    });
-    $("backManageBtn").addEventListener("click", () => selectView("manage"));
     $("prevMonthBtn").addEventListener("click", () => shiftMonth(-1));
     $("todayMonthBtn").addEventListener("click", () => {
       setCurrentYearMonth();
@@ -2614,10 +2341,6 @@
     $("saveChip").addEventListener("click", openPublishPanel);
     $("teamNextActionBtn").addEventListener("click", handleTeamNextAction);
     $("saveGithubBtn").addEventListener("click", saveGithubSettings);
-    $("testGithubBtn").addEventListener("click", handleTestGithub);
-    $("confirmTestGithubBtn").addEventListener("click", handleConfirmTestGithub);
-    $("confirmPublishBtn").addEventListener("click", handleConfirmPublish);
-    $("confirmBackManageBtn").addEventListener("click", () => selectView("manage"));
     $("clearGithubBtn").addEventListener("click", () => {
       persistGithubSettings({ repoSlug: readGithubSettings().repoSlug, token: "" });
       setGithubMessage("ok", "token 已清空。");
