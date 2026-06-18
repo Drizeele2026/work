@@ -493,6 +493,12 @@
     .about h3 { margin: 18px 0 8px; color: var(--ink); font-size: 15px; }
     .about p { margin: 0 0 10px; max-width: 72ch; }
     .about ul { margin: 0 0 12px; padding-left: 1.2em; max-width: 78ch; }
+    .about a {
+      color: #1f5eff;
+      font-weight: 800;
+      text-decoration: none;
+    }
+    .about a:hover { text-decoration: underline; }
     .about code {
       padding: 2px 5px;
       border-radius: 5px;
@@ -704,6 +710,7 @@
             <li>页面文件是 <code>index.html</code>。</li>
             <li>排班数据建议放在 <code>data/schedule.json</code>。</li>
             <li>介绍内容可以放在 <code>data/about.md</code>，后续再接页面渲染。</li>
+            <li>仓库地址是 <a href="https://github.com/Drizeele2026/work" target="_blank" rel="noopener noreferrer">Drizeele2026/work</a>。</li>
           </ul>
           <h3>为什么这么设计</h3>
           <p>团队成员不需要登录。负责人只在可信电脑上配置一次 GitHub PAT，保存就是一次普通 commit，天然有历史记录。</p>
