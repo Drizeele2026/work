@@ -1,11 +1,775 @@
 {
   "version": 1,
+  "updatedAt": "2026-06-18T07:10:09.915Z",
   "config": {
     "teams": [
-      { "name": "前端", "members": ["郑刘利", "林颖", "林胜聪", "刘红辉", "方思琪"] },
-      { "name": "后端", "members": ["綦鹏", "陈琦", "张凯", "张家南", "李尚忠", "俞如滃", "杨朋举", "郭绍东"] },
-      { "name": "测试", "members": ["许绵绵", "郑成清", "谭贤", "钟右梅"] }
+      {
+        "name": "前端",
+        "members": [
+          "郑刘利",
+          "林颖",
+          "林胜聪",
+          "刘红辉",
+          "方思琪"
+        ],
+        "last": "郑刘利",
+        "color": "blue"
+      },
+      {
+        "name": "后端",
+        "members": [
+          "綦鹏",
+          "陈琦",
+          "张凯",
+          "张家南",
+          "李尚忠",
+          "俞如滃",
+          "杨朋举",
+          "郭绍东"
+        ],
+        "last": "陈琦",
+        "color": "green"
+      },
+      {
+        "name": "测试",
+        "members": [
+          "许绵绵",
+          "郑成清",
+          "谭贤",
+          "钟右梅"
+        ],
+        "last": "钟右梅",
+        "color": "violet"
+      }
     ]
   },
-  "months": {}
+  "months": {
+    "2026-06": {
+      "year": 2026,
+      "month": 6,
+      "generatedAt": "2026-06-18T07:10:09.915Z",
+      "teams": [
+        {
+          "name": "前端",
+          "members": [
+            "郑刘利",
+            "林颖",
+            "林胜聪",
+            "刘红辉",
+            "方思琪"
+          ],
+          "last": "郑刘利",
+          "color": "blue"
+        },
+        {
+          "name": "后端",
+          "members": [
+            "綦鹏",
+            "陈琦",
+            "张凯",
+            "张家南",
+            "李尚忠",
+            "俞如滃",
+            "杨朋举",
+            "郭绍东"
+          ],
+          "last": "陈琦",
+          "color": "green"
+        },
+        {
+          "name": "测试",
+          "members": [
+            "许绵绵",
+            "郑成清",
+            "谭贤",
+            "钟右梅"
+          ],
+          "last": "钟右梅",
+          "color": "violet"
+        }
+      ],
+      "dailyAssignments": [
+        {
+          "day": 1,
+          "dateStr": "2026/06/01",
+          "weekdayStr": "周一",
+          "teams": [
+            {
+              "name": "前端",
+              "person": "林颖",
+              "color": "blue"
+            },
+            {
+              "name": "后端",
+              "person": "张凯",
+              "color": "green"
+            },
+            {
+              "name": "测试",
+              "person": "许绵绵",
+              "color": "violet"
+            }
+          ]
+        },
+        {
+          "day": 2,
+          "dateStr": "2026/06/02",
+          "weekdayStr": "周二",
+          "teams": [
+            {
+              "name": "前端",
+              "person": "林胜聪",
+              "color": "blue"
+            },
+            {
+              "name": "后端",
+              "person": "张家南",
+              "color": "green"
+            },
+            {
+              "name": "测试",
+              "person": "郑成清",
+              "color": "violet"
+            }
+          ]
+        },
+        {
+          "day": 3,
+          "dateStr": "2026/06/03",
+          "weekdayStr": "周三",
+          "teams": [
+            {
+              "name": "前端",
+              "person": "刘红辉",
+              "color": "blue"
+            },
+            {
+              "name": "后端",
+              "person": "李尚忠",
+              "color": "green"
+            },
+            {
+              "name": "测试",
+              "person": "谭贤",
+              "color": "violet"
+            }
+          ]
+        },
+        {
+          "day": 4,
+          "dateStr": "2026/06/04",
+          "weekdayStr": "周四",
+          "teams": [
+            {
+              "name": "前端",
+              "person": "方思琪",
+              "color": "blue"
+            },
+            {
+              "name": "后端",
+              "person": "俞如滃",
+              "color": "green"
+            },
+            {
+              "name": "测试",
+              "person": "钟右梅",
+              "color": "violet"
+            }
+          ]
+        },
+        {
+          "day": 5,
+          "dateStr": "2026/06/05",
+          "weekdayStr": "周五",
+          "teams": [
+            {
+              "name": "前端",
+              "person": "郑刘利",
+              "color": "blue"
+            },
+            {
+              "name": "后端",
+              "person": "杨朋举",
+              "color": "green"
+            },
+            {
+              "name": "测试",
+              "person": "许绵绵",
+              "color": "violet"
+            }
+          ]
+        },
+        {
+          "day": 6,
+          "dateStr": "2026/06/06",
+          "weekdayStr": "周六",
+          "teams": [
+            {
+              "name": "前端",
+              "person": "林颖",
+              "color": "blue"
+            },
+            {
+              "name": "后端",
+              "person": "郭绍东",
+              "color": "green"
+            },
+            {
+              "name": "测试",
+              "person": "郑成清",
+              "color": "violet"
+            }
+          ]
+        },
+        {
+          "day": 7,
+          "dateStr": "2026/06/07",
+          "weekdayStr": "周日",
+          "teams": [
+            {
+              "name": "前端",
+              "person": "林胜聪",
+              "color": "blue"
+            },
+            {
+              "name": "后端",
+              "person": "綦鹏",
+              "color": "green"
+            },
+            {
+              "name": "测试",
+              "person": "谭贤",
+              "color": "violet"
+            }
+          ]
+        },
+        {
+          "day": 8,
+          "dateStr": "2026/06/08",
+          "weekdayStr": "周一",
+          "teams": [
+            {
+              "name": "前端",
+              "person": "刘红辉",
+              "color": "blue"
+            },
+            {
+              "name": "后端",
+              "person": "陈琦",
+              "color": "green"
+            },
+            {
+              "name": "测试",
+              "person": "钟右梅",
+              "color": "violet"
+            }
+          ]
+        },
+        {
+          "day": 9,
+          "dateStr": "2026/06/09",
+          "weekdayStr": "周二",
+          "teams": [
+            {
+              "name": "前端",
+              "person": "方思琪",
+              "color": "blue"
+            },
+            {
+              "name": "后端",
+              "person": "张凯",
+              "color": "green"
+            },
+            {
+              "name": "测试",
+              "person": "许绵绵",
+              "color": "violet"
+            }
+          ]
+        },
+        {
+          "day": 10,
+          "dateStr": "2026/06/10",
+          "weekdayStr": "周三",
+          "teams": [
+            {
+              "name": "前端",
+              "person": "郑刘利",
+              "color": "blue"
+            },
+            {
+              "name": "后端",
+              "person": "张家南",
+              "color": "green"
+            },
+            {
+              "name": "测试",
+              "person": "郑成清",
+              "color": "violet"
+            }
+          ]
+        },
+        {
+          "day": 11,
+          "dateStr": "2026/06/11",
+          "weekdayStr": "周四",
+          "teams": [
+            {
+              "name": "前端",
+              "person": "林颖",
+              "color": "blue"
+            },
+            {
+              "name": "后端",
+              "person": "李尚忠",
+              "color": "green"
+            },
+            {
+              "name": "测试",
+              "person": "谭贤",
+              "color": "violet"
+            }
+          ]
+        },
+        {
+          "day": 12,
+          "dateStr": "2026/06/12",
+          "weekdayStr": "周五",
+          "teams": [
+            {
+              "name": "前端",
+              "person": "林胜聪",
+              "color": "blue"
+            },
+            {
+              "name": "后端",
+              "person": "俞如滃",
+              "color": "green"
+            },
+            {
+              "name": "测试",
+              "person": "钟右梅",
+              "color": "violet"
+            }
+          ]
+        },
+        {
+          "day": 13,
+          "dateStr": "2026/06/13",
+          "weekdayStr": "周六",
+          "teams": [
+            {
+              "name": "前端",
+              "person": "刘红辉",
+              "color": "blue"
+            },
+            {
+              "name": "后端",
+              "person": "杨朋举",
+              "color": "green"
+            },
+            {
+              "name": "测试",
+              "person": "许绵绵",
+              "color": "violet"
+            }
+          ]
+        },
+        {
+          "day": 14,
+          "dateStr": "2026/06/14",
+          "weekdayStr": "周日",
+          "teams": [
+            {
+              "name": "前端",
+              "person": "方思琪",
+              "color": "blue"
+            },
+            {
+              "name": "后端",
+              "person": "郭绍东",
+              "color": "green"
+            },
+            {
+              "name": "测试",
+              "person": "郑成清",
+              "color": "violet"
+            }
+          ]
+        },
+        {
+          "day": 15,
+          "dateStr": "2026/06/15",
+          "weekdayStr": "周一",
+          "teams": [
+            {
+              "name": "前端",
+              "person": "郑刘利",
+              "color": "blue"
+            },
+            {
+              "name": "后端",
+              "person": "綦鹏",
+              "color": "green"
+            },
+            {
+              "name": "测试",
+              "person": "谭贤",
+              "color": "violet"
+            }
+          ]
+        },
+        {
+          "day": 16,
+          "dateStr": "2026/06/16",
+          "weekdayStr": "周二",
+          "teams": [
+            {
+              "name": "前端",
+              "person": "林颖",
+              "color": "blue"
+            },
+            {
+              "name": "后端",
+              "person": "陈琦",
+              "color": "green"
+            },
+            {
+              "name": "测试",
+              "person": "钟右梅",
+              "color": "violet"
+            }
+          ]
+        },
+        {
+          "day": 17,
+          "dateStr": "2026/06/17",
+          "weekdayStr": "周三",
+          "teams": [
+            {
+              "name": "前端",
+              "person": "林胜聪",
+              "color": "blue"
+            },
+            {
+              "name": "后端",
+              "person": "张凯",
+              "color": "green"
+            },
+            {
+              "name": "测试",
+              "person": "许绵绵",
+              "color": "violet"
+            }
+          ]
+        },
+        {
+          "day": 18,
+          "dateStr": "2026/06/18",
+          "weekdayStr": "周四",
+          "teams": [
+            {
+              "name": "前端",
+              "person": "刘红辉",
+              "color": "blue"
+            },
+            {
+              "name": "后端",
+              "person": "张家南",
+              "color": "green"
+            },
+            {
+              "name": "测试",
+              "person": "郑成清",
+              "color": "violet"
+            }
+          ]
+        },
+        {
+          "day": 19,
+          "dateStr": "2026/06/19",
+          "weekdayStr": "周五",
+          "teams": [
+            {
+              "name": "前端",
+              "person": "方思琪",
+              "color": "blue"
+            },
+            {
+              "name": "后端",
+              "person": "李尚忠",
+              "color": "green"
+            },
+            {
+              "name": "测试",
+              "person": "谭贤",
+              "color": "violet"
+            }
+          ]
+        },
+        {
+          "day": 20,
+          "dateStr": "2026/06/20",
+          "weekdayStr": "周六",
+          "teams": [
+            {
+              "name": "前端",
+              "person": "郑刘利",
+              "color": "blue"
+            },
+            {
+              "name": "后端",
+              "person": "俞如滃",
+              "color": "green"
+            },
+            {
+              "name": "测试",
+              "person": "钟右梅",
+              "color": "violet"
+            }
+          ]
+        },
+        {
+          "day": 21,
+          "dateStr": "2026/06/21",
+          "weekdayStr": "周日",
+          "teams": [
+            {
+              "name": "前端",
+              "person": "林颖",
+              "color": "blue"
+            },
+            {
+              "name": "后端",
+              "person": "杨朋举",
+              "color": "green"
+            },
+            {
+              "name": "测试",
+              "person": "许绵绵",
+              "color": "violet"
+            }
+          ]
+        },
+        {
+          "day": 22,
+          "dateStr": "2026/06/22",
+          "weekdayStr": "周一",
+          "teams": [
+            {
+              "name": "前端",
+              "person": "林胜聪",
+              "color": "blue"
+            },
+            {
+              "name": "后端",
+              "person": "郭绍东",
+              "color": "green"
+            },
+            {
+              "name": "测试",
+              "person": "郑成清",
+              "color": "violet"
+            }
+          ]
+        },
+        {
+          "day": 23,
+          "dateStr": "2026/06/23",
+          "weekdayStr": "周二",
+          "teams": [
+            {
+              "name": "前端",
+              "person": "刘红辉",
+              "color": "blue"
+            },
+            {
+              "name": "后端",
+              "person": "綦鹏",
+              "color": "green"
+            },
+            {
+              "name": "测试",
+              "person": "谭贤",
+              "color": "violet"
+            }
+          ]
+        },
+        {
+          "day": 24,
+          "dateStr": "2026/06/24",
+          "weekdayStr": "周三",
+          "teams": [
+            {
+              "name": "前端",
+              "person": "方思琪",
+              "color": "blue"
+            },
+            {
+              "name": "后端",
+              "person": "陈琦",
+              "color": "green"
+            },
+            {
+              "name": "测试",
+              "person": "钟右梅",
+              "color": "violet"
+            }
+          ]
+        },
+        {
+          "day": 25,
+          "dateStr": "2026/06/25",
+          "weekdayStr": "周四",
+          "teams": [
+            {
+              "name": "前端",
+              "person": "郑刘利",
+              "color": "blue"
+            },
+            {
+              "name": "后端",
+              "person": "张凯",
+              "color": "green"
+            },
+            {
+              "name": "测试",
+              "person": "许绵绵",
+              "color": "violet"
+            }
+          ]
+        },
+        {
+          "day": 26,
+          "dateStr": "2026/06/26",
+          "weekdayStr": "周五",
+          "teams": [
+            {
+              "name": "前端",
+              "person": "林颖",
+              "color": "blue"
+            },
+            {
+              "name": "后端",
+              "person": "张家南",
+              "color": "green"
+            },
+            {
+              "name": "测试",
+              "person": "郑成清",
+              "color": "violet"
+            }
+          ]
+        },
+        {
+          "day": 27,
+          "dateStr": "2026/06/27",
+          "weekdayStr": "周六",
+          "teams": [
+            {
+              "name": "前端",
+              "person": "林胜聪",
+              "color": "blue"
+            },
+            {
+              "name": "后端",
+              "person": "李尚忠",
+              "color": "green"
+            },
+            {
+              "name": "测试",
+              "person": "谭贤",
+              "color": "violet"
+            }
+          ]
+        },
+        {
+          "day": 28,
+          "dateStr": "2026/06/28",
+          "weekdayStr": "周日",
+          "teams": [
+            {
+              "name": "前端",
+              "person": "刘红辉",
+              "color": "blue"
+            },
+            {
+              "name": "后端",
+              "person": "俞如滃",
+              "color": "green"
+            },
+            {
+              "name": "测试",
+              "person": "钟右梅",
+              "color": "violet"
+            }
+          ]
+        },
+        {
+          "day": 29,
+          "dateStr": "2026/06/29",
+          "weekdayStr": "周一",
+          "teams": [
+            {
+              "name": "前端",
+              "person": "方思琪",
+              "color": "blue"
+            },
+            {
+              "name": "后端",
+              "person": "杨朋举",
+              "color": "green"
+            },
+            {
+              "name": "测试",
+              "person": "许绵绵",
+              "color": "violet"
+            }
+          ]
+        },
+        {
+          "day": 30,
+          "dateStr": "2026/06/30",
+          "weekdayStr": "周二",
+          "teams": [
+            {
+              "name": "前端",
+              "person": "郑刘利",
+              "color": "blue"
+            },
+            {
+              "name": "后端",
+              "person": "郭绍东",
+              "color": "green"
+            },
+            {
+              "name": "测试",
+              "person": "郑成清",
+              "color": "violet"
+            }
+          ]
+        }
+      ],
+      "summary": [
+        {
+          "team": "前端",
+          "busiest": "郑刘利",
+          "busiestCount": 6,
+          "lastPerson": "郑刘利"
+        },
+        {
+          "team": "后端",
+          "busiest": "张凯",
+          "busiestCount": 4,
+          "lastPerson": "郭绍东"
+        },
+        {
+          "team": "测试",
+          "busiest": "许绵绵",
+          "busiestCount": 8,
+          "lastPerson": "郑成清"
+        }
+      ]
+    }
+  }
 }
