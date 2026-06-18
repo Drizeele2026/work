@@ -939,7 +939,7 @@
       <div class="topbar-status">
         <button class="chip chip-button primary admin-only" id="repoChip" type="button" title="打开 GitHub 设置"><strong>仓库</strong> · 待读取</button>
         <button class="chip chip-button success admin-only" id="tokenChip" type="button" title="打开 GitHub 设置"><strong>token</strong> · 未配置</button>
-        <button class="chip chip-button warn admin-only" id="saveChip" type="button" title="打开保存到仓库操作"><strong>待保存</strong> · 本机已生成</button>
+        <button class="chip chip-button warn admin-only" id="saveChip" type="button" title="打开发布操作"><strong>待发布</strong> · 本机已生成</button>
       </div>
     </header>
 
@@ -950,13 +950,13 @@
           <div class="nav">
             <button class="nav-link active" type="button" data-view="schedule"><span>排班表</span><strong>当前月</strong></button>
             <button class="nav-link" type="button" data-view="about"><span>系统介绍</span><strong>README</strong></button>
-            <button class="nav-link admin-nav" type="button" data-view="manage"><span>团队管理</span><strong>配置</strong></button>
-            <button class="nav-link admin-nav" type="button" data-view="confirm"><span>排班确认</span><strong>发布</strong></button>
+            <button class="nav-link admin-nav" type="button" data-view="manage"><span>修改名单</span><strong>编辑</strong></button>
+            <button class="nav-link admin-nav" type="button" data-view="confirm"><span>预览发布</span><strong>发布</strong></button>
           </div>
         </div>
 
         <div class="section" id="generateSection">
-          <div class="section-title">确认月份</div>
+          <div class="section-title">预览月份</div>
           <div class="field-grid">
             <div>
               <label for="year">年份</label>
@@ -970,7 +970,7 @@
           <div class="action-grid">
             <div class="button-row">
               <button id="fillCurrentBtn" type="button">回到今天</button>
-              <button id="backManageBtn" type="button">返回团队管理</button>
+              <button id="backManageBtn" type="button">返回修改名单</button>
             </div>
           </div>
           <div class="message error" id="errorBox"></div>
@@ -978,15 +978,15 @@
         </div>
 
         <details class="config" id="manageDetails">
-          <summary>发布设置</summary>
-          <p class="config-tip">团队成员看公开页，不需要 token。这里的 token 只存在你这台电脑，最终写入仓库只在“排班确认”里完成。</p>
+          <summary>GitHub 设置</summary>
+          <p class="config-tip">团队成员只看公开页，不需要 token。负责人在可信电脑配置一次 token；发布排班时会提交到 GitHub，自动留下历史记录。</p>
           <div class="team-box" id="githubBox">
             <h3>GitHub 设置</h3>
             <label for="repoSlug">仓库</label>
             <input id="repoSlug" placeholder="Drizeele2026/work" />
             <label for="githubToken">GitHub Token</label>
             <input id="githubToken" type="password" placeholder="Fine-grained PAT，只存本机" />
-            <p class="hint">保存到仓库时会用到。权限只勾这个仓库的 <code>Contents: Read and write</code>。</p>
+            <p class="hint">发布到公开页时会用到。权限只勾这个仓库的 <code>Contents: Read and write</code>。</p>
             <div class="button-row">
               <button class="primary" id="saveGithubBtn" type="button">保存到本机</button>
               <button id="testGithubBtn" type="button">测试权限</button>
@@ -1023,17 +1023,16 @@
           <div class="team-config">
             <div class="team-config-head">
               <div>
-                <h2>团队管理</h2>
-                <p>这里只改团队配置，不会更新公开排班。保存配置后，去“排班确认”核对影响月份，再写入仓库。</p>
+                <h2>修改值班名单</h2>
+                <p>按真实值班顺序整理名单。保存后先预览本月排班，确认没问题再发布到公开页。</p>
               </div>
               <div class="team-config-actions">
-                <button class="primary" id="teamNextActionBtn" type="button">保存并去确认</button>
-                <button id="resetTeamsBtn" type="button">恢复默认团队</button>
+                <button class="primary" id="teamNextActionBtn" type="button">保存并预览排班</button>
               </div>
             </div>
             <div class="status-strip" id="teamConfigStatus">
-              <span><strong>团队配置未发布</strong> · 改动只保存在本机，公开页不会变化。</span>
-              <span>下一步：排班确认</span>
+              <span><strong>名单还没发布</strong> · 改动只保存在本机，公开页不会变化。</span>
+              <span>下一步：预览排班</span>
             </div>
 
             <div class="team-editor-grid">
@@ -1115,7 +1114,7 @@
                   <div class="member-field">
                     <label for="team3Members">成员名单</label>
                     <textarea id="team3Members" spellcheck="false"></textarea>
-                    <p class="inline-help">下面的标签用来核对顺序，提交到仓库前还是以文本框内容为准。</p>
+                    <p class="inline-help">下面的标签用来核对顺序，发布前还是以文本框内容为准。</p>
                   </div>
                   <div class="member-preview" id="team3Preview"></div>
                 </div>
@@ -1129,21 +1128,21 @@
             <div class="confirm-main">
               <div class="confirm-head">
                 <div>
-                  <h2>排班确认</h2>
-                  <p>先核对团队配置和影响月份。确认无误后，才把排班写入 GitHub，公开页刷新后可见。</p>
+                  <h2>预览并发布</h2>
+                  <p>先看本月排班是否符合新名单。没问题后点发布，公开页才会更新。</p>
                 </div>
               </div>
               <div class="confirm-grid">
                 <section class="review-box">
-                  <h3>本次团队配置</h3>
+                  <h3>当前名单</h3>
                   <div class="review-body">
                     <div class="team-review" id="confirmTeamReview"></div>
-                    <p class="publish-note">这里只读展示。要改成员或接龙起点，请返回团队管理。</p>
-                    <button id="confirmBackManageBtn" type="button">返回团队管理修改</button>
+                    <p class="publish-note">这里只读展示。要改成员或接龙起点，请返回修改名单。</p>
+                    <button id="confirmBackManageBtn" type="button">返回修改名单</button>
                   </div>
                 </section>
                 <section class="review-box">
-                  <h3>影响月份预览</h3>
+                  <h3>本月排班预览</h3>
                   <div class="review-body">
                     <div class="mini-grid">
                       <div class="mini-row"><span>确认月份</span><strong id="confirmMonthLabel">-</strong></div>
@@ -1156,15 +1155,15 @@
               </div>
             </div>
             <aside class="publish-box">
-              <h3>生成与发布</h3>
+              <h3>发布公开页</h3>
               <div class="publish-body">
-                <p class="publish-note" id="publishStepText">先生成月份预览。确认预览没问题后，同一个按钮会变成“确认写入仓库”。</p>
+                <p class="publish-note" id="publishStepText">先生成本月预览。确认没问题后，同一个按钮会变成“发布到公开页”。</p>
                 <div class="mini-grid">
-                  <div class="mini-row"><span>团队配置</span><strong id="publishConfigState">已保存</strong></div>
-                  <div class="mini-row"><span>月份预览</span><strong id="publishPreviewState">待生成</strong></div>
-                  <div class="mini-row"><span>写入仓库</span><strong id="publishRepoState">未写入</strong></div>
+                  <div class="mini-row"><span>名单</span><strong id="publishConfigState">已保存</strong></div>
+                  <div class="mini-row"><span>本月预览</span><strong id="publishPreviewState">待生成</strong></div>
+                  <div class="mini-row"><span>公开页</span><strong id="publishRepoState">未更新</strong></div>
                 </div>
-                <button class="primary" id="confirmPublishBtn" type="button">生成月份预览</button>
+                <button class="primary" id="confirmPublishBtn" type="button">生成预览</button>
                 <button id="confirmTestGithubBtn" type="button">测试 GitHub 权限</button>
                 <div class="message info" id="confirmMessage"></div>
               </div>
@@ -1200,7 +1199,7 @@
           </ul>
           <h3>为什么这么设计</h3>
           <p>这个工具不需要服务器。公开页直接读取仓库里的排班文件，团队成员打开链接就能看，不需要登录，也不需要配置 token。</p>
-          <p>需要改排班时，只有负责人进入管理地址，在可信电脑上配置一次 GitHub PAT。点击写入仓库时，本质上就是把新的 <code>data/schedule.json</code> 提交到 GitHub。</p>
+          <p>需要改排班时，只有负责人进入管理地址，在可信电脑上配置一次 GitHub PAT。点击发布到公开页时，本质上就是把新的 <code>data/schedule.json</code> 提交到 GitHub。</p>
           <p>所以仓库就是持久化存储，commit 就是保存记录。每次修改都有提交历史，出了问题可以对比、追溯，也可以回滚。</p>
           <h3>当前版本</h3>
           <p>这版把普通查看和管理页面分开。团队成员看排班和复制内容，负责人使用单独管理地址改成员、重排后续月份和保存。</p>
@@ -1213,7 +1212,7 @@
           <div class="status-line"><span>最近生成</span><strong id="syncTime">-</strong></div>
           <div class="status-line"><span>当前月份</span><strong id="inspectorMonth">-</strong></div>
           <div class="status-line"><span>后续范围</span><strong id="draftRange">未生成</strong></div>
-          <div class="status-line"><span>保存状态</span><strong id="dirtyState">待保存到仓库</strong></div>
+          <div class="status-line"><span>发布状态</span><strong id="dirtyState">公开页未更新</strong></div>
           <div class="status-line"><span>锁定冲突</span><strong>0</strong></div>
         </div>
         <div class="section">
@@ -1224,9 +1223,9 @@
         </div>
         <div class="section">
           <div class="section-title">变更摘要</div>
-          <div class="note"><span class="bullet blue"></span><span id="noteRoster">花名册来自团队管理，保存配置后进入排班确认。</span></div>
+          <div class="note"><span class="bullet blue"></span><span id="noteRoster">名单来自后台，保存后先预览，再发布到公开页。</span></div>
           <div class="note"><span class="bullet amber"></span><span id="noteMonth">还没有生成排班。</span></div>
-          <div class="note"><span class="bullet green"></span><span id="notePersistence">公开页只读取仓库数据；确认写入仓库后才会更新。</span></div>
+          <div class="note"><span class="bullet green"></span><span id="notePersistence">公开页只读取仓库数据；发布成功后才会更新。</span></div>
         </div>
       </aside>
     </div>
@@ -1436,20 +1435,20 @@
       if (!status) return;
       if (messageType === "error") {
         status.className = "status-strip danger";
-        status.innerHTML = `<span><strong>下一步：修正配置</strong> · 请检查团队名称、成员名单和接龙起点。</span><span>修正后再保存</span>`;
+        status.innerHTML = `<span><strong>下一步：修正名单</strong> · 请检查团队名称、成员名单和接龙起点。</span><span>修正后再保存</span>`;
         setTeamNextAction("修正后保存");
         return;
       }
       if (teamConfigDirty) {
         status.className = "status-strip";
-        status.innerHTML = `<span><strong>下一步：保存并去确认</strong> · 当前改动只在表单里，点右上按钮后直接进入排班确认。</span><span>不会更新公开页</span>`;
-        setTeamNextAction("保存并去确认");
+        status.innerHTML = `<span><strong>下一步：保存并预览</strong> · 当前改动只在表单里，点右上按钮后查看排班效果。</span><span>不会更新公开页</span>`;
+        setTeamNextAction("保存并预览排班");
         return;
       }
       status.className = "status-strip success";
       const savedText = teamConfigSavedAt ? `已保存 ${teamConfigSavedAt}` : "已保存到本机";
-      status.innerHTML = `<span><strong>下一步：去排班确认</strong> · 团队配置${savedText}，公开页还不会更新。</span><span>核对月份后写入仓库</span>`;
-      setTeamNextAction("去排班确认");
+      status.innerHTML = `<span><strong>下一步：预览排班</strong> · 名单${savedText}，公开页还不会更新。</span><span>预览后发布</span>`;
+      setTeamNextAction("预览排班");
     }
 
     function resetConfirmChecks() {
@@ -1477,7 +1476,7 @@
       if (!box) return;
       const teams = readTeamFormState().filter((team) => team.name || team.members.length || team.last);
       if (!teams.length) {
-        box.innerHTML = `<div class="empty-preview">还没有团队配置。</div>`;
+        box.innerHTML = `<div class="empty-preview">还没有名单。</div>`;
         return;
       }
       box.innerHTML = teams.map((team) => `
@@ -1498,8 +1497,8 @@
       const savedCurrentMonth = persistedMonth === monthKey;
       if (!hasCurrentSchedule || (!confirmationReady && !savedCurrentMonth)) {
         const message = savedCurrentMonth
-          ? "这个月份已写入仓库。打开公开页查看效果。"
-          : "还没有生成月份预览。请在右侧点击“生成月份预览”。";
+          ? "这个月份已发布。打开公开页查看效果。"
+          : "还没有生成本月预览。请在右侧点击“生成预览”。";
         calendar.innerHTML = `${heads}<div class="mini-calendar-empty">${message}</div>`;
         return;
       }
@@ -1536,12 +1535,12 @@
       if ($("confirmRangeLabel")) {
         $("confirmRangeLabel").textContent = visibleSchedule
           ? `${monthKey}，共 ${lastGeneratedState.result.daysInMonth} 天`
-          : "待生成预览";
+          : "待生成";
       }
       if ($("confirmValidateLabel")) {
         $("confirmValidateLabel").textContent = teamConfigDirty
-          ? "团队配置未保存"
-          : (savedCurrentMonth ? "已写入" : (visibleSchedule ? "通过" : "待生成"));
+          ? "名单未保存"
+          : (savedCurrentMonth ? "已发布" : (visibleSchedule ? "可发布" : "待生成"));
       }
       renderConfirmCalendar();
       updateConfirmPublishState();
@@ -1559,30 +1558,30 @@
       const hasToken = Boolean(readGithubSettings().token);
       button.disabled = false;
       if (teamConfigDirty) {
-        button.textContent = "先保存团队配置";
+        button.textContent = "先保存名单";
         button.className = "primary";
       } else if (previewReady && !hasToken) {
-        button.textContent = "配置 Token 后写入";
+        button.textContent = "配置 Token 后发布";
         button.className = "primary";
       } else if (previewReady) {
-        button.textContent = "确认写入仓库";
+        button.textContent = "发布到公开页";
         button.className = "success";
       } else if (savedCurrentMonth) {
         button.textContent = "查看公开页";
         button.className = "success";
       } else {
-        button.textContent = "生成月份预览";
+        button.textContent = "生成预览";
         button.className = "primary";
       }
       if ($("publishConfigState")) $("publishConfigState").textContent = teamConfigDirty ? "未保存" : "已保存";
-      if ($("publishPreviewState")) $("publishPreviewState").textContent = savedCurrentMonth ? "已写入" : (visibleSchedule ? "已生成" : "待生成");
-      if ($("publishRepoState")) $("publishRepoState").textContent = savedCurrentMonth ? "已写入" : "未写入";
+      if ($("publishPreviewState")) $("publishPreviewState").textContent = savedCurrentMonth ? "已发布" : (visibleSchedule ? "已生成" : "待生成");
+      if ($("publishRepoState")) $("publishRepoState").textContent = savedCurrentMonth ? "已更新" : "未更新";
       if ($("publishStepText")) {
         $("publishStepText").textContent = teamConfigDirty
-          ? "团队配置还没保存。点击下方按钮会回到团队管理。"
+          ? "名单还没保存。点击下方按钮会回到修改名单。"
           : (previewReady
-            ? (hasToken ? "预览没问题后，点击下方按钮写入仓库。" : "预览已生成，还差 GitHub Token。点击下方按钮去配置。")
-            : (savedCurrentMonth ? "这个月份已写入仓库。下一步可以打开公开页检查效果。" : "先生成月份预览。确认预览没问题后，同一个按钮会变成“确认写入仓库”。"));
+            ? (hasToken ? "预览没问题后，点击下方按钮发布到公开页。" : "预览已生成，还差 GitHub Token。点击下方按钮去配置。")
+            : (savedCurrentMonth ? "这个月份已发布。下一步可以打开公开页检查效果。" : "先生成本月预览。确认没问题后，同一个按钮会变成“发布到公开页”。"));
       }
     }
 
@@ -1677,32 +1676,32 @@
       if (teamConfigDirty) {
         return {
           tone: "warn",
-          label: "待保存配置",
-          detail: "团队信息已修改",
-          rail: "团队配置未保存"
+          label: "待保存名单",
+          detail: "名单已修改",
+          rail: "名单未保存"
         };
       }
       if (pendingMonth) {
         return {
           tone: "warn",
-          label: "待确认",
+          label: "待发布",
           detail: `${pendingMonth} 预览已生成`,
-          rail: "待确认写入仓库"
+          rail: "待发布公开页"
         };
       }
       if (persistedMonth) {
         return {
           tone: "success",
-          label: "已保存",
-          detail: `${persistedMonth} 仓库已更新`,
-          rail: "已保存到仓库"
+          label: "已发布",
+          detail: `${persistedMonth} 公开页已更新`,
+          rail: "已发布到公开页"
         };
       }
       return {
         tone: "warn",
         label: "未发布",
         detail: "本机配置",
-        rail: "还没写入仓库"
+        rail: "公开页未更新"
       };
     }
 
@@ -1741,7 +1740,7 @@
       $("scheduleView").style.display = isAbout || isManage || isConfirm ? "none" : "";
       $("summaryView").style.display = isAbout || isManage || isConfirm ? "none" : "";
       $("generateSection").style.display = admin && isConfirm ? "" : "none";
-      $("brandSub").textContent = admin ? "管理排班 · 分开确认发布" : "公开查看 · 排班数据来自仓库";
+      $("brandSub").textContent = admin ? "管理排班 · 修改名单并发布" : "公开查看 · 排班数据来自仓库";
       renderConfirmView();
     }
 
@@ -2067,7 +2066,7 @@
     async function saveScheduleToGithub() {
       clearGithubMessage();
       if (!lastGeneratedState) {
-        throw new Error("请先生成月份预览，再写入仓库。");
+        throw new Error("请先生成本月预览，再发布到公开页。");
       }
       const settings = readGithubSettings();
       const repoApiBase = getRepoApiBase();
@@ -2102,9 +2101,9 @@
       pendingMonth = null;
       persistGithubSettings(settings);
       persistTeamConfigToStorage();
-      $("notePersistence").textContent = `${lastGeneratedState.monthKey} 已保存到仓库；未来月份会接着这个结果推算。`;
+      $("notePersistence").textContent = `${lastGeneratedState.monthKey} 已发布到公开页；未来月份会接着这个结果推算。`;
       syncTopbar();
-      setGithubMessage("ok", `已写入 ${settings.repoSlug}/${SCHEDULE_FILE}。`);
+      setGithubMessage("ok", `已发布到公开页，同时提交到 ${settings.repoSlug}/${SCHEDULE_FILE}。`);
       return result;
     }
 
@@ -2330,7 +2329,7 @@
           throw new Error("请先填写正确的年份和月份。");
         }
         if (!options.passive && teamConfigDirty) {
-          throw new Error("团队配置还没保存。请先回到团队管理点“保存并去确认”。");
+          throw new Error("名单还没保存。请先回到修改名单点“保存并预览排班”。");
         }
 
         const formTeams = buildTeamData();
@@ -2363,13 +2362,13 @@
         updateMonthLabels(year, month);
         $("syncTime").textContent = nowTime();
         $("notePersistence").textContent = options.passive
-          ? "当前只是查看排班。要发布变更，请进入“排班确认”。"
-          : "月份预览已生成。核对无误后，在排班确认页写入仓库。";
+          ? "当前只是查看排班。要发布变更，请进入“预览发布”。"
+          : "本月预览已生成。核对无误后发布到公开页。";
         renderConfirmView();
         syncTopbar();
 
         if (!options.silent) {
-          showOk("月份预览已生成。请核对后再写入仓库。");
+          showOk("本月预览已生成。请核对后再发布。");
         }
         return true;
       } catch (error) {
@@ -2413,7 +2412,7 @@
     async function handlePublishGithub() {
       try {
         const result = await saveScheduleToGithub();
-        setGithubMessage("ok", `已写入仓库，提交信息：${result.commit?.sha ? result.commit.sha.slice(0, 7) : "完成"}。`);
+        setGithubMessage("ok", `已发布到公开页，提交：${result.commit?.sha ? result.commit.sha.slice(0, 7) : "完成"}。`);
       } catch (error) {
         setGithubMessage("error", error.message || "保存失败。");
       }
@@ -2443,7 +2442,7 @@
           applyViewState();
           $("teamNextActionBtn")?.focus();
           $("manageView").scrollIntoView({ block: "start" });
-          showToast("先保存团队配置");
+          showToast("先保存名单");
           return;
         }
         if (persistedMonth === monthKey && (!confirmationReady || lastGeneratedState?.monthKey !== monthKey)) {
@@ -2453,26 +2452,26 @@
         if (!confirmationReady || lastGeneratedState?.monthKey !== monthKey) {
           const ok = generateSchedule({ resetSeed: true });
           if (!ok) {
-            throw new Error("月份预览生成失败，请检查页面提示。");
+            throw new Error("本月预览生成失败，请检查页面提示。");
           }
-          setConfirmMessage("ok", "月份预览已生成。请核对中间预览，没问题再点“确认写入仓库”。");
-          showToast("月份预览已生成");
+          setConfirmMessage("ok", "本月预览已生成。请核对中间预览，没问题再点“发布到公开页”。");
+          showToast("本月预览已生成");
           renderConfirmView();
           return;
         }
         if (!readGithubSettings().token) {
           openGithubSettings("githubToken");
-          setConfirmMessage("info", "还差 GitHub Token。填写并保存到本机后，再点“确认写入仓库”。");
+          setConfirmMessage("info", "还差 GitHub Token。填写并保存到本机后，再点“发布到公开页”。");
           return;
         }
         const result = await saveScheduleToGithub();
         confirmationReady = false;
         resetConfirmChecks();
-        setConfirmMessage("ok", `已写入仓库，提交：${result.commit?.sha ? result.commit.sha.slice(0, 7) : "完成"}。下一步可以打开公开页检查效果。`);
-        showToast("已写入仓库");
+        setConfirmMessage("ok", `已发布到公开页，提交：${result.commit?.sha ? result.commit.sha.slice(0, 7) : "完成"}。下一步可以打开公开页检查效果。`);
+        showToast("已发布到公开页");
         renderConfirmView();
       } catch (error) {
-        setConfirmMessage("error", error.message || "写入失败。");
+        setConfirmMessage("error", error.message || "发布失败。");
       }
     }
 
@@ -2538,11 +2537,11 @@
         draftSeedState = null;
         resetConfirmChecks();
         goConfirmView();
-        setConfirmMessage("info", "团队配置已保存。下一步生成月份预览。");
-        showToast("已保存，进入排班确认");
+        setConfirmMessage("info", "名单已保存。下一步生成本月预览。");
+        showToast("已保存，进入预览发布");
       } catch (error) {
         renderTeamConfigStatus("error");
-        showToast(error.message || "团队配置有问题", "error");
+        showToast(error.message || "名单有问题", "error");
       }
     }
 
@@ -2550,12 +2549,6 @@
       currentView = "confirm";
       applyViewState();
       $("confirmView").scrollIntoView({ block: "start" });
-    }
-
-    function resetTeamConfig() {
-      applyDefaultMembers();
-      setTeamConfigDirty(true);
-      showToast("已恢复默认团队，请保存配置");
     }
 
     function bindTeamConfigEvents() {
@@ -2620,7 +2613,6 @@
     $("tokenChip").addEventListener("click", () => openGithubSettings("githubToken"));
     $("saveChip").addEventListener("click", openPublishPanel);
     $("teamNextActionBtn").addEventListener("click", handleTeamNextAction);
-    $("resetTeamsBtn").addEventListener("click", resetTeamConfig);
     $("saveGithubBtn").addEventListener("click", saveGithubSettings);
     $("testGithubBtn").addEventListener("click", handleTestGithub);
     $("confirmTestGithubBtn").addEventListener("click", handleConfirmTestGithub);
