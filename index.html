@@ -150,6 +150,10 @@
     .chip.warn { background: var(--amber-soft); border-color: #f4dc9e; color: #9a6600; }
     .chip.danger { background: var(--danger-soft); border-color: #f2b7b3; color: var(--danger); }
     .chip-button { cursor: pointer; }
+    .chip-button:hover { background: #f6f8fb; border-color: #c7d0dd; }
+    .chip-button.primary:hover { background: #e6efff; border-color: #b9ccff; color: #244bb4; }
+    .chip-button.success:hover { background: #e4f8ee; border-color: #b8e5cd; color: #0b704e; }
+    .chip-button.warn:hover { background: #ffe9b8; border-color: #edcb79; color: #805200; }
 
     .layout {
       display: grid;
@@ -489,8 +493,13 @@
     }
 
     @media (max-width: 760px) {
+      body { overflow-x: hidden; }
       .wrap { padding: 10px; }
       .topbar { position: static; align-items: flex-start; flex-direction: column; }
+      .topbar-status { width: 100%; justify-content: flex-start; }
+      .chip { max-width: 100%; }
+      .field-grid { grid-template-columns: 1fr; }
+      .layout, .main, .panel, .card, .calendar-scroll, .preview-wrap { max-width: 100%; min-width: 0; }
       .main-header { flex-direction: column; }
       .header-controls { justify-content: flex-start; }
       .calendar-grid { min-width: 720px; }
@@ -527,7 +536,7 @@
       <div class="topbar-status">
         <button class="chip chip-button primary" id="repoChip" type="button" title="打开 GitHub 设置"><strong>仓库</strong> · 本地预览</button>
         <button class="chip chip-button success" id="tokenChip" type="button" title="打开 GitHub 设置"><strong>token</strong> · 未配置</button>
-        <button class="chip chip-button warn" id="saveChip" type="button" title="查看复制与导出"><strong>保存</strong> · 草稿未持久化</button>
+        <button class="chip chip-button warn" id="saveChip" type="button" title="打开 GitHub 保存区"><strong>保存</strong> · 草稿未持久化</button>
         <button class="chip chip-button" id="modeChip" type="button" title="展开或收起管理区"><strong>管理模式</strong> · 收起</button>
       </div>
     </header>
@@ -889,8 +898,10 @@
         : (persistedMonth ? "<strong>已确认</strong> · 仓库" : "<strong>待生成</strong> · 草稿");
       $("repoChip").innerHTML = `<strong>仓库</strong> · ${githubState.repoSlug || DEFAULT_REPO}`;
       $("tokenChip").innerHTML = `<strong>token</strong> · ${hasToken ? "已配置" : "未配置"}`;
+      $("saveChip").className = `chip chip-button ${pendingMonth ? "warn" : (persistedMonth ? "success" : "warn")}`;
       $("saveChip").innerHTML = `<strong>保存</strong> · ${saveText}`;
       $("modeChip").innerHTML = `<strong>管理模式</strong> · ${$("manageDetails").open ? "展开" : "收起"}`;
+      $("previewBadge").className = `chip ${pendingMonth ? "warn" : (persistedMonth ? "success" : "warn")}`;
       $("previewBadge").innerHTML = badgeText;
       $("dirtyState").textContent = saveText;
     }
@@ -1030,6 +1041,14 @@
     function openCopyPanel() {
       $("copyDetails").classList.add("visible");
       $("summaryView").scrollIntoView({ block: "start" });
+    }
+
+    function openPublishPanel() {
+      $("manageDetails").open = true;
+      updateStoredUiState();
+      $("githubBox").scrollIntoView({ block: "nearest" });
+      $("publishGithubBtn").focus();
+      syncTopbar();
     }
 
     async function githubRequest(url, options = {}) {
@@ -1671,7 +1690,7 @@
     $("manageDetails").addEventListener("toggle", syncGithubBoxState);
     $("repoChip").addEventListener("click", () => openGithubSettings("repoSlug"));
     $("tokenChip").addEventListener("click", () => openGithubSettings("githubToken"));
-    $("saveChip").addEventListener("click", openCopyPanel);
+    $("saveChip").addEventListener("click", openPublishPanel);
     $("modeChip").addEventListener("click", () => {
       $("manageDetails").open = !$("manageDetails").open;
       syncGithubBoxState();
