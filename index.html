@@ -506,33 +506,6 @@
       font-size: 13px;
       line-height: 1.5;
     }
-    .confirm-steps {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
-      justify-content: flex-end;
-      flex: 0 0 auto;
-    }
-    .step-pill {
-      min-height: 28px;
-      padding: 4px 9px;
-      border: 1px solid #dfe5ee;
-      border-radius: 999px;
-      background: #fff;
-      color: var(--sub);
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-      font-weight: 800;
-      white-space: nowrap;
-    }
-    .step-pill.active {
-      background: #eef4ff;
-      border-color: #ccdbff;
-      color: #244bb4;
-    }
     .confirm-grid {
       display: grid;
       grid-template-columns: 330px minmax(0, 1fr);
@@ -632,30 +605,6 @@
     .mini-calendar-lines {
       display: grid;
       gap: 2px;
-    }
-    .confirm-checks {
-      display: grid;
-      gap: 8px;
-    }
-    .confirm-check {
-      min-height: 34px;
-      padding: 7px 8px;
-      border: 1px solid #dfe5ee;
-      border-radius: 7px;
-      background: #fff;
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      color: var(--ink);
-      font-size: 12px;
-      line-height: 1.4;
-      font-weight: 700;
-    }
-    .confirm-check input {
-      width: 15px;
-      height: 15px;
-      margin: 1px 0 0;
-      flex: 0 0 auto;
     }
     .publish-note {
       margin: 0;
@@ -935,7 +884,7 @@
     .toast.error { border-color: #ffc8c3; background: #fff1f0; color: #9f1f18; }
 
     @media (max-width: 1280px) {
-      .layout, body.admin-mode .layout { grid-template-columns: 1fr; }
+      .layout, body.admin-mode .layout, body.admin-mode.confirm-mode .layout { grid-template-columns: 1fr; }
       .side, .inspector { position: static; }
       .footer-panel { grid-template-columns: 1fr; }
       .team-editor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -952,7 +901,6 @@
       .team-config-head { display: grid; }
       .team-config-actions { justify-content: flex-start; }
       .confirm-head { display: grid; }
-      .confirm-steps { justify-content: flex-start; }
       .team-editor-grid, .team-form-grid { grid-template-columns: 1fr; }
       .layout, .main, .panel, .card, .calendar-scroll { max-width: 100%; min-width: 0; }
       .main-header { flex-direction: column; }
@@ -1020,7 +968,6 @@
             </div>
           </div>
           <div class="action-grid">
-            <button class="primary" id="generateBtn" type="button">生成确认单</button>
             <div class="button-row">
               <button id="fillCurrentBtn" type="button">回到今天</button>
               <button id="backManageBtn" type="button">返回团队管理</button>
@@ -1186,11 +1133,6 @@
                   <h2>排班确认</h2>
                   <p>先核对团队配置和影响月份。确认无误后，才把排班写入 GitHub，公开页刷新后可见。</p>
                 </div>
-                <div class="confirm-steps">
-                  <span class="step-pill active">1 核对配置</span>
-                  <span class="step-pill active">2 生成月份</span>
-                  <span class="step-pill">3 写入仓库</span>
-                </div>
               </div>
               <div class="confirm-grid">
                 <section class="review-box">
@@ -1215,16 +1157,15 @@
               </div>
             </div>
             <aside class="publish-box">
-              <h3>发布前确认</h3>
+              <h3>生成与发布</h3>
               <div class="publish-body">
-                <p class="publish-note">勾选完成后，才允许写入仓库。这个动作会更新公开页读取的 <code>data/schedule.json</code>。</p>
-                <div class="confirm-checks">
-                  <label class="confirm-check"><input type="checkbox" class="confirm-checkbox" id="checkMembers" />成员名单已核对</label>
-                  <label class="confirm-check"><input type="checkbox" class="confirm-checkbox" id="checkStarts" />接龙起点已核对</label>
-                  <label class="confirm-check"><input type="checkbox" class="confirm-checkbox" id="checkMonth" />月份预览已核对</label>
-                  <label class="confirm-check"><input type="checkbox" class="confirm-checkbox" id="checkGithub" />GitHub token 和权限已确认</label>
+                <p class="publish-note" id="publishStepText">先生成月份预览。确认预览没问题后，同一个按钮会变成“确认写入仓库”。</p>
+                <div class="mini-grid">
+                  <div class="mini-row"><span>团队配置</span><strong id="publishConfigState">已保存</strong></div>
+                  <div class="mini-row"><span>月份预览</span><strong id="publishPreviewState">待生成</strong></div>
+                  <div class="mini-row"><span>写入仓库</span><strong id="publishRepoState">未写入</strong></div>
                 </div>
-                <button class="success" id="confirmPublishBtn" type="button" disabled>确认写入仓库</button>
+                <button class="primary" id="confirmPublishBtn" type="button">生成月份预览</button>
                 <button id="confirmTestGithubBtn" type="button">测试 GitHub 权限</button>
                 <div class="message info" id="confirmMessage"></div>
               </div>
@@ -1497,9 +1438,6 @@
     }
 
     function resetConfirmChecks() {
-      document.querySelectorAll(".confirm-checkbox").forEach((checkbox) => {
-        checkbox.checked = false;
-      });
       updateConfirmPublishState();
     }
 
@@ -1542,7 +1480,7 @@
       const heads = weekdayNames.map((name) => `<div class="mini-calendar-head">${name}</div>`).join("");
       const monthKey = formatMonthKey(Number($("year").value), Number($("month").value));
       if (!confirmationReady || !lastGeneratedState || lastGeneratedState.monthKey !== monthKey) {
-        calendar.innerHTML = `${heads}<div class="mini-calendar-empty">还没有生成确认单。请在左侧选择月份后点击“生成确认单”。</div>`;
+        calendar.innerHTML = `${heads}<div class="mini-calendar-empty">还没有生成月份预览。请在右侧点击“生成月份预览”。</div>`;
         return;
       }
       const { startWeekday, daysInMonth, dailyAssignments } = lastGeneratedState.result;
@@ -1575,7 +1513,7 @@
       if ($("confirmRangeLabel")) {
         $("confirmRangeLabel").textContent = confirmationReady && lastGeneratedState?.monthKey === monthKey
           ? `${monthKey}，共 ${lastGeneratedState.result.daysInMonth} 天`
-          : "待生成确认单";
+          : "待生成预览";
       }
       if ($("confirmValidateLabel")) {
         $("confirmValidateLabel").textContent = teamConfigDirty
@@ -1589,11 +1527,21 @@
     function updateConfirmPublishState() {
       const button = $("confirmPublishBtn");
       if (!button) return;
-      const allChecked = [...document.querySelectorAll(".confirm-checkbox")].every((checkbox) => checkbox.checked);
       const year = Number($("year")?.value);
       const month = Number($("month")?.value);
       const monthKey = year && month ? formatMonthKey(year, month) : "";
-      button.disabled = teamConfigDirty || !confirmationReady || !lastGeneratedState || lastGeneratedState.monthKey !== monthKey || !allChecked;
+      const previewReady = confirmationReady && lastGeneratedState?.monthKey === monthKey;
+      button.disabled = teamConfigDirty;
+      button.textContent = previewReady ? "确认写入仓库" : "生成月份预览";
+      button.className = previewReady ? "success" : "primary";
+      if ($("publishConfigState")) $("publishConfigState").textContent = teamConfigDirty ? "未保存" : "已保存";
+      if ($("publishPreviewState")) $("publishPreviewState").textContent = previewReady ? "已生成" : "待生成";
+      if ($("publishRepoState")) $("publishRepoState").textContent = persistedMonth === monthKey ? "已写入" : "未写入";
+      if ($("publishStepText")) {
+        $("publishStepText").textContent = teamConfigDirty
+          ? "团队配置还没保存。请先回到团队管理保存配置。"
+          : (previewReady ? "预览没问题后，点击下方按钮写入仓库。" : "先生成月份预览。确认预览没问题后，同一个按钮会变成“确认写入仓库”。");
+      }
     }
 
     function applyDefaultMembers() {
@@ -1696,7 +1644,7 @@
         return {
           tone: "warn",
           label: "待确认",
-          detail: `${pendingMonth} 确认单已生成`,
+          detail: `${pendingMonth} 预览已生成`,
           rail: "待确认写入仓库"
         };
       }
@@ -2070,7 +2018,7 @@
     async function saveScheduleToGithub() {
       clearGithubMessage();
       if (!lastGeneratedState) {
-        throw new Error("请先生成确认单，再写入仓库。");
+        throw new Error("请先生成月份预览，再写入仓库。");
       }
       const settings = readGithubSettings();
       const repoApiBase = getRepoApiBase();
@@ -2367,12 +2315,12 @@
         $("syncTime").textContent = nowTime();
         $("notePersistence").textContent = options.passive
           ? "当前只是查看排班。要发布变更，请进入“排班确认”。"
-          : "确认单已生成。勾选发布前确认后，才能写入仓库。";
+          : "月份预览已生成。核对无误后，在排班确认页写入仓库。";
         renderConfirmView();
         syncTopbar();
 
         if (!options.silent) {
-          showOk("确认单已生成。请在排班确认页核对后再写入仓库。");
+          showOk("月份预览已生成。请核对后再写入仓库。");
         }
         return true;
       } catch (error) {
@@ -2425,22 +2373,33 @@
       clearConfirmMessage();
       try {
         const data = await testGithubAccess();
-        $("checkGithub").checked = true;
-        updateConfirmPublishState();
         setConfirmMessage("ok", `GitHub 权限通过，默认分支是 ${data.default_branch || "未知"}。`);
       } catch (error) {
-        $("checkGithub").checked = false;
-        updateConfirmPublishState();
         setConfirmMessage("error", error.message || "测试失败。");
+      } finally {
+        updateConfirmPublishState();
       }
     }
 
     async function handleConfirmPublish() {
       clearConfirmMessage();
       try {
+        const year = Number($("year").value);
+        const month = Number($("month").value);
+        const monthKey = year && month ? formatMonthKey(year, month) : "";
         updateConfirmPublishState();
-        if ($("confirmPublishBtn").disabled) {
-          throw new Error("请先生成确认单，并勾选所有发布前确认项。");
+        if (teamConfigDirty) {
+          throw new Error("团队配置还没保存。请先回到团队管理保存配置。");
+        }
+        if (!confirmationReady || lastGeneratedState?.monthKey !== monthKey) {
+          const ok = generateSchedule({ resetSeed: true });
+          if (!ok) {
+            throw new Error("月份预览生成失败，请检查页面提示。");
+          }
+          setConfirmMessage("ok", "月份预览已生成。请核对中间预览，没问题再点“确认写入仓库”。");
+          showToast("月份预览已生成");
+          renderConfirmView();
+          return;
         }
         const result = await saveScheduleToGithub();
         confirmationReady = false;
@@ -2532,16 +2491,6 @@
       showToast("已恢复默认团队，请保存配置");
     }
 
-    function generateConfirmation() {
-      draftSeedState = null;
-      syncTeamCards();
-      const ok = generateSchedule({ resetSeed: true });
-      if (!ok) return;
-      currentView = "confirm";
-      applyViewState();
-      $("confirmView").scrollIntoView({ block: "start" });
-    }
-
     function bindTeamConfigEvents() {
       [1, 2, 3].forEach((index) => {
         $(`team${index}Name`).addEventListener("input", () => {
@@ -2577,7 +2526,6 @@
       generateSchedule({ silent: true, passive: true });
     }
 
-    $("generateBtn").addEventListener("click", generateConfirmation);
     $("fillCurrentBtn").addEventListener("click", () => {
       setCurrentYearMonth();
       populateMonthPicker(Number($("year").value), Number($("month").value));
@@ -2612,9 +2560,6 @@
     $("confirmTestGithubBtn").addEventListener("click", handleConfirmTestGithub);
     $("confirmPublishBtn").addEventListener("click", handleConfirmPublish);
     $("confirmBackManageBtn").addEventListener("click", () => selectView("manage"));
-    document.querySelectorAll(".confirm-checkbox").forEach((checkbox) => {
-      checkbox.addEventListener("change", updateConfirmPublishState);
-    });
     $("clearGithubBtn").addEventListener("click", () => {
       persistGithubSettings({ repoSlug: readGithubSettings().repoSlug, token: "" });
       setGithubMessage("ok", "token 已清空。");
