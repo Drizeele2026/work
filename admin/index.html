@@ -1355,11 +1355,12 @@
       syncTopbar();
     }
 
-    function setTeamNextAction(label, tone = "primary") {
+    function setTeamNextAction(label, tone = "primary", disabled = false) {
       const button = $("teamNextActionBtn");
       if (!button) return;
       button.textContent = label;
       button.className = tone;
+      button.disabled = disabled;
     }
 
     function renderTeamConfigStatus(messageType = "") {
@@ -1375,6 +1376,12 @@
         status.className = "status-strip";
         status.innerHTML = `<span><strong>下一步：发布到公开页</strong> · 点击右上按钮会保存名单、生成本月排班并发布。</span><span>失败会直接提示原因</span>`;
         setTeamNextAction("发布到公开页");
+        return;
+      }
+      if (persistedMonth) {
+        status.className = "status-strip success";
+        status.innerHTML = `<span><strong>已发布到公开页</strong> · 当前名单和排班已经更新。</span><span>修改名单后可再次发布</span>`;
+        setTeamNextAction("已发布", "success", true);
         return;
       }
       status.className = "status-strip success";
