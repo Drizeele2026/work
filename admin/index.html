@@ -1027,8 +1027,7 @@
                 <p>这里只改团队配置，不会更新公开排班。保存配置后，去“排班确认”核对影响月份，再写入仓库。</p>
               </div>
               <div class="team-config-actions">
-                <button class="primary" id="saveTeamConfigBtn" type="button">保存团队配置</button>
-                <button id="goConfirmBtn" type="button">去排班确认</button>
+                <button class="primary" id="teamNextActionBtn" type="button">保存并去确认</button>
                 <button id="resetTeamsBtn" type="button">恢复默认团队</button>
               </div>
             </div>
@@ -1300,6 +1299,10 @@
       return isAdminRoute() ? `../${SCHEDULE_FILE}` : SCHEDULE_FILE;
     }
 
+    function getPublicPageUrl() {
+      return isAdminRoute() ? "../" : "./";
+    }
+
     function shiftMonthValue(year, month, delta) {
       const date = new Date(year, month - 1 + delta, 1);
       return { year: date.getFullYear(), month: date.getMonth() + 1 };
@@ -1421,22 +1424,32 @@
       syncTopbar();
     }
 
+    function setTeamNextAction(label, tone = "primary") {
+      const button = $("teamNextActionBtn");
+      if (!button) return;
+      button.textContent = label;
+      button.className = tone;
+    }
+
     function renderTeamConfigStatus(messageType = "") {
       const status = $("teamConfigStatus");
       if (!status) return;
       if (messageType === "error") {
         status.className = "status-strip danger";
-        status.innerHTML = `<span><strong>配置有问题</strong> · 请检查团队名称、成员名单和接龙起点。</span><span>先修正再保存</span>`;
+        status.innerHTML = `<span><strong>下一步：修正配置</strong> · 请检查团队名称、成员名单和接龙起点。</span><span>修正后再保存</span>`;
+        setTeamNextAction("修正后保存");
         return;
       }
       if (teamConfigDirty) {
         status.className = "status-strip";
-        status.innerHTML = `<span><strong>团队配置未保存</strong> · 当前改动只在表单里，还没有进入排班确认。</span><span>下一步：保存团队配置</span>`;
+        status.innerHTML = `<span><strong>下一步：保存并去确认</strong> · 当前改动只在表单里，点右上按钮后直接进入排班确认。</span><span>不会更新公开页</span>`;
+        setTeamNextAction("保存并去确认");
         return;
       }
       status.className = "status-strip success";
       const savedText = teamConfigSavedAt ? `已保存 ${teamConfigSavedAt}` : "已保存到本机";
-      status.innerHTML = `<span><strong>团队配置${savedText}</strong> · 公开页还不会更新。</span><span>下一步：排班确认</span>`;
+      status.innerHTML = `<span><strong>下一步：去排班确认</strong> · 团队配置${savedText}，公开页还不会更新。</span><span>核对月份后写入仓库</span>`;
+      setTeamNextAction("去排班确认");
     }
 
     function resetConfirmChecks() {
@@ -1533,16 +1546,34 @@
       const month = Number($("month")?.value);
       const monthKey = year && month ? formatMonthKey(year, month) : "";
       const previewReady = confirmationReady && lastGeneratedState?.monthKey === monthKey;
-      button.disabled = teamConfigDirty;
-      button.textContent = previewReady ? "确认写入仓库" : "生成月份预览";
-      button.className = previewReady ? "success" : "primary";
+      const savedCurrentMonth = persistedMonth === monthKey;
+      const hasToken = Boolean(readGithubSettings().token);
+      button.disabled = false;
+      if (teamConfigDirty) {
+        button.textContent = "先保存团队配置";
+        button.className = "primary";
+      } else if (previewReady && !hasToken) {
+        button.textContent = "配置 Token 后写入";
+        button.className = "primary";
+      } else if (previewReady) {
+        button.textContent = "确认写入仓库";
+        button.className = "success";
+      } else if (savedCurrentMonth) {
+        button.textContent = "查看公开页";
+        button.className = "success";
+      } else {
+        button.textContent = "生成月份预览";
+        button.className = "primary";
+      }
       if ($("publishConfigState")) $("publishConfigState").textContent = teamConfigDirty ? "未保存" : "已保存";
       if ($("publishPreviewState")) $("publishPreviewState").textContent = previewReady ? "已生成" : "待生成";
-      if ($("publishRepoState")) $("publishRepoState").textContent = persistedMonth === monthKey ? "已写入" : "未写入";
+      if ($("publishRepoState")) $("publishRepoState").textContent = savedCurrentMonth ? "已写入" : "未写入";
       if ($("publishStepText")) {
         $("publishStepText").textContent = teamConfigDirty
-          ? "团队配置还没保存。请先回到团队管理保存配置。"
-          : (previewReady ? "预览没问题后，点击下方按钮写入仓库。" : "先生成月份预览。确认预览没问题后，同一个按钮会变成“确认写入仓库”。");
+          ? "团队配置还没保存。点击下方按钮会回到团队管理。"
+          : (previewReady
+            ? (hasToken ? "预览没问题后，点击下方按钮写入仓库。" : "预览已生成，还差 GitHub Token。点击下方按钮去配置。")
+            : (savedCurrentMonth ? "这个月份已写入仓库。下一步可以打开公开页检查效果。" : "先生成月份预览。确认预览没问题后，同一个按钮会变成“确认写入仓库”。"));
       }
     }
 
@@ -1832,7 +1863,6 @@
     }
 
     function openGithubSettings(targetId) {
-      currentView = "manage";
       $("manageDetails").open = true;
       applyViewState();
       $("githubBox").scrollIntoView({ block: "nearest" });
@@ -1843,6 +1873,14 @@
     }
 
     function openPublishPanel() {
+      if (teamConfigDirty) {
+        currentView = "manage";
+        applyViewState();
+        $("teamNextActionBtn")?.focus();
+        $("manageView").scrollIntoView({ block: "start" });
+        syncTopbar();
+        return;
+      }
       currentView = "confirm";
       applyViewState();
       $("confirmView").scrollIntoView({ block: "start" });
@@ -2283,7 +2321,7 @@
           throw new Error("请先填写正确的年份和月份。");
         }
         if (!options.passive && teamConfigDirty) {
-          throw new Error("团队配置还没保存。请先到团队管理点“保存团队配置”。");
+          throw new Error("团队配置还没保存。请先回到团队管理点“保存并去确认”。");
         }
 
         const formTeams = buildTeamData();
@@ -2350,6 +2388,7 @@
       const settings = readGithubSettings();
       persistGithubSettings(settings);
       setGithubMessage("ok", `已保存设置到本机，仓库：${settings.repoSlug}。`);
+      updateConfirmPublishState();
     }
 
     async function handleTestGithub() {
@@ -2391,7 +2430,16 @@
         const monthKey = year && month ? formatMonthKey(year, month) : "";
         updateConfirmPublishState();
         if (teamConfigDirty) {
-          throw new Error("团队配置还没保存。请先回到团队管理保存配置。");
+          currentView = "manage";
+          applyViewState();
+          $("teamNextActionBtn")?.focus();
+          $("manageView").scrollIntoView({ block: "start" });
+          showToast("先保存团队配置");
+          return;
+        }
+        if (persistedMonth === monthKey && (!confirmationReady || lastGeneratedState?.monthKey !== monthKey)) {
+          window.open(getPublicPageUrl(), "_blank", "noopener");
+          return;
         }
         if (!confirmationReady || lastGeneratedState?.monthKey !== monthKey) {
           const ok = generateSchedule({ resetSeed: true });
@@ -2403,10 +2451,15 @@
           renderConfirmView();
           return;
         }
+        if (!readGithubSettings().token) {
+          openGithubSettings("githubToken");
+          setConfirmMessage("info", "还差 GitHub Token。填写并保存到本机后，再点“确认写入仓库”。");
+          return;
+        }
         const result = await saveScheduleToGithub();
         confirmationReady = false;
         resetConfirmChecks();
-        setConfirmMessage("ok", `已写入仓库，提交：${result.commit?.sha ? result.commit.sha.slice(0, 7) : "完成"}。`);
+        setConfirmMessage("ok", `已写入仓库，提交：${result.commit?.sha ? result.commit.sha.slice(0, 7) : "完成"}。下一步可以打开公开页检查效果。`);
         showToast("已写入仓库");
         renderConfirmView();
       } catch (error) {
@@ -2461,7 +2514,11 @@
       syncTopbar();
     }
 
-    function saveTeamConfigOnly() {
+    function handleTeamNextAction() {
+      if (!teamConfigDirty) {
+        goConfirmView();
+        return;
+      }
       try {
         buildTeamData();
         persistTeamConfigToStorage();
@@ -2471,10 +2528,9 @@
         confirmationReady = false;
         draftSeedState = null;
         resetConfirmChecks();
-        renderTeamConfigStatus();
-        renderConfirmView();
-        syncTopbar();
-        showToast("团队配置已保存到本机");
+        goConfirmView();
+        setConfirmMessage("info", "团队配置已保存。下一步生成月份预览。");
+        showToast("已保存，进入排班确认");
       } catch (error) {
         renderTeamConfigStatus("error");
         showToast(error.message || "团队配置有问题", "error");
@@ -2554,8 +2610,7 @@
     $("repoChip").addEventListener("click", () => openGithubSettings("repoSlug"));
     $("tokenChip").addEventListener("click", () => openGithubSettings("githubToken"));
     $("saveChip").addEventListener("click", openPublishPanel);
-    $("saveTeamConfigBtn").addEventListener("click", saveTeamConfigOnly);
-    $("goConfirmBtn").addEventListener("click", goConfirmView);
+    $("teamNextActionBtn").addEventListener("click", handleTeamNextAction);
     $("resetTeamsBtn").addEventListener("click", resetTeamConfig);
     $("saveGithubBtn").addEventListener("click", saveGithubSettings);
     $("testGithubBtn").addEventListener("click", handleTestGithub);
