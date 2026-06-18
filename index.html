@@ -149,6 +149,7 @@
     .chip.success { background: #eefbf5; border-color: #caedd9; color: #0f7e58; }
     .chip.warn { background: var(--amber-soft); border-color: #f4dc9e; color: #9a6600; }
     .chip.danger { background: var(--danger-soft); border-color: #f2b7b3; color: var(--danger); }
+    .chip-button { cursor: pointer; }
 
     .layout {
       display: grid;
@@ -255,6 +256,7 @@
       font-size: 12px;
       line-height: 1.45;
     }
+    .message.info { color: #1d4ed8; background: #eef4ff; border: 1px solid #d5e3ff; }
     .message.error { color: #9f1f18; background: #fff1f0; border: 1px solid #ffc8c3; }
     .message.ok { color: #0e6f4f; background: #eefbf5; border: 1px solid #c4ecd9; }
 
@@ -523,10 +525,10 @@
         </div>
       </div>
       <div class="topbar-status">
-        <span class="chip primary" id="repoChip"><strong>仓库</strong> · 本地预览</span>
-        <span class="chip success" id="tokenChip"><strong>token</strong> · 未配置</span>
-        <span class="chip warn" id="saveChip"><strong>保存</strong> · 未提交预览</span>
-        <span class="chip" id="modeChip"><strong>管理模式</strong> · 收起</span>
+        <button class="chip chip-button primary" id="repoChip" type="button" title="打开 GitHub 设置"><strong>仓库</strong> · 本地预览</button>
+        <button class="chip chip-button success" id="tokenChip" type="button" title="打开 GitHub 设置"><strong>token</strong> · 未配置</button>
+        <button class="chip chip-button warn" id="saveChip" type="button" title="查看复制与导出"><strong>保存</strong> · 未提交预览</button>
+        <button class="chip chip-button" id="modeChip" type="button" title="展开或收起管理区"><strong>管理模式</strong> · 收起</button>
       </div>
     </header>
 
@@ -577,6 +579,21 @@
 
         <details class="config" id="manageDetails">
           <summary>成员与接龙</summary>
+          <div class="team-box" id="githubBox">
+            <h3>GitHub 设置</h3>
+            <label for="repoSlug">仓库</label>
+            <input id="repoSlug" placeholder="Drizeele2026/work" />
+            <label for="githubToken">GitHub Token</label>
+            <input id="githubToken" type="password" placeholder="Fine-grained PAT，只存本机" />
+            <p class="hint">保存到仓库时会用到。权限只勾这个仓库的 <code>Contents: Read and write</code>。</p>
+            <div class="button-row">
+              <button class="primary" id="saveGithubBtn" type="button">保存设置</button>
+              <button id="testGithubBtn" type="button">测试权限</button>
+              <button class="success" id="publishGithubBtn" type="button">保存到仓库</button>
+              <button id="clearGithubBtn" type="button">清除 token</button>
+            </div>
+            <div class="message info" id="githubMessage"></div>
+          </div>
           <div class="team-box">
             <h3>团队 1</h3>
             <label for="team1Name">团队名称</label>
@@ -713,11 +730,19 @@
 
     const $ = (id) => document.getElementById(id);
     const LS_TOKEN = "duty-roster-token";
+    const LS_REPO = "duty-roster-repo";
+    const LS_TEAM_CONFIG = "duty-roster-team-config";
+    const LS_GITHUB_BOX = "duty-roster-github-box-open";
+    const DEFAULT_REPO = "Drizeele2026/work";
+    const SCHEDULE_PATH = "data/schedule.json";
+    const API_BASE = "https://api.github.com";
     let pendingMonth = null;
     let lastGeneratedTSV = "";
     let lastGeneratedMonthGridHTML = "";
     let lastGeneratedMonthGridPlain = "";
     let lastSummary = [];
+    let githubState = { repoSlug: DEFAULT_REPO, token: "" };
+    let lastGeneratedState = null;
 
     function pad2(num) {
       return String(num).padStart(2, "0");
@@ -818,12 +843,325 @@
 
     function syncTopbar() {
       const hasToken = Boolean(localStorage.getItem(LS_TOKEN));
-      $("repoChip").innerHTML = "<strong>仓库</strong> · 本地预览";
+      $("repoChip").innerHTML = `<strong>仓库</strong> · ${githubState.repoSlug || DEFAULT_REPO}`;
       $("tokenChip").innerHTML = `<strong>token</strong> · ${hasToken ? "已配置" : "未配置"}`;
       $("saveChip").innerHTML = `<strong>保存</strong> · ${pendingMonth ? "未提交预览" : "待生成"}`;
       $("modeChip").innerHTML = `<strong>管理模式</strong> · ${$("manageDetails").open ? "展开" : "收起"}`;
       $("previewBadge").innerHTML = `<strong>${pendingMonth ? "未保存" : "待生成"}</strong> · 预览`;
       $("dirtyState").textContent = pendingMonth ? "未提交预览" : "待生成";
+    }
+
+    function normalizeRepoSlug(value) {
+      return String(value || "").trim().replace(/^https:\/\/github\.com\//, "").replace(/\.git$/, "");
+    }
+
+    function parseRepoSlug(value) {
+      const slug = normalizeRepoSlug(value);
+      const parts = slug.split("/").filter(Boolean);
+      if (parts.length !== 2) {
+        throw new Error("仓库格式要写成 owner/repo，比如 Drizeele2026/work。");
+      }
+      const [owner, repo] = parts;
+      return { owner, repo, slug: `${owner}/${repo}` };
+    }
+
+    function encodeBase64Utf8(text) {
+      const bytes = new TextEncoder().encode(text);
+      let binary = "";
+      bytes.forEach((byte) => {
+        binary += String.fromCharCode(byte);
+      });
+      return btoa(binary);
+    }
+
+    function decodeBase64Utf8(text) {
+      const binary = atob(String(text || "").replace(/\s/g, ""));
+      const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+      return new TextDecoder().decode(bytes);
+    }
+
+    function setGithubMessage(type, message) {
+      const box = $("githubMessage");
+      if (!box) return;
+      box.className = `message ${type}`;
+      box.style.display = "block";
+      box.textContent = message;
+    }
+
+    function clearGithubMessage() {
+      const box = $("githubMessage");
+      if (!box) return;
+      box.className = "message info";
+      box.style.display = "none";
+      box.textContent = "";
+    }
+
+    function readGithubSettings() {
+      const repoSlug = normalizeRepoSlug($("repoSlug")?.value || githubState.repoSlug || DEFAULT_REPO);
+      const token = String($("githubToken")?.value || githubState.token || localStorage.getItem(LS_TOKEN) || "").trim();
+      return { repoSlug, token };
+    }
+
+    function applyGithubSettings(settings) {
+      githubState = {
+        repoSlug: normalizeRepoSlug(settings.repoSlug || DEFAULT_REPO) || DEFAULT_REPO,
+        token: String(settings.token || "").trim()
+      };
+      $("repoSlug").value = githubState.repoSlug;
+      $("githubToken").value = githubState.token;
+    }
+
+    function persistGithubSettings(settings) {
+      applyGithubSettings(settings);
+      localStorage.setItem(LS_REPO, githubState.repoSlug);
+      if (githubState.token) {
+        localStorage.setItem(LS_TOKEN, githubState.token);
+      } else {
+        localStorage.removeItem(LS_TOKEN);
+      }
+      syncTopbar();
+    }
+
+    function readTeamFormState() {
+      return [1, 2, 3].map((index) => ({
+        name: $(`team${index}Name`).value.trim(),
+        members: parseMembers($(`team${index}Members`).value),
+        last: $(`team${index}Last`).value.trim().replace(/@/g, "")
+      }));
+    }
+
+    function applyTeamFormState(teams) {
+      [1, 2, 3].forEach((index) => {
+        const team = teams?.[index - 1];
+        if (!team) return;
+        $(`team${index}Name`).value = team.name || "";
+        $(`team${index}Members`).value = Array.isArray(team.members) ? team.members.join("\n") : "";
+        $(`team${index}Last`).value = team.last || "";
+      });
+    }
+
+    function persistTeamConfigToStorage() {
+      localStorage.setItem(LS_TEAM_CONFIG, JSON.stringify({
+        version: 1,
+        teams: readTeamFormState()
+      }));
+    }
+
+    function loadTeamConfigFromStorage() {
+      const raw = localStorage.getItem(LS_TEAM_CONFIG);
+      if (!raw) return false;
+      try {
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed?.teams) || !parsed.teams.length) return false;
+        applyTeamFormState(parsed.teams);
+        return true;
+      } catch (error) {
+        localStorage.removeItem(LS_TEAM_CONFIG);
+        return false;
+      }
+    }
+
+    function loadLocalUiState() {
+      const storedRepo = normalizeRepoSlug(localStorage.getItem(LS_REPO) || DEFAULT_REPO) || DEFAULT_REPO;
+      const storedToken = String(localStorage.getItem(LS_TOKEN) || "").trim();
+      applyGithubSettings({ repoSlug: storedRepo, token: storedToken });
+      loadTeamConfigFromStorage();
+      $("manageDetails").open = localStorage.getItem(LS_GITHUB_BOX) === "1";
+    }
+
+    function updateStoredUiState() {
+      localStorage.setItem(LS_GITHUB_BOX, $("manageDetails").open ? "1" : "0");
+    }
+
+    function openGithubSettings(targetId) {
+      $("manageDetails").open = true;
+      updateStoredUiState();
+      $("githubBox").scrollIntoView({ block: "nearest" });
+      if (targetId && $(targetId)) {
+        $(targetId).focus();
+      }
+      syncTopbar();
+    }
+
+    function openCopyPanel() {
+      $("copyDetails").classList.add("visible");
+      $("summaryView").scrollIntoView({ block: "start" });
+    }
+
+    async function githubRequest(url, options = {}) {
+      const settings = readGithubSettings();
+      if (!settings.token) {
+        throw new Error("先填写 GitHub Token。");
+      }
+      const headers = {
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        Authorization: `Bearer ${settings.token}`,
+        ...(options.headers || {})
+      };
+      const response = await fetch(url, { ...options, headers });
+      return response;
+    }
+
+    async function githubRequestJson(url, options = {}) {
+      const response = await githubRequest(url, options);
+      const text = await response.text();
+      let payload = null;
+      if (text) {
+        try {
+          payload = JSON.parse(text);
+        } catch (error) {
+          payload = { raw: text };
+        }
+      }
+      if (!response.ok) {
+        const detail = payload?.message || payload?.raw || `HTTP ${response.status}`;
+        throw new Error(`GitHub ${response.status}：${detail}`);
+      }
+      return payload;
+    }
+
+    function getRepoApiBase() {
+      const { owner, repo } = parseRepoSlug(readGithubSettings().repoSlug);
+      return `${API_BASE}/repos/${owner}/${repo}`;
+    }
+
+    function simplifyTeams(teams) {
+      return teams.map((team) => ({
+        name: team.name,
+        members: [...team.members],
+        last: team.last,
+        color: team.color?.name || team.color || ""
+      }));
+    }
+
+    function simplifyAssignments(dailyAssignments) {
+      return dailyAssignments.map((item) => ({
+        day: item.day,
+        dateStr: item.dateStr,
+        weekdayStr: item.weekdayStr,
+        teams: item.teams.map((team) => ({
+          name: team.name,
+          person: team.person,
+          color: team.color?.name || team.color || ""
+        }))
+      }));
+    }
+
+    function buildScheduleDocument(state) {
+      const now = new Date().toISOString();
+      const teams = simplifyTeams(state.teams);
+      const monthEntry = {
+        year: state.year,
+        month: state.month,
+        generatedAt: now,
+        teams,
+        dailyAssignments: simplifyAssignments(state.result.dailyAssignments),
+        summary: state.summary
+      };
+
+      return {
+        version: 1,
+        updatedAt: now,
+        config: { teams },
+        months: {
+          [state.monthKey]: monthEntry
+        }
+      };
+    }
+
+    async function testGithubAccess() {
+      clearGithubMessage();
+      const repoApiBase = getRepoApiBase();
+      const data = await githubRequestJson(`${repoApiBase}`);
+      const contents = data.permissions?.contents || "unknown";
+      const message = contents === "write" || contents === "admin"
+        ? `仓库可访问，Contents 权限是 ${contents}。`
+        : `仓库可访问，当前 Contents 权限是 ${contents}，保存时可能会失败。`;
+      setGithubMessage(contents === "write" || contents === "admin" ? "ok" : "info", message);
+      return data;
+    }
+
+    async function loadRemoteSchedulePreview() {
+      try {
+        const response = await fetch(`${SCHEDULE_PATH}?_=${Date.now()}`, { cache: "no-store" });
+        if (!response.ok) return null;
+        return await response.json();
+      } catch (error) {
+        return null;
+      }
+    }
+
+    async function loadGithubScheduleDocument() {
+      const repoApiBase = getRepoApiBase();
+      const contentsUrl = `${repoApiBase}/contents/${SCHEDULE_PATH}`;
+      const response = await githubRequest(contentsUrl);
+      if (response.status === 404) {
+        return { sha: null, document: null };
+      }
+      const text = await response.text();
+      let payload = null;
+      if (text) {
+        try {
+          payload = JSON.parse(text);
+        } catch (error) {
+          throw new Error("GitHub 返回了无法解析的内容。");
+        }
+      }
+      if (!response.ok) {
+        throw new Error(payload?.message || `GitHub ${response.status}`);
+      }
+      if (!payload?.content) {
+        return { sha: payload?.sha || null, document: null };
+      }
+      const decoded = decodeBase64Utf8(payload.content);
+      let document = null;
+      try {
+        document = JSON.parse(decoded);
+      } catch (error) {
+        throw new Error("仓库里的 schedule.json 不是有效 JSON。");
+      }
+      return { sha: payload.sha || null, document };
+    }
+
+    async function saveScheduleToGithub() {
+      clearGithubMessage();
+      if (!lastGeneratedState) {
+        throw new Error("请先生成排班，再保存到仓库。");
+      }
+      const settings = readGithubSettings();
+      const repoApiBase = getRepoApiBase();
+      const contentsUrl = `${repoApiBase}/contents/${SCHEDULE_PATH}`;
+      const remote = await loadGithubScheduleDocument();
+
+      const document = buildScheduleDocument(lastGeneratedState);
+      if (remote.document?.months) {
+        document.months = {
+          ...remote.document.months,
+          ...document.months
+        };
+      }
+
+      const body = {
+        message: `chore: update schedule ${lastGeneratedState.monthKey}`,
+        content: encodeBase64Utf8(`${JSON.stringify(document, null, 2)}\n`)
+      };
+      if (remote.sha) body.sha = remote.sha;
+
+      const response = await githubRequest(contentsUrl, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result?.message || `GitHub ${response.status}`);
+      }
+
+      persistGithubSettings(settings);
+      persistTeamConfigToStorage();
+      setGithubMessage("ok", `已写入 ${settings.repoSlug}/${SCHEDULE_PATH}。`);
+      return result;
     }
 
     function buildTeamData() {
@@ -1071,6 +1409,15 @@
         renderTSV(teams, result.dailyAssignments);
         renderMonthGridCopy(year, month, teams, result.startWeekday, result.daysInMonth, result.dailyAssignments);
 
+        lastGeneratedState = {
+          year,
+          month,
+          monthKey: formatMonthKey(year, month),
+          teams,
+          result,
+          summary: lastSummary,
+          remotePreview: null
+        };
         pendingMonth = formatMonthKey(year, month);
         updateMonthLabels(year, month);
         $("syncTime").textContent = nowTime();
@@ -1092,6 +1439,36 @@
       $("month").value = next.month;
       populateMonthPicker(next.year, next.month);
       generateSchedule();
+    }
+
+    function syncGithubBoxState() {
+      updateStoredUiState();
+      syncTopbar();
+    }
+
+    function saveGithubSettings() {
+      const settings = readGithubSettings();
+      persistGithubSettings(settings);
+      setGithubMessage("ok", `已保存设置到本机，仓库：${settings.repoSlug}。`);
+    }
+
+    async function handleTestGithub() {
+      try {
+        const data = await testGithubAccess();
+        const repoSlug = readGithubSettings().repoSlug;
+        setGithubMessage("ok", `仓库 ${repoSlug} 已连通，默认分支是 ${data.default_branch || "未知"}。`);
+      } catch (error) {
+        setGithubMessage("error", error.message || "测试失败。");
+      }
+    }
+
+    async function handlePublishGithub() {
+      try {
+        const result = await saveScheduleToGithub();
+        setGithubMessage("ok", `已写入仓库，提交信息：${result.commit?.sha ? result.commit.sha.slice(0, 7) : "完成"}。`);
+      } catch (error) {
+        setGithubMessage("error", error.message || "保存失败。");
+      }
     }
 
     async function copyMonthGrid() {
@@ -1157,8 +1534,14 @@
     function boot() {
       setCurrentYearMonth();
       applyDefaultMembers();
+      loadLocalUiState();
       populateMonthPicker(Number($("year").value), Number($("month").value));
       updateMonthLabels(Number($("year").value), Number($("month").value));
+      loadRemoteSchedulePreview().then((remotePreview) => {
+        if (lastGeneratedState) {
+          lastGeneratedState.remotePreview = remotePreview;
+        }
+      });
       syncTopbar();
       generateSchedule({ silent: true });
     }
@@ -1192,7 +1575,21 @@
       $("copyDetails").classList.toggle("visible");
     });
     $("printBtn").addEventListener("click", () => window.print());
-    $("manageDetails").addEventListener("toggle", syncTopbar);
+    $("manageDetails").addEventListener("toggle", syncGithubBoxState);
+    $("repoChip").addEventListener("click", () => openGithubSettings("repoSlug"));
+    $("tokenChip").addEventListener("click", () => openGithubSettings("githubToken"));
+    $("saveChip").addEventListener("click", openCopyPanel);
+    $("modeChip").addEventListener("click", () => {
+      $("manageDetails").open = !$("manageDetails").open;
+      syncGithubBoxState();
+    });
+    $("saveGithubBtn").addEventListener("click", saveGithubSettings);
+    $("testGithubBtn").addEventListener("click", handleTestGithub);
+    $("publishGithubBtn").addEventListener("click", handlePublishGithub);
+    $("clearGithubBtn").addEventListener("click", () => {
+      persistGithubSettings({ repoSlug: readGithubSettings().repoSlug, token: "" });
+      setGithubMessage("ok", "token 已清空。");
+    });
     document.querySelectorAll(".nav-link").forEach((button) => {
       button.addEventListener("click", () => selectView(button.dataset.view));
     });
