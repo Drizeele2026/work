@@ -1494,8 +1494,13 @@
       if (!calendar) return;
       const heads = weekdayNames.map((name) => `<div class="mini-calendar-head">${name}</div>`).join("");
       const monthKey = formatMonthKey(Number($("year").value), Number($("month").value));
-      if (!confirmationReady || !lastGeneratedState || lastGeneratedState.monthKey !== monthKey) {
-        calendar.innerHTML = `${heads}<div class="mini-calendar-empty">还没有生成月份预览。请在右侧点击“生成月份预览”。</div>`;
+      const hasCurrentSchedule = lastGeneratedState?.monthKey === monthKey;
+      const savedCurrentMonth = persistedMonth === monthKey;
+      if (!hasCurrentSchedule || (!confirmationReady && !savedCurrentMonth)) {
+        const message = savedCurrentMonth
+          ? "这个月份已写入仓库。打开公开页查看效果。"
+          : "还没有生成月份预览。请在右侧点击“生成月份预览”。";
+        calendar.innerHTML = `${heads}<div class="mini-calendar-empty">${message}</div>`;
         return;
       }
       const { startWeekday, daysInMonth, dailyAssignments } = lastGeneratedState.result;
@@ -1524,16 +1529,19 @@
       const year = Number($("year")?.value);
       const month = Number($("month")?.value);
       const monthKey = year && month ? formatMonthKey(year, month) : "-";
+      const hasCurrentSchedule = lastGeneratedState?.monthKey === monthKey;
+      const savedCurrentMonth = persistedMonth === monthKey;
+      const visibleSchedule = hasCurrentSchedule && (confirmationReady || savedCurrentMonth);
       if ($("confirmMonthLabel")) $("confirmMonthLabel").textContent = monthKey;
       if ($("confirmRangeLabel")) {
-        $("confirmRangeLabel").textContent = confirmationReady && lastGeneratedState?.monthKey === monthKey
+        $("confirmRangeLabel").textContent = visibleSchedule
           ? `${monthKey}，共 ${lastGeneratedState.result.daysInMonth} 天`
           : "待生成预览";
       }
       if ($("confirmValidateLabel")) {
         $("confirmValidateLabel").textContent = teamConfigDirty
           ? "团队配置未保存"
-          : (confirmationReady && lastGeneratedState?.monthKey === monthKey ? "通过" : "待生成");
+          : (savedCurrentMonth ? "已写入" : (visibleSchedule ? "通过" : "待生成"));
       }
       renderConfirmCalendar();
       updateConfirmPublishState();
@@ -1547,6 +1555,7 @@
       const monthKey = year && month ? formatMonthKey(year, month) : "";
       const previewReady = confirmationReady && lastGeneratedState?.monthKey === monthKey;
       const savedCurrentMonth = persistedMonth === monthKey;
+      const visibleSchedule = lastGeneratedState?.monthKey === monthKey && (previewReady || savedCurrentMonth);
       const hasToken = Boolean(readGithubSettings().token);
       button.disabled = false;
       if (teamConfigDirty) {
@@ -1566,7 +1575,7 @@
         button.className = "primary";
       }
       if ($("publishConfigState")) $("publishConfigState").textContent = teamConfigDirty ? "未保存" : "已保存";
-      if ($("publishPreviewState")) $("publishPreviewState").textContent = previewReady ? "已生成" : "待生成";
+      if ($("publishPreviewState")) $("publishPreviewState").textContent = savedCurrentMonth ? "已写入" : (visibleSchedule ? "已生成" : "待生成");
       if ($("publishRepoState")) $("publishRepoState").textContent = savedCurrentMonth ? "已写入" : "未写入";
       if ($("publishStepText")) {
         $("publishStepText").textContent = teamConfigDirty
