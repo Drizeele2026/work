@@ -1200,7 +1200,7 @@
     let lastSummary = [];
     let githubState = { repoSlug: DEFAULT_REPO, token: "" };
     let lastGeneratedState = null;
-    let currentView = "schedule";
+    let currentView = isAdminRoute() ? "manage" : "schedule";
     let teamConfigDirty = false;
     let teamConfigSavedAt = null;
     let confirmationReady = false;
