@@ -56,6 +56,36 @@
 - 发布成功后不能重复点发布；再次修改名单后按钮才会恢复可发布。
 - 公开页只展示排班，不展示管理入口。
 
+## 每日飞书提醒
+
+仓库里有一个 GitHub Actions 定时任务：
+
+```text
+.github/workflows/duty-reminder.yml
+```
+
+它会每天北京时间 09:00 读取 `data/schedule.json`，找到当天值班人，然后调用飞书群机器人发消息。
+
+飞书 webhook 不写进代码。需要在 GitHub 仓库里配置 Secret：
+
+```text
+FEISHU_WEBHOOK=飞书群机器人的 webhook
+```
+
+脚本位置：
+
+```text
+scripts/send-duty-reminder.mjs
+```
+
+本地只看消息内容，不真的发群：
+
+```bash
+node scripts/send-duty-reminder.mjs --dry-run
+```
+
+如果当天所在月份还没有发布排班，定时任务会失败并提示先发布当月排班。
+
 ## 数据文件
 
 排班结果保存在：

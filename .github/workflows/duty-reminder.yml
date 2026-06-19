@@ -1,0 +1,20 @@
+name: Duty Reminder
+
+on:
+  schedule:
+    # 09:00 Asia/Shanghai
+    - cron: "0 1 * * *"
+  workflow_dispatch:
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Send Feishu duty reminder
+        env:
+          FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
+          PUBLIC_ROSTER_URL: https://drizeele2026.github.io/work/
+        run: node scripts/send-duty-reminder.mjs
