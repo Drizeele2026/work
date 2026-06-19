@@ -76,6 +76,34 @@
       background: inherit;
       border-color: var(--line);
     }
+    button.loading {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      opacity: 0.78;
+    }
+    button.loading::before {
+      content: "";
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(255, 255, 255, 0.42);
+      border-top-color: #fff;
+      border-radius: 999px;
+      animation: spin 800ms linear infinite;
+    }
+    button.primary.loading:disabled,
+    button.primary.loading:disabled:hover {
+      background: #101828;
+      border-color: #101828;
+      color: #fff;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      button.loading::before { animation: none; }
+    }
 
     input, select, textarea {
       width: 100%;
@@ -1192,6 +1220,7 @@
     const DEFAULT_REPO = "Drizeele2026/work";
     const SCHEDULE_FILE = "data/schedule.json";
     const API_BASE = "https://api.github.com";
+    const PUBLISH_LOADING_MIN_MS = 800;
     let pendingMonth = null;
     let persistedMonth = null;
     let draftSeedState = null;
@@ -2256,9 +2285,11 @@
 
     async function handleTeamNextAction() {
       const button = $("teamNextActionBtn");
+      const loadingStartedAt = Date.now();
       clearTeamPublishMessage();
       if (button) {
         button.disabled = true;
+        button.classList.add("loading");
         button.textContent = "发布中...";
       }
       try {
@@ -2286,7 +2317,14 @@
         setTeamPublishMessage("error", error.message || "发布失败。");
         showToast(error.message || "发布失败", "error");
       } finally {
-        if (button) button.disabled = false;
+        const elapsed = Date.now() - loadingStartedAt;
+        if (elapsed < PUBLISH_LOADING_MIN_MS) {
+          await new Promise((resolve) => setTimeout(resolve, PUBLISH_LOADING_MIN_MS - elapsed));
+        }
+        if (button) {
+          button.classList.remove("loading");
+          button.disabled = false;
+        }
         renderTeamConfigStatus();
         syncTopbar();
       }
