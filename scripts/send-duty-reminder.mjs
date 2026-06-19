@@ -31,6 +31,17 @@ function normalizeDateKey(dateStr) {
   return String(dateStr || "").replaceAll("/", "-");
 }
 
+function normalizeDutyTeam(team) {
+  const person = typeof team?.person === "object" && team.person
+    ? team.person
+    : { name: team?.person };
+  return {
+    ...team,
+    person: String(person.name || ""),
+    feishuOpenId: String(team?.feishuOpenId || person.feishuOpenId || "").trim()
+  };
+}
+
 export function findAssignmentForDate(schedule, dateKey) {
   const monthKey = dateKey.slice(0, 7);
   const month = schedule?.months?.[monthKey];
@@ -43,22 +54,42 @@ export function findAssignmentForDate(schedule, dateKey) {
     throw new Error(`没有找到 ${dateKey} 的值班安排，请检查已发布排班。`);
   }
 
-  return assignment;
+  return {
+    ...assignment,
+    teams: Array.isArray(assignment.teams) ? assignment.teams.map(normalizeDutyTeam) : []
+  };
 }
 
-export function buildFeishuTextMessage({ dateInfo, assignment, publicUrl = DEFAULT_PUBLIC_URL }) {
-  const dutyLines = assignment.teams.map((team) => `${team.name}：${team.person}`);
+function buildPersonNode(team) {
+  if (team.feishuOpenId) {
+    return { tag: "at", user_id: team.feishuOpenId, user_name: team.person };
+  }
+  return { tag: "text", text: team.person };
+}
+
+export function buildFeishuPostMessage({ dateInfo, assignment, publicUrl = DEFAULT_PUBLIC_URL }) {
+  const dutyRows = assignment.teams.map((team) => [
+    { tag: "text", text: `${team.name}：` },
+    buildPersonNode(team)
+  ]);
+
   return {
-    msg_type: "text",
+    msg_type: "post",
     content: {
-      text: [
-        "今日值班提醒",
-        `${dateInfo.displayDate} ${dateInfo.weekday}`,
-        "",
-        ...dutyLines,
-        "",
-        `排班表：${publicUrl}`
-      ].join("\n")
+      post: {
+        zh_cn: {
+          title: "今日值班提醒",
+          content: [
+            [{ tag: "text", text: `${dateInfo.displayDate} ${dateInfo.weekday}` }],
+            [{ tag: "text", text: "今日值班" }],
+            ...dutyRows,
+            [
+              { tag: "text", text: "排班表：" },
+              { tag: "a", text: "查看公开排班", href: publicUrl }
+            ]
+          ]
+        }
+      }
     }
   };
 }
@@ -99,7 +130,7 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
   const dateInfo = formatBeijingDate(env.REMINDER_DATE ? new Date(env.REMINDER_DATE) : new Date());
   const schedule = await loadSchedule(schedulePath);
   const assignment = findAssignmentForDate(schedule, dateInfo.dateKey);
-  const message = buildFeishuTextMessage({ dateInfo, assignment, publicUrl });
+  const message = buildFeishuPostMessage({ dateInfo, assignment, publicUrl });
 
   if (dryRun) {
     console.log(JSON.stringify(message, null, 2));
