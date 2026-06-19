@@ -64,7 +64,9 @@
 .github/workflows/duty-reminder.yml
 ```
 
-它会每天北京时间 09:00 读取 `data/schedule.json`，找到当天值班人，然后调用飞书群机器人发消息。
+测试期临时每 5 分钟执行一次。GitHub Actions 定时任务最短间隔是 5 分钟，测试完成后改回每天北京时间 09:00。
+
+它会读取 `data/schedule.json`，找到当天值班人，然后调用飞书群机器人发消息。
 
 飞书 webhook 不写进代码。需要在 GitHub 仓库里配置 Secret：
 

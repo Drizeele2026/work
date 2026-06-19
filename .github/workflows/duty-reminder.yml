@@ -2,8 +2,9 @@ name: Duty Reminder
 
 on:
   schedule:
-    # 09:00 Asia/Shanghai
-    - cron: "0 1 * * *"
+    # Test mode: GitHub Actions scheduled workflows support 5 minutes as the shortest interval.
+    # Production 09:00 Asia/Shanghai: 0 1 * * *
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 jobs:
