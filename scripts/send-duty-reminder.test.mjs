@@ -4,7 +4,9 @@ import assert from "node:assert/strict";
 import {
   buildFeishuPostMessage,
   findAssignmentForDate,
-  formatBeijingDate
+  formatBeijingDate,
+  hasSentOn,
+  loadReminderState
 } from "./send-duty-reminder.mjs";
 
 const schedule = {
@@ -117,4 +119,16 @@ test("findAssignmentForDate can read published object-member schedules", () => {
     person: "方思琪",
     feishuOpenId: "ou_frontend"
   });
+});
+
+test("hasSentOn 只在记录日期等于今天时为真", () => {
+  assert.equal(hasSentOn({ lastSentDate: "2026-06-20" }, "2026-06-20"), true);
+  assert.equal(hasSentOn({ lastSentDate: "2026-06-19" }, "2026-06-20"), false);
+  assert.equal(hasSentOn({}, "2026-06-20"), false);
+  assert.equal(hasSentOn(null, "2026-06-20"), false);
+});
+
+test("loadReminderState 在状态文件不存在时返回空对象", async () => {
+  const result = await loadReminderState("scripts/__no_such_reminder_state__.json");
+  assert.deepEqual(result, {});
 });

@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 
 const DEFAULT_SCHEDULE_PATH = "data/schedule.json";
+const DEFAULT_STATE_PATH = "data/reminder-state.json";
 const DEFAULT_PUBLIC_URL = "https://drizeele2026.github.io/work/";
 const TIME_ZONE = "Asia/Shanghai";
 
@@ -98,6 +99,23 @@ export async function loadSchedule(path = DEFAULT_SCHEDULE_PATH) {
   return JSON.parse(await fs.readFile(path, "utf8"));
 }
 
+export async function loadReminderState(path = DEFAULT_STATE_PATH) {
+  try {
+    return JSON.parse(await fs.readFile(path, "utf8"));
+  } catch {
+    // 文件不存在或内容损坏时，当作“从未发送过”处理
+    return {};
+  }
+}
+
+export function hasSentOn(state, dateKey) {
+  return Boolean(state) && state.lastSentDate === dateKey;
+}
+
+export async function writeReminderState(path, dateKey) {
+  await fs.writeFile(path, `${JSON.stringify({ lastSentDate: dateKey }, null, 2)}\n`, "utf8");
+}
+
 export async function postFeishuMessage(webhook, message, fetchImpl = globalThis.fetch) {
   if (!webhook) throw new Error("缺少 FEISHU_WEBHOOK。请在 GitHub Secrets 里配置飞书机器人 webhook。");
   if (!fetchImpl) throw new Error("当前 Node 环境缺少 fetch。");
@@ -125,19 +143,34 @@ export async function postFeishuMessage(webhook, message, fetchImpl = globalThis
 
 export async function main(argv = process.argv.slice(2), env = process.env) {
   const dryRun = argv.includes("--dry-run");
+  const force = argv.includes("--force") || env.FORCE_SEND === "1";
   const schedulePath = env.SCHEDULE_PATH || DEFAULT_SCHEDULE_PATH;
+  const statePath = env.REMINDER_STATE_PATH || DEFAULT_STATE_PATH;
   const publicUrl = env.PUBLIC_ROSTER_URL || DEFAULT_PUBLIC_URL;
   const dateInfo = formatBeijingDate(env.REMINDER_DATE ? new Date(env.REMINDER_DATE) : new Date());
-  const schedule = await loadSchedule(schedulePath);
-  const assignment = findAssignmentForDate(schedule, dateInfo.dateKey);
-  const message = buildFeishuPostMessage({ dateInfo, assignment, publicUrl });
 
+  // dry-run 只预览消息内容，不去重、不写状态、不真的发送
   if (dryRun) {
+    const schedule = await loadSchedule(schedulePath);
+    const assignment = findAssignmentForDate(schedule, dateInfo.dateKey);
+    const message = buildFeishuPostMessage({ dateInfo, assignment, publicUrl });
     console.log(JSON.stringify(message, null, 2));
     return message;
   }
 
+  // 去重：当天已经发过且不是强制发送，直接跳过（正常退出，不报错）
+  const state = await loadReminderState(statePath);
+  if (!force && hasSentOn(state, dateInfo.dateKey)) {
+    console.log(`${dateInfo.dateKey} 今天已发送过值班提醒，跳过。`);
+    return { skipped: true, dateKey: dateInfo.dateKey };
+  }
+
+  const schedule = await loadSchedule(schedulePath);
+  const assignment = findAssignmentForDate(schedule, dateInfo.dateKey);
+  const message = buildFeishuPostMessage({ dateInfo, assignment, publicUrl });
+
   await postFeishuMessage(env.FEISHU_WEBHOOK, message);
+  await writeReminderState(statePath, dateInfo.dateKey);
   console.log(`已发送 ${dateInfo.dateKey} 值班提醒。`);
   return message;
 }
