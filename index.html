@@ -423,20 +423,50 @@
       gap: 10px;
     }
     .member-field { display: grid; gap: 7px; }
-    .member-field textarea {
-      min-height: 150px;
-      font-size: 13px;
-      line-height: 1.7;
-      white-space: pre;     /* 一人一行，长 openId 不软换行 */
-      overflow-x: auto;     /* 超出部分横向滚动，名字始终在行首 */
+    .member-field textarea { display: none; }  /* 隐藏，仅作数据载体；编辑走下面的结构化列表 */
+    .member-preview { display: block; }
+    .mrow {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      padding: 6px 8px; border: 1px solid #e6ebf2; border-radius: 8px;
+      background: #fff; margin-bottom: 6px;
     }
-    .member-preview {
-      min-height: 42px;
-      display: flex;
-      align-items: flex-start;
-      align-content: flex-start;
-      flex-wrap: wrap;
-      gap: 6px;
+    .mrow-main { display: flex; align-items: center; gap: 8px; flex: 1 1 150px; min-width: 0; }
+    .mrow-order {
+      width: 18px; height: 18px; border-radius: 999px; flex: 0 0 auto;
+      background: #eef4ff; color: #2f58c7; font-size: 11px; font-weight: 800;
+      display: grid; place-items: center;
+    }
+    .mrow-name {
+      flex: 1; min-width: 0; border: none; background: transparent;
+      font-size: 14px; font-weight: 600; color: var(--ink); padding: 2px 0;
+    }
+    .mrow-name:focus { outline: none; box-shadow: inset 0 -1px 0 var(--brand, #1f5eff); }
+    .mrow-actions { display: flex; align-items: center; gap: 4px; flex: 0 0 auto; }
+    .mrow-id {
+      font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
+      border: 1px solid #d7dee7; background: #f4f7fb; color: #8090a3; cursor: pointer;
+      transition: background .15s, color .15s, border-color .15s;
+    }
+    .mrow-id.on { background: #def6ec; border-color: #b7e6d2; color: #12966a; }
+    .mrow-mv, .mrow-del {
+      width: 24px; height: 24px; border-radius: 6px; border: 1px solid #e6ebf2;
+      background: #fff; cursor: pointer; color: #5b6577; font-size: 13px; line-height: 1;
+      display: grid; place-items: center;
+    }
+    .mrow-mv:disabled { opacity: .35; cursor: default; }
+    .mrow-del:hover { border-color: #f0b6b6; color: #c0392b; }
+    .mrow-id-edit { flex-basis: 100%; }
+    .mrow-id-edit[hidden] { display: none; }
+    .mrow-oid {
+      width: 100%; box-sizing: border-box; font-size: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      padding: 5px 8px; border: 1px solid #d7dee7; border-radius: 6px; color: #5b6577;
+    }
+    .mrow-add { display: flex; gap: 6px; margin-top: 4px; }
+    .mrow-addname { flex: 1; min-width: 0; font-size: 13px; padding: 6px 9px; border: 1px dashed #c3ccd9; border-radius: 8px; }
+    .mrow-addbtn {
+      font-size: 13px; font-weight: 700; padding: 6px 12px; border-radius: 8px; white-space: nowrap;
+      border: 1px solid #d7dee7; background: #f4f7fb; color: var(--ink); cursor: pointer;
     }
     .member-chip {
       min-height: 24px;
@@ -1401,15 +1431,98 @@
     function renderMemberPreview(index, members) {
       const preview = $(`team${index}Preview`);
       if (!preview) return;
-      if (!members.length) {
-        preview.innerHTML = `<span class="empty-preview">还没有成员。每行填一个名字。</span>`;
-        return;
-      }
-      preview.innerHTML = members.map((member, memberIndex) => {
+      const rows = members.map((member, i) => {
         const name = memberUtils.memberName(member);
-        const idMark = memberUtils.memberOpenId(member) ? `<span class="member-id-mark">已配ID</span>` : "";
-        return `<span class="member-chip"><span class="member-order">${memberIndex + 1}</span>${escapeHtml(name)}${idMark}</span>`;
+        const oid = memberUtils.memberOpenId(member);
+        return `
+          <div class="mrow" data-i="${i}">
+            <div class="mrow-main">
+              <span class="mrow-order">${i + 1}</span>
+              <input class="mrow-name" type="text" value="${escapeHtml(name)}" data-act="name" aria-label="成员姓名">
+            </div>
+            <div class="mrow-actions">
+              <button type="button" class="mrow-id ${oid ? "on" : ""}" data-act="toggleid" title="飞书 OpenID（用于 @ 人）">${oid ? "已配 ID" : "配 ID"}</button>
+              <button type="button" class="mrow-mv" data-act="up" title="上移" ${i === 0 ? "disabled" : ""}>↑</button>
+              <button type="button" class="mrow-mv" data-act="down" title="下移" ${i === members.length - 1 ? "disabled" : ""}>↓</button>
+              <button type="button" class="mrow-del" data-act="del" title="删除">✕</button>
+            </div>
+            <div class="mrow-id-edit" hidden>
+              <input class="mrow-oid" type="text" value="${escapeHtml(oid)}" placeholder="飞书 OpenID，形如 ou_xxx；留空则只显示姓名、不 @" data-act="oid" aria-label="飞书 OpenID">
+            </div>
+          </div>`;
       }).join("");
+      preview.innerHTML = `${rows}
+        <div class="mrow-add">
+          <input class="mrow-addname" type="text" placeholder="添加成员，回车确认" data-act="addname" aria-label="添加成员">
+          <button type="button" class="mrow-addbtn" data-act="add">+ 添加</button>
+        </div>`;
+    }
+
+    function commitMembers(index, members) {
+      $(`team${index}Members`).value = memberUtils.formatMembers(members);
+      syncTeamCards();
+      setTeamConfigDirty(true);
+    }
+
+    function addMemberFromInput(index) {
+      const input = $(`team${index}Preview`).querySelector(".mrow-addname");
+      if (!input) return;
+      const name = input.value.trim().replace(/@/g, "");
+      if (!name) return;
+      const members = parseMembers($(`team${index}Members`).value);
+      members.push({ name, feishuOpenId: "" });
+      commitMembers(index, members);
+      $(`team${index}Preview`).querySelector(".mrow-addname")?.focus();
+    }
+
+    function bindMemberEditor(index) {
+      const box = $(`team${index}Preview`);
+      if (!box) return;
+      box.addEventListener("click", (event) => {
+        const act = event.target.dataset?.act;
+        if (!act) return;
+        const row = event.target.closest(".mrow");
+        const i = row ? Number(row.dataset.i) : -1;
+        const members = parseMembers($(`team${index}Members`).value);
+        if (act === "add") {
+          addMemberFromInput(index);
+        } else if (act === "del" && i >= 0) {
+          members.splice(i, 1);
+          commitMembers(index, members);
+        } else if (act === "up" && i > 0) {
+          [members[i - 1], members[i]] = [members[i], members[i - 1]];
+          commitMembers(index, members);
+        } else if (act === "down" && i >= 0 && i < members.length - 1) {
+          [members[i + 1], members[i]] = [members[i], members[i + 1]];
+          commitMembers(index, members);
+        } else if (act === "toggleid" && row) {
+          const editor = row.querySelector(".mrow-id-edit");
+          editor.hidden = !editor.hidden;
+          if (!editor.hidden) editor.querySelector("input")?.focus();
+        }
+      });
+      box.addEventListener("change", (event) => {
+        const act = event.target.dataset?.act;
+        const row = event.target.closest(".mrow");
+        if (!row || (act !== "name" && act !== "oid")) return;
+        const i = Number(row.dataset.i);
+        const members = parseMembers($(`team${index}Members`).value);
+        if (!members[i]) return;
+        if (act === "name") {
+          const name = event.target.value.trim().replace(/@/g, "");
+          if (!name) { syncTeamCards(); return; }  // 不允许空名，恢复原值
+          members[i] = { name, feishuOpenId: memberUtils.memberOpenId(members[i]) };
+        } else {
+          members[i] = { name: memberUtils.memberName(members[i]), feishuOpenId: event.target.value.trim() };
+        }
+        commitMembers(index, members);
+      });
+      box.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && event.target.dataset?.act === "addname") {
+          event.preventDefault();
+          addMemberFromInput(index);
+        }
+      });
     }
 
     function syncTeamCards() {
@@ -2431,14 +2544,11 @@
           syncTeamCards();
           setTeamConfigDirty(true);
         });
-        $(`team${index}Members`).addEventListener("input", () => {
-          syncTeamCards();
-          setTeamConfigDirty(true);
-        });
         $(`team${index}Last`).addEventListener("change", () => {
           syncTeamCards();
           setTeamConfigDirty(true);
         });
+        bindMemberEditor(index);
       });
     }
 
