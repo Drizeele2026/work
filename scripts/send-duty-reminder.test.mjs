@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 
 import {
-  buildFeishuPostMessage,
+  buildFeishuCardMessage,
   findAssignmentForDate,
   formatBeijingDate,
   hasSentOn,
@@ -22,9 +22,9 @@ const schedule = {
           dateStr: "2026/06/19",
           weekdayStr: "周五",
           teams: [
-            { name: "前端", person: "方思琪", feishuOpenId: "ou_frontend" },
-            { name: "后端", person: "李尚忠" },
-            { name: "测试", person: "谭贤", feishuOpenId: "ou_test" }
+            { name: "前端", person: "方思琪", feishuOpenId: "ou_frontend", color: "blue" },
+            { name: "后端", person: "李尚忠", color: "green" },
+            { name: "测试", person: "谭贤", feishuOpenId: "ou_test", color: "violet" }
           ]
         }
       ]
@@ -60,41 +60,28 @@ test("findAssignmentForDate reports missing month clearly", () => {
   );
 });
 
-test("buildFeishuPostMessage mentions configured users and falls back to names", () => {
+test("buildFeishuCardMessage 用色点标记团队、@ 配了 openId 的人、其余显示姓名", () => {
   const dateInfo = formatBeijingDate(new Date("2026-06-19T01:00:00.000Z"));
   const assignment = findAssignmentForDate(schedule, dateInfo.dateKey);
-  const message = buildFeishuPostMessage({ dateInfo, assignment });
+  const message = buildFeishuCardMessage({ dateInfo, assignment });
 
-  assert.deepEqual(message, {
-    msg_type: "post",
-    content: {
-      post: {
-        zh_cn: {
-          title: "今日值班提醒",
-          content: [
-            [{ tag: "text", text: "2026年6月19日 周五" }],
-            [{ tag: "text", text: "今日值班" }],
-            [
-              { tag: "text", text: "前端：" },
-              { tag: "at", user_id: "ou_frontend", user_name: "方思琪" }
-            ],
-            [
-              { tag: "text", text: "后端：" },
-              { tag: "text", text: "李尚忠" }
-            ],
-            [
-              { tag: "text", text: "测试：" },
-              { tag: "at", user_id: "ou_test", user_name: "谭贤" }
-            ],
-            [
-              { tag: "text", text: "排班表：" },
-              { tag: "a", text: "查看公开排班", href: "https://drizeele2026.github.io/work/" }
-            ]
-          ]
-        }
-      }
-    }
-  });
+  assert.equal(message.msg_type, "interactive");
+  assert.equal(message.card.header.template, "blue");
+  assert.equal(message.card.header.title.content, "今日值班提醒");
+
+  const lines = message.card.elements
+    .filter((el) => el.tag === "div")
+    .map((el) => el.text.content);
+  assert.deepEqual(lines, [
+    "**2026年6月19日　周五**",
+    "🔵 **前端**　<at id=ou_frontend></at>",
+    "🟢 **后端**　李尚忠",
+    "🟣 **测试**　<at id=ou_test></at>"
+  ]);
+
+  const button = message.card.elements.find((el) => el.tag === "action").actions[0];
+  assert.equal(button.text.content, "查看完整排班");
+  assert.equal(button.url, "https://drizeele2026.github.io/work/");
 });
 
 test("findAssignmentForDate can read published object-member schedules", () => {

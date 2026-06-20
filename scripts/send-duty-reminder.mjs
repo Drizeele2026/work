@@ -61,36 +61,48 @@ export function findAssignmentForDate(schedule, dateKey) {
   };
 }
 
-function buildPersonNode(team) {
-  if (team.feishuOpenId) {
-    return { tag: "at", user_id: team.feishuOpenId, user_name: team.person };
-  }
-  return { tag: "text", text: team.person };
+// 团队色圆点，对应公开页的蓝/绿/紫色标，让飞书卡片和网页视觉统一。
+const TEAM_DOT = { blue: "🔵", green: "🟢", violet: "🟣", purple: "🟣", orange: "🟠", red: "🔴" };
+
+function dutyPersonMarkdown(team) {
+  // 卡片里用 <at id=...> @ 人；没配 openId 的显示姓名。
+  return team.feishuOpenId ? `<at id=${team.feishuOpenId}></at>` : team.person;
 }
 
-export function buildFeishuPostMessage({ dateInfo, assignment, publicUrl = DEFAULT_PUBLIC_URL }) {
-  const dutyRows = assignment.teams.map((team) => [
-    { tag: "text", text: `${team.name}：` },
-    buildPersonNode(team)
-  ]);
+export function buildFeishuCardMessage({ dateInfo, assignment, publicUrl = DEFAULT_PUBLIC_URL }) {
+  const dutyLines = assignment.teams.map((team) => ({
+    tag: "div",
+    text: {
+      tag: "lark_md",
+      content: `${TEAM_DOT[team.color] || "⚪"} **${team.name}**　${dutyPersonMarkdown(team)}`
+    }
+  }));
 
   return {
-    msg_type: "post",
-    content: {
-      post: {
-        zh_cn: {
-          title: "今日值班提醒",
-          content: [
-            [{ tag: "text", text: `${dateInfo.displayDate} ${dateInfo.weekday}` }],
-            [{ tag: "text", text: "今日值班" }],
-            ...dutyRows,
-            [
-              { tag: "text", text: "排班表：" },
-              { tag: "a", text: "查看公开排班", href: publicUrl }
-            ]
+    msg_type: "interactive",
+    card: {
+      config: { wide_screen_mode: true },
+      header: {
+        template: "blue",
+        title: { tag: "plain_text", content: "今日值班提醒" }
+      },
+      elements: [
+        { tag: "div", text: { tag: "lark_md", content: `**${dateInfo.displayDate}　${dateInfo.weekday}**` } },
+        { tag: "hr" },
+        ...dutyLines,
+        { tag: "hr" },
+        {
+          tag: "action",
+          actions: [
+            {
+              tag: "button",
+              text: { tag: "plain_text", content: "查看完整排班" },
+              url: publicUrl,
+              type: "default"
+            }
           ]
         }
-      }
+      ]
     }
   };
 }
@@ -153,7 +165,7 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
   if (dryRun) {
     const schedule = await loadSchedule(schedulePath);
     const assignment = findAssignmentForDate(schedule, dateInfo.dateKey);
-    const message = buildFeishuPostMessage({ dateInfo, assignment, publicUrl });
+    const message = buildFeishuCardMessage({ dateInfo, assignment, publicUrl });
     console.log(JSON.stringify(message, null, 2));
     return message;
   }
@@ -167,7 +179,7 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
 
   const schedule = await loadSchedule(schedulePath);
   const assignment = findAssignmentForDate(schedule, dateInfo.dateKey);
-  const message = buildFeishuPostMessage({ dateInfo, assignment, publicUrl });
+  const message = buildFeishuCardMessage({ dateInfo, assignment, publicUrl });
 
   await postFeishuMessage(env.FEISHU_WEBHOOK, message);
   // force（人工测试）不写去重状态：不占当天名额，也不影响自动触发那条
