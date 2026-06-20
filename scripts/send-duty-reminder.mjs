@@ -170,8 +170,13 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
   const message = buildFeishuPostMessage({ dateInfo, assignment, publicUrl });
 
   await postFeishuMessage(env.FEISHU_WEBHOOK, message);
-  await writeReminderState(statePath, dateInfo.dateKey);
-  console.log(`已发送 ${dateInfo.dateKey} 值班提醒。`);
+  // force（人工测试）不写去重状态：不占当天名额，也不影响自动触发那条
+  if (!force) {
+    await writeReminderState(statePath, dateInfo.dateKey);
+  }
+  console.log(force
+    ? `已强制发送 ${dateInfo.dateKey}（force：未写入去重状态）。`
+    : `已发送 ${dateInfo.dateKey} 值班提醒。`);
   return message;
 }
 

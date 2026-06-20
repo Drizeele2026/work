@@ -1,12 +1,16 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 
 import {
   buildFeishuPostMessage,
   findAssignmentForDate,
   formatBeijingDate,
   hasSentOn,
-  loadReminderState
+  loadReminderState,
+  main
 } from "./send-duty-reminder.mjs";
 
 const schedule = {
@@ -131,4 +135,48 @@ test("hasSentOn 只在记录日期等于今天时为真", () => {
 test("loadReminderState 在状态文件不存在时返回空对象", async () => {
   const result = await loadReminderState("scripts/__no_such_reminder_state__.json");
   assert.deepEqual(result, {});
+});
+
+async function setupTmp() {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "duty-"));
+  const schedulePath = path.join(dir, "schedule.json");
+  const statePath = path.join(dir, "state.json");
+  await fs.writeFile(schedulePath, JSON.stringify({
+    months: { "2026-06": { dailyAssignments: [
+      { dateStr: "2026/06/20", teams: [{ name: "前端", person: "郑刘利", feishuOpenId: "ou_x" }] }
+    ] } }
+  }));
+  return { schedulePath, statePath };
+}
+
+async function withMockFetch(fn) {
+  const orig = globalThis.fetch;
+  globalThis.fetch = async () => ({ ok: true, text: async () => '{"code":0}' });
+  try { return await fn(); } finally { globalThis.fetch = orig; }
+}
+
+test("main：force 发送后不写去重状态（不占当天名额）", async () => {
+  const { schedulePath, statePath } = await setupTmp();
+  await withMockFetch(() => main([], {
+    FORCE_SEND: "1",
+    REMINDER_DATE: "2026-06-20T02:00:00Z",
+    SCHEDULE_PATH: schedulePath,
+    REMINDER_STATE_PATH: statePath,
+    FEISHU_WEBHOOK: "https://example.com/hook"
+  }));
+  let exists = true;
+  try { await fs.access(statePath); } catch { exists = false; }
+  assert.equal(exists, false, "force 模式不应写状态文件");
+});
+
+test("main：普通触发发送后写入去重状态", async () => {
+  const { schedulePath, statePath } = await setupTmp();
+  await withMockFetch(() => main([], {
+    REMINDER_DATE: "2026-06-20T02:00:00Z",
+    SCHEDULE_PATH: schedulePath,
+    REMINDER_STATE_PATH: statePath,
+    FEISHU_WEBHOOK: "https://example.com/hook"
+  }));
+  const saved = JSON.parse(await fs.readFile(statePath, "utf8"));
+  assert.equal(saved.lastSentDate, "2026-06-20");
 });
