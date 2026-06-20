@@ -462,6 +462,14 @@
       font-weight: 800;
       flex: 0 0 auto;
     }
+    .member-id-mark {
+      padding: 2px 5px;
+      border-radius: 999px;
+      background: #e7f7ef;
+      color: #0f7b55;
+      font-size: 10px;
+      font-weight: 800;
+    }
     .empty-preview {
       color: var(--muted);
       font-size: 12px;
@@ -1104,7 +1112,7 @@
                   <div class="member-field">
                     <label for="team1Members">成员名单</label>
                     <textarea id="team1Members" spellcheck="false"></textarea>
-                    <p class="inline-help">按值班顺序从上到下填写。可以直接从表格里复制一列名字粘进来。</p>
+                    <p class="inline-help">每行一个成员；需要飞书 @ 时写成：姓名 | 飞书OpenID。没写 ID 也会正常提醒。</p>
                   </div>
                   <div class="member-preview" id="team1Preview"></div>
                 </div>
@@ -1132,7 +1140,7 @@
                   <div class="member-field">
                     <label for="team2Members">成员名单</label>
                     <textarea id="team2Members" spellcheck="false"></textarea>
-                    <p class="inline-help">成员顺序会直接影响后续日期分配；要换顺序，直接调整文本行。</p>
+                    <p class="inline-help">成员顺序会影响后续日期分配；要换顺序，直接调整文本行。</p>
                   </div>
                   <div class="member-preview" id="team2Preview"></div>
                 </div>
@@ -1160,7 +1168,7 @@
                   <div class="member-field">
                     <label for="team3Members">成员名单</label>
                     <textarea id="team3Members" spellcheck="false"></textarea>
-                    <p class="inline-help">下面的标签用来核对顺序，发布前还是以文本框内容为准。</p>
+                    <p class="inline-help">下面的标签用来核对顺序；带“已配ID”的人会在飞书里被真正 @。</p>
                   </div>
                   <div class="member-preview" id="team3Preview"></div>
                 </div>
@@ -1230,6 +1238,7 @@
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+  <script src="./member-utils.js"></script>
   <script>
     const weekdayNames = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
     const weekdayNamesByDate = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
@@ -1252,6 +1261,7 @@
     };
 
     const $ = (id) => document.getElementById(id);
+    const memberUtils = window.DutyRosterMembers;
     const LS_TOKEN = "duty-roster-token";
     const LS_REPO = "duty-roster-repo";
     const LS_TEAM_CONFIG = "duty-roster-team-config";
@@ -1357,9 +1367,10 @@
     function setTeamLastOptions(index, members, selectedLast) {
       const select = $(`team${index}Last`);
       const current = String(selectedLast || "").trim().replace(/@/g, "");
+      const names = memberUtils.memberNames(members);
       select.innerHTML = "";
 
-      if (!members.length) {
+      if (!names.length) {
         const option = document.createElement("option");
         option.value = "";
         option.textContent = "先填写成员";
@@ -1367,20 +1378,20 @@
         return;
       }
 
-      members.forEach((member) => {
+      names.forEach((member) => {
         const option = document.createElement("option");
         option.value = member;
         option.textContent = member;
         select.appendChild(option);
       });
 
-      select.value = members.includes(current) ? current : members[0];
+      select.value = names.includes(current) ? current : names[0];
     }
 
     function setTeamForm(index, team) {
       const members = Array.isArray(team.members) ? team.members : [];
       $(`team${index}Name`).value = team.name || "";
-      $(`team${index}Members`).value = members.join("\n");
+      $(`team${index}Members`).value = memberUtils.formatMembers(members);
       setTeamLastOptions(index, members, team.last || "");
     }
 
@@ -1391,9 +1402,11 @@
         preview.innerHTML = `<span class="empty-preview">还没有成员。每行填一个名字。</span>`;
         return;
       }
-      preview.innerHTML = members.map((member, memberIndex) => (
-        `<span class="member-chip"><span class="member-order">${memberIndex + 1}</span>${escapeHtml(member)}</span>`
-      )).join("");
+      preview.innerHTML = members.map((member, memberIndex) => {
+        const name = memberUtils.memberName(member);
+        const idMark = memberUtils.memberOpenId(member) ? `<span class="member-id-mark">已配ID</span>` : "";
+        return `<span class="member-chip"><span class="member-order">${memberIndex + 1}</span>${escapeHtml(name)}${idMark}</span>`;
+      }).join("");
     }
 
     function syncTeamCards() {
@@ -1524,11 +1537,7 @@
     }
 
     function parseMembers(text) {
-      return text
-        .replace(/@/g, "")
-        .split(/\n|,/)
-        .map((item) => item.trim())
-        .filter(Boolean);
+      return memberUtils.parseMembers(text);
     }
 
     function showError(message) {
@@ -1825,7 +1834,7 @@
     function simplifyTeams(teams) {
       return teams.map((team) => ({
         name: team.name,
-        members: [...team.members],
+        members: memberUtils.serializeMembers(team.members),
         last: team.last,
         color: team.color?.name || team.color || ""
       }));
@@ -1834,7 +1843,7 @@
     function cloneTeamsForDraft(teams) {
       return teams.map((team) => ({
         ...team,
-        members: [...team.members],
+        members: memberUtils.serializeMembers(team.members),
         color: team.color
       }));
     }
@@ -1852,12 +1861,13 @@
       if (!draftSeedState) return null;
       const dayOffset = monthStartDayOffset(draftSeedState.year, draftSeedState.month, year, month);
       return draftSeedState.teams.map((team) => {
-        const lastIndex = team.members.indexOf(team.last);
-        const shiftedIndex = wrapIndex(lastIndex + dayOffset, team.members.length);
+        const names = memberUtils.memberNames(team.members);
+        const lastIndex = names.indexOf(team.last);
+        const shiftedIndex = wrapIndex(lastIndex + dayOffset, names.length);
         return {
           ...team,
-          members: [...team.members],
-          last: team.members[shiftedIndex]
+          members: memberUtils.serializeMembers(team.members),
+          last: names[shiftedIndex]
         };
       });
     }
@@ -1870,6 +1880,7 @@
         teams: item.teams.map((team) => ({
           name: team.name,
           person: team.person,
+          ...(team.feishuOpenId ? { feishuOpenId: team.feishuOpenId } : {}),
           color: team.color?.name || team.color || ""
         }))
       }));
@@ -1905,6 +1916,45 @@
         return await response.json();
       } catch (error) {
         return null;
+      }
+    }
+
+    // 用仓库已发布数据里的 openId，补全管理页名单中同名成员（仅管理页执行）。
+    function applyOpenIdsFromRemote(remote) {
+      if (!isAdminRoute() || !remote) return;
+      const map = {};
+      const remember = (name, oid) => {
+        const memberName = memberUtils.memberName(name);
+        if (memberName && oid) map[memberName] = String(oid).trim();
+      };
+      (remote.config?.teams || []).forEach((team) =>
+        (Array.isArray(team.members) ? team.members : []).forEach((member) =>
+          remember(member, memberUtils.memberOpenId(member))
+        )
+      );
+      Object.values(remote.months || {}).forEach((month) =>
+        (month.dailyAssignments || []).forEach((day) =>
+          (day.teams || []).forEach((team) => remember(team.person, team.feishuOpenId))
+        )
+      );
+
+      let changed = false;
+      [1, 2, 3].forEach((index) => {
+        const field = $(`team${index}Members`);
+        if (!field) return;
+        const merged = memberUtils.parseMembers(field.value).map((member) => {
+          if (!member.feishuOpenId && map[member.name]) {
+            changed = true;
+            return { name: member.name, feishuOpenId: map[member.name] };
+          }
+          return member;
+        });
+        field.value = memberUtils.formatMembers(merged);
+      });
+
+      if (changed) {
+        syncTeamCards();
+        persistTeamConfigToStorage();
       }
     }
 
@@ -1995,10 +2045,11 @@
       if (!teams.length) throw new Error("至少要配置一个团队和成员名单。");
 
       teams.forEach((team) => {
+        const names = memberUtils.memberNames(team.members);
         if (!team.name) throw new Error("团队名称不能为空。");
-        if (!team.members.length) throw new Error(`团队【${team.name}】至少要有一个成员。`);
+        if (!names.length) throw new Error(`团队【${team.name}】至少要有一个成员。`);
         if (!team.last) throw new Error(`团队【${team.name}】请填写“上月最后一天值班人”。`);
-        if (!team.members.includes(team.last)) {
+        if (!names.includes(team.last)) {
           throw new Error(`团队【${team.name}】中找不到“${team.last}”，请确认成员名单和接龙起点一致。`);
         }
       });
@@ -2014,7 +2065,7 @@
       const dailyAssignments = [];
 
       teams.forEach((team) => {
-        counts[team.name] = Object.fromEntries(team.members.map((member) => [member, 0]));
+        counts[team.name] = Object.fromEntries(memberUtils.memberNames(team.members).map((member) => [member, 0]));
       });
 
       for (let day = 1; day <= daysInMonth; day++) {
@@ -2027,10 +2078,13 @@
         };
 
         teams.forEach((team) => {
-          const lastIndex = team.members.indexOf(team.last);
-          const personIndex = (lastIndex + day) % team.members.length;
-          const person = team.members[personIndex];
-          item.teams.push({ name: team.name, person, color: team.color });
+          const names = memberUtils.memberNames(team.members);
+          const lastIndex = names.indexOf(team.last);
+          const personIndex = (lastIndex + day) % names.length;
+          const member = team.members[personIndex];
+          const person = memberUtils.memberName(member);
+          const feishuOpenId = memberUtils.memberOpenId(member);
+          item.teams.push({ name: team.name, person, feishuOpenId, color: team.color });
           counts[team.name][person] += 1;
         });
 
@@ -2102,8 +2156,8 @@
         return {
           team: team.name,
           members: team.members.map((member) => ({
-            name: member,
-            count: counts[team.name][member] || 0
+            name: memberUtils.memberName(member),
+            count: counts[team.name][memberUtils.memberName(member)] || 0
           })),
           lastPerson
         };
@@ -2397,6 +2451,7 @@
         if (lastGeneratedState) {
           lastGeneratedState.remotePreview = remotePreview;
         }
+        applyOpenIdsFromRemote(remotePreview);
       });
       applyViewState();
       syncTopbar();

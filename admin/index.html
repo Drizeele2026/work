@@ -1919,6 +1919,45 @@
       }
     }
 
+    // 用仓库已发布数据里的 openId，补全管理页名单中同名成员（仅管理页执行）。
+    function applyOpenIdsFromRemote(remote) {
+      if (!isAdminRoute() || !remote) return;
+      const map = {};
+      const remember = (name, oid) => {
+        const memberName = memberUtils.memberName(name);
+        if (memberName && oid) map[memberName] = String(oid).trim();
+      };
+      (remote.config?.teams || []).forEach((team) =>
+        (Array.isArray(team.members) ? team.members : []).forEach((member) =>
+          remember(member, memberUtils.memberOpenId(member))
+        )
+      );
+      Object.values(remote.months || {}).forEach((month) =>
+        (month.dailyAssignments || []).forEach((day) =>
+          (day.teams || []).forEach((team) => remember(team.person, team.feishuOpenId))
+        )
+      );
+
+      let changed = false;
+      [1, 2, 3].forEach((index) => {
+        const field = $(`team${index}Members`);
+        if (!field) return;
+        const merged = memberUtils.parseMembers(field.value).map((member) => {
+          if (!member.feishuOpenId && map[member.name]) {
+            changed = true;
+            return { name: member.name, feishuOpenId: map[member.name] };
+          }
+          return member;
+        });
+        field.value = memberUtils.formatMembers(merged);
+      });
+
+      if (changed) {
+        syncTeamCards();
+        persistTeamConfigToStorage();
+      }
+    }
+
     async function loadGithubScheduleDocument() {
       const repoApiBase = getRepoApiBase();
       const contentsUrl = `${repoApiBase}/contents/${SCHEDULE_FILE}`;
@@ -2412,6 +2451,7 @@
         if (lastGeneratedState) {
           lastGeneratedState.remotePreview = remotePreview;
         }
+        applyOpenIdsFromRemote(remotePreview);
       });
       applyViewState();
       syncTopbar();
