@@ -6,26 +6,11 @@
       {
         "name": "前端",
         "members": [
-          {
-            "name": "郑刘利",
-            "feishuOpenId": "ou_829dd21e1d533b92f46450f92c151a30"
-          },
-          {
-            "name": "林颖",
-            "feishuOpenId": "ou_318016fe4e83f3fef13c8617d4528354"
-          },
-          {
-            "name": "林胜聪",
-            "feishuOpenId": "ou_1e0716a8b9659de4627606233b14c890"
-          },
-          {
-            "name": "刘红辉",
-            "feishuOpenId": "ou_c4a291ff05c2720c22d1eea9de5c46d6"
-          },
-          {
-            "name": "王朋伟",
-            "feishuOpenId": "ou_1909d0073684a0991e6815ede84027b7"
-          }
+          "郑刘利",
+          "林颖",
+          "林胜聪",
+          "刘红辉",
+          "王朋伟"
         ],
         "last": "郑刘利",
         "color": "blue"
@@ -33,38 +18,14 @@
       {
         "name": "后端",
         "members": [
-          {
-            "name": "綦鹏",
-            "feishuOpenId": "ou_6a10281075f0d40d197bec40ed60e1bb"
-          },
-          {
-            "name": "陈琦",
-            "feishuOpenId": "ou_8b5987145cea8b2955ff132b6cf8ace0"
-          },
-          {
-            "name": "张凯",
-            "feishuOpenId": "ou_717c4842226d47f536884f544bba155a"
-          },
-          {
-            "name": "张家南",
-            "feishuOpenId": "ou_5b5297ee0c45592cb128e63903b4a161"
-          },
-          {
-            "name": "唐宇宏",
-            "feishuOpenId": "ou_b515205ef38d5a88161d4dfe180baba4"
-          },
-          {
-            "name": "俞如滃",
-            "feishuOpenId": "ou_d1dc9845c7ee23f4a5d06f7669afa51e"
-          },
-          {
-            "name": "杨朋举",
-            "feishuOpenId": "ou_87e96da9292a86c158d0439ec8f578fd"
-          },
-          {
-            "name": "郭绍东",
-            "feishuOpenId": "ou_fc0d8e2b217c6958b96e83f72cecc1e7"
-          }
+          "綦鹏",
+          "陈琦",
+          "张凯",
+          "张家南",
+          "唐宇宏",
+          "俞如滃",
+          "杨朋举",
+          "郭绍东"
         ],
         "last": "陈琦",
         "color": "green"
@@ -72,22 +33,10 @@
       {
         "name": "测试",
         "members": [
-          {
-            "name": "许绵绵",
-            "feishuOpenId": "ou_92ac090c14a7f4484c5b8efafd374615"
-          },
-          {
-            "name": "郑成清",
-            "feishuOpenId": "ou_75648e125c0ab651e0f2defb9e80b628"
-          },
-          {
-            "name": "谭贤",
-            "feishuOpenId": "ou_a675026629060b973ca8d39578fdb7c5"
-          },
-          {
-            "name": "钟右梅",
-            "feishuOpenId": "ou_a699ef811812abeb889986b37fc997c0"
-          }
+          "许绵绵",
+          "郑成清",
+          "谭贤",
+          "钟右梅"
         ],
         "last": "钟右梅",
         "color": "violet"
@@ -103,26 +52,11 @@
         {
           "name": "前端",
           "members": [
-            {
-              "name": "郑刘利",
-              "feishuOpenId": "ou_829dd21e1d533b92f46450f92c151a30"
-            },
-            {
-              "name": "林颖",
-              "feishuOpenId": "ou_318016fe4e83f3fef13c8617d4528354"
-            },
-            {
-              "name": "林胜聪",
-              "feishuOpenId": "ou_1e0716a8b9659de4627606233b14c890"
-            },
-            {
-              "name": "刘红辉",
-              "feishuOpenId": "ou_c4a291ff05c2720c22d1eea9de5c46d6"
-            },
-            {
-              "name": "王朋伟",
-              "feishuOpenId": "ou_1909d0073684a0991e6815ede84027b7"
-            }
+            "郑刘利",
+            "林颖",
+            "林胜聪",
+            "刘红辉",
+            "王朋伟"
           ],
           "last": "郑刘利",
           "color": "blue"
@@ -130,38 +64,14 @@
         {
           "name": "后端",
           "members": [
-            {
-              "name": "綦鹏",
-              "feishuOpenId": "ou_6a10281075f0d40d197bec40ed60e1bb"
-            },
-            {
-              "name": "陈琦",
-              "feishuOpenId": "ou_8b5987145cea8b2955ff132b6cf8ace0"
-            },
-            {
-              "name": "张凯",
-              "feishuOpenId": "ou_717c4842226d47f536884f544bba155a"
-            },
-            {
-              "name": "张家南",
-              "feishuOpenId": "ou_5b5297ee0c45592cb128e63903b4a161"
-            },
-            {
-              "name": "唐宇宏",
-              "feishuOpenId": "ou_b515205ef38d5a88161d4dfe180baba4"
-            },
-            {
-              "name": "俞如滃",
-              "feishuOpenId": "ou_d1dc9845c7ee23f4a5d06f7669afa51e"
-            },
-            {
-              "name": "杨朋举",
-              "feishuOpenId": "ou_87e96da9292a86c158d0439ec8f578fd"
-            },
-            {
-              "name": "郭绍东",
-              "feishuOpenId": "ou_fc0d8e2b217c6958b96e83f72cecc1e7"
-            }
+            "綦鹏",
+            "陈琦",
+            "张凯",
+            "张家南",
+            "唐宇宏",
+            "俞如滃",
+            "杨朋举",
+            "郭绍东"
           ],
           "last": "陈琦",
           "color": "green"
@@ -169,22 +79,10 @@
         {
           "name": "测试",
           "members": [
-            {
-              "name": "许绵绵",
-              "feishuOpenId": "ou_92ac090c14a7f4484c5b8efafd374615"
-            },
-            {
-              "name": "郑成清",
-              "feishuOpenId": "ou_75648e125c0ab651e0f2defb9e80b628"
-            },
-            {
-              "name": "谭贤",
-              "feishuOpenId": "ou_a675026629060b973ca8d39578fdb7c5"
-            },
-            {
-              "name": "钟右梅",
-              "feishuOpenId": "ou_a699ef811812abeb889986b37fc997c0"
-            }
+            "许绵绵",
+            "郑成清",
+            "谭贤",
+            "钟右梅"
           ],
           "last": "钟右梅",
           "color": "violet"
