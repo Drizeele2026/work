@@ -424,50 +424,53 @@
     }
     .member-field { display: grid; gap: 7px; }
     .member-field textarea { display: none; }  /* 隐藏，仅作数据载体；编辑走下面的结构化列表 */
-    .member-preview { display: block; }
+    .member-preview { display: block; border: 1px solid #e2e8f1; border-radius: 10px; background: #fff; }
     .mrow {
-      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-      padding: 6px 8px; border: 1px solid #e6ebf2; border-radius: 8px;
-      background: #fff; margin-bottom: 6px;
+      display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 6px 8px;
+      padding: 7px 10px; border-bottom: 1px solid #eef1f5; transition: background .12s;
     }
-    .mrow-main { display: flex; align-items: center; gap: 8px; flex: 1 1 150px; min-width: 0; }
+    .mrow:hover { background: #fafbfd; }
+    .mrow-main { display: flex; align-items: center; gap: 8px; min-width: 0; }
     .mrow-order {
       width: 18px; height: 18px; border-radius: 999px; flex: 0 0 auto;
       background: #eef4ff; color: #2f58c7; font-size: 11px; font-weight: 800;
       display: grid; place-items: center;
     }
     .mrow-name {
-      flex: 1; min-width: 0; border: none; background: transparent;
-      font-size: 14px; font-weight: 600; color: var(--ink); padding: 2px 0;
+      flex: 1 1 auto; min-width: 40px; width: 40px; border: none; background: transparent;
+      font-size: 14px; font-weight: 600; color: var(--ink); padding: 2px 0; text-overflow: ellipsis;
     }
     .mrow-name:focus { outline: none; box-shadow: inset 0 -1px 0 var(--brand, #1f5eff); }
-    .mrow-actions { display: flex; align-items: center; gap: 4px; flex: 0 0 auto; }
     .mrow-id {
-      font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
-      border: 1px solid #d7dee7; background: #f4f7fb; color: #8090a3; cursor: pointer;
+      flex: 0 0 auto; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+      border: 1px solid #d7dee7; background: #f4f7fb; color: #8090a3; cursor: pointer; white-space: nowrap;
       transition: background .15s, color .15s, border-color .15s;
     }
     .mrow-id.on { background: #def6ec; border-color: #b7e6d2; color: #12966a; }
+    .mrow-actions { display: flex; align-items: center; gap: 1px; }
     .mrow-mv, .mrow-del {
-      width: 24px; height: 24px; border-radius: 6px; border: 1px solid #e6ebf2;
-      background: #fff; cursor: pointer; color: #5b6577; font-size: 13px; line-height: 1;
-      display: grid; place-items: center;
+      width: 26px; height: 26px; border-radius: 6px; border: 1px solid transparent;
+      background: transparent; cursor: pointer; color: #8896a8; font-size: 13px; line-height: 1;
+      display: grid; place-items: center; transition: background .12s, color .12s;
     }
-    .mrow-mv:disabled { opacity: .35; cursor: default; }
-    .mrow-del:hover { border-color: #f0b6b6; color: #c0392b; }
-    .mrow-id-edit { flex-basis: 100%; }
+    .mrow-mv:hover:not(:disabled), .mrow-del:hover { background: #eef1f5; color: var(--ink); }
+    .mrow-del:hover { color: #c0392b; }
+    .mrow-mv:disabled { opacity: .3; cursor: default; }
+    .mrow-id-edit { grid-column: 1 / -1; }
     .mrow-id-edit[hidden] { display: none; }
     .mrow-oid {
       width: 100%; box-sizing: border-box; font-size: 12px;
       font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
       padding: 5px 8px; border: 1px solid #d7dee7; border-radius: 6px; color: #5b6577;
     }
-    .mrow-add { display: flex; gap: 6px; margin-top: 4px; }
-    .mrow-addname { flex: 1; min-width: 0; font-size: 13px; padding: 6px 9px; border: 1px dashed #c3ccd9; border-radius: 8px; }
+    .mrow-add { display: flex; gap: 6px; padding: 8px 10px; }
+    .mrow-addname { flex: 1; min-width: 0; font-size: 13px; padding: 6px 9px; border: 1px solid #e2e8f1; border-radius: 7px; }
+    .mrow-addname:focus { outline: none; border-color: var(--brand, #1f5eff); }
     .mrow-addbtn {
-      font-size: 13px; font-weight: 700; padding: 6px 12px; border-radius: 8px; white-space: nowrap;
+      font-size: 13px; font-weight: 700; padding: 6px 12px; border-radius: 7px; white-space: nowrap;
       border: 1px solid #d7dee7; background: #f4f7fb; color: var(--ink); cursor: pointer;
     }
+    .mrow-addbtn:hover { background: #eef1f5; }
     .member-chip {
       min-height: 24px;
       max-width: 100%;
@@ -1439,9 +1442,9 @@
             <div class="mrow-main">
               <span class="mrow-order">${i + 1}</span>
               <input class="mrow-name" type="text" value="${escapeHtml(name)}" data-act="name" aria-label="成员姓名">
+              <button type="button" class="mrow-id ${oid ? "on" : ""}" data-act="toggleid" title="飞书 OpenID（用于 @ 人）">${oid ? "已配 ID" : "配 ID"}</button>
             </div>
             <div class="mrow-actions">
-              <button type="button" class="mrow-id ${oid ? "on" : ""}" data-act="toggleid" title="飞书 OpenID（用于 @ 人）">${oid ? "已配 ID" : "配 ID"}</button>
               <button type="button" class="mrow-mv" data-act="up" title="上移" ${i === 0 ? "disabled" : ""}>↑</button>
               <button type="button" class="mrow-mv" data-act="down" title="下移" ${i === members.length - 1 ? "disabled" : ""}>↓</button>
               <button type="button" class="mrow-del" data-act="del" title="删除">✕</button>
