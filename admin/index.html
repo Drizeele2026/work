@@ -425,7 +425,10 @@
     .member-field { display: grid; gap: 7px; }
     .member-field textarea {
       min-height: 150px;
-      font-size: 14px;
+      font-size: 13px;
+      line-height: 1.7;
+      white-space: pre;     /* 一人一行，长 openId 不软换行 */
+      overflow-x: auto;     /* 超出部分横向滚动，名字始终在行首 */
     }
     .member-preview {
       min-height: 42px;
