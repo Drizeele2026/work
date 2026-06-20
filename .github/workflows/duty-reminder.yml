@@ -46,7 +46,7 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add data/reminder-state.json
-            git commit -m "chore: duty reminder sent $(date -u +%Y-%m-%d)"
+            git commit -m "chore: duty reminder sent $(TZ=Asia/Shanghai date +%Y-%m-%d)"
             git pull --rebase --autostash
             git push
           else
