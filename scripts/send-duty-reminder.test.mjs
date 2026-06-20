@@ -6,6 +6,7 @@ import path from "node:path";
 
 import {
   buildFeishuCardMessage,
+  collectUpcoming,
   findAssignmentForDate,
   formatBeijingDate,
   hasSentOn,
@@ -82,6 +83,43 @@ test("buildFeishuCardMessage 用色点标记团队、@ 配了 openId 的人、�
   const button = message.card.elements.find((el) => el.tag === "action").actions[0];
   assert.equal(button.text.content, "查看完整排班");
   assert.equal(button.url, "https://drizeele2026.github.io/work/");
+});
+
+test("collectUpcoming 顺排取未来几天、缺的天跳过", () => {
+  const multiDay = {
+    months: {
+      "2026-06": {
+        dailyAssignments: [
+          { dateStr: "2026/06/20", teams: [{ name: "前端", person: "郑刘利", color: "blue" }] },
+          { dateStr: "2026/06/21", teams: [{ name: "前端", person: "林颖", color: "blue" }] },
+          { dateStr: "2026/06/22", teams: [{ name: "前端", person: "林胜聪", color: "blue" }] }
+        ]
+      }
+    }
+  };
+  const days = collectUpcoming(multiDay, "2026-06-20", 3);
+  // 6-21、6-22 有数据，6-23 没有 → 跳过
+  assert.equal(days.length, 2);
+  assert.equal(days[0].label, "6/21 周日");
+  assert.equal(days[0].teams[0].person, "林颖");
+  assert.equal(days[1].label, "6/22 周一");
+});
+
+test("buildFeishuCardMessage 预告段只显示姓名、不 @", () => {
+  const dateInfo = formatBeijingDate(new Date("2026-06-19T01:00:00.000Z"));
+  const assignment = findAssignmentForDate(schedule, dateInfo.dateKey);
+  const upcoming = [
+    { label: "6/20 周六", teams: [
+      { name: "前端", person: "郑刘利", feishuOpenId: "ou_x" },
+      { name: "后端", person: "俞如滃", feishuOpenId: "ou_y" }
+    ] }
+  ];
+  const message = buildFeishuCardMessage({ dateInfo, assignment, upcoming });
+  const lines = message.card.elements.filter((el) => el.tag === "div").map((el) => el.text.content);
+  assert.ok(lines.includes("**接下来**"));
+  const upLine = lines.find((l) => l.startsWith("6/20"));
+  assert.equal(upLine, "6/20 周六　前端 郑刘利 · 后端 俞如滃");
+  assert.ok(!upLine.includes("<at"));   // 未来几天不 @
 });
 
 test("findAssignmentForDate can read published object-member schedules", () => {

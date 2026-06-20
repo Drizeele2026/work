@@ -61,6 +61,23 @@ export function findAssignmentForDate(schedule, dateKey) {
   };
 }
 
+// 顺着今天往后取未来 days 天的值班（已发布数据），跨月自然顺排；缺的天跳过。
+export function collectUpcoming(schedule, todayKey, days = 3) {
+  const result = [];
+  const base = new Date(`${todayKey}T12:00:00+08:00`); // 北京中午，避开时区边界
+  for (let n = 1; n <= days; n++) {
+    const info = formatBeijingDate(new Date(base.getTime() + n * 86400000));
+    const month = schedule?.months?.[info.dateKey.slice(0, 7)];
+    const assignment = month?.dailyAssignments?.find((item) => normalizeDateKey(item.dateStr) === info.dateKey);
+    if (!assignment) continue;
+    result.push({
+      label: `${Number(info.dateKey.slice(5, 7))}/${Number(info.dateKey.slice(8, 10))} ${info.weekday}`,
+      teams: (Array.isArray(assignment.teams) ? assignment.teams : []).map(normalizeDutyTeam)
+    });
+  }
+  return result;
+}
+
 // 团队色圆点，对应公开页的蓝/绿/紫色标，让飞书卡片和网页视觉统一。
 const TEAM_DOT = { blue: "🔵", green: "🟢", violet: "🟣", purple: "🟣", orange: "🟠", red: "🔴" };
 
@@ -69,7 +86,7 @@ function dutyPersonMarkdown(team) {
   return team.feishuOpenId ? `<at id=${team.feishuOpenId}></at>` : team.person;
 }
 
-export function buildFeishuCardMessage({ dateInfo, assignment, publicUrl = DEFAULT_PUBLIC_URL }) {
+export function buildFeishuCardMessage({ dateInfo, assignment, upcoming = [], publicUrl = DEFAULT_PUBLIC_URL }) {
   const dutyLines = assignment.teams.map((team) => ({
     tag: "div",
     text: {
@@ -77,6 +94,43 @@ export function buildFeishuCardMessage({ dateInfo, assignment, publicUrl = DEFAU
       content: `${TEAM_DOT[team.color] || "⚪"} **${team.name}**　${dutyPersonMarkdown(team)}`
     }
   }));
+
+  const elements = [
+    { tag: "div", text: { tag: "lark_md", content: `**${dateInfo.displayDate}　${dateInfo.weekday}**` } },
+    { tag: "hr" },
+    ...dutyLines
+  ];
+
+  // 预告未来几天：只显示姓名、不 @，避免提前打扰还没轮到的人。
+  if (upcoming.length) {
+    const upcomingLines = upcoming.map((day) => ({
+      tag: "div",
+      text: {
+        tag: "lark_md",
+        content: `${day.label}　${day.teams.map((team) => `${team.name} ${team.person}`).join(" · ")}`
+      }
+    }));
+    elements.push(
+      { tag: "hr" },
+      { tag: "div", text: { tag: "lark_md", content: "**接下来**" } },
+      ...upcomingLines
+    );
+  }
+
+  elements.push(
+    { tag: "hr" },
+    {
+      tag: "action",
+      actions: [
+        {
+          tag: "button",
+          text: { tag: "plain_text", content: "查看完整排班" },
+          url: publicUrl,
+          type: "default"
+        }
+      ]
+    }
+  );
 
   return {
     msg_type: "interactive",
@@ -86,23 +140,7 @@ export function buildFeishuCardMessage({ dateInfo, assignment, publicUrl = DEFAU
         template: "blue",
         title: { tag: "plain_text", content: "今日值班提醒" }
       },
-      elements: [
-        { tag: "div", text: { tag: "lark_md", content: `**${dateInfo.displayDate}　${dateInfo.weekday}**` } },
-        { tag: "hr" },
-        ...dutyLines,
-        { tag: "hr" },
-        {
-          tag: "action",
-          actions: [
-            {
-              tag: "button",
-              text: { tag: "plain_text", content: "查看完整排班" },
-              url: publicUrl,
-              type: "default"
-            }
-          ]
-        }
-      ]
+      elements
     }
   };
 }
@@ -165,7 +203,8 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
   if (dryRun) {
     const schedule = await loadSchedule(schedulePath);
     const assignment = findAssignmentForDate(schedule, dateInfo.dateKey);
-    const message = buildFeishuCardMessage({ dateInfo, assignment, publicUrl });
+    const upcoming = collectUpcoming(schedule, dateInfo.dateKey, 3);
+    const message = buildFeishuCardMessage({ dateInfo, assignment, upcoming, publicUrl });
     console.log(JSON.stringify(message, null, 2));
     return message;
   }
@@ -179,7 +218,8 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
 
   const schedule = await loadSchedule(schedulePath);
   const assignment = findAssignmentForDate(schedule, dateInfo.dateKey);
-  const message = buildFeishuCardMessage({ dateInfo, assignment, publicUrl });
+  const upcoming = collectUpcoming(schedule, dateInfo.dateKey, 3);
+  const message = buildFeishuCardMessage({ dateInfo, assignment, upcoming, publicUrl });
 
   await postFeishuMessage(env.FEISHU_WEBHOOK, message);
   // force（人工测试）不写去重状态：不占当天名额，也不影响自动触发那条
