@@ -26,6 +26,12 @@ function verify(htmlText, label) {
   assert.match(htmlText, /head\.className = "week-head" \+ \(index >= 5 \? " weekend" : ""\);/, `${label} 周末表头需要在渲染时加 weekend 类名`);
   assert.match(htmlText, /body:not\(\.admin-mode\) \.topbar\s*\{\s*display:\s*none;\s*\}/, `${label} 展示页需要隐藏外层顶栏，把空间留给排班`);
   assert.match(htmlText, /body:not\(\.admin-mode\) \.schedule-shell\s*\{[^}]*min-height:\s*100dvh/s, `${label} 展示页排班区域需要接近全屏高度`);
+  assert.match(htmlText, /<div class="header-controls">[\s\S]*id="principlesBtn"[\s\S]*>原理<\/button>/, `${label} 需要在顶部控制区提供系统原理入口`);
+  assert.match(htmlText, /<dialog class="principles-dialog" id="principlesDialog" aria-labelledby="principlesDialogTitle">/, `${label} 系统原理说明需要放在弹窗里`);
+  assert.match(htmlText, /id="principlesDialogTitle"[\s\S]*系统原理/, `${label} 弹窗标题需要清楚说明这是系统原理`);
+  assert.match(htmlText, /<h3>排班规则<\/h3>[\s\S]*<h3>为什么公平<\/h3>[\s\S]*<h3>系统实现原理<\/h3>/, `${label} 弹窗需要覆盖规则、公平性和实现原理`);
+  assert.match(htmlText, /function openPrinciplesDialog\(\)/, `${label} 需要有打开系统原理弹窗的逻辑`);
+  assert.match(htmlText, /\$\("principlesBtn"\)\?\.addEventListener\("click", openPrinciplesDialog\);/, `${label} 顶部原理按钮需要能打开弹窗`);
 }
 
 verify(html, "公开页");

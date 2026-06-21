@@ -761,6 +761,15 @@
       flex-wrap: wrap;
       padding-top: 2px;
     }
+    .principles-button {
+      background: #f8fafc;
+      color: #334155;
+    }
+    .principles-button:hover {
+      background: #eef4ff;
+      border-color: #c8d8ff;
+      color: #244bb4;
+    }
     .month-jump {
       display: inline-flex;
       align-items: center;
@@ -1031,6 +1040,85 @@
       background: #f1f5fb;
       color: var(--ink);
     }
+
+    .principles-dialog {
+      width: min(660px, calc(100vw - 32px));
+      max-height: min(760px, calc(100dvh - 48px));
+      border: 1px solid #cfd8e6;
+      border-radius: 12px;
+      padding: 0;
+      background: #ffffff;
+      color: var(--ink);
+      box-shadow: 0 24px 72px rgba(15, 23, 42, 0.28);
+      overflow: hidden;
+    }
+    .principles-dialog::backdrop {
+      background: rgba(15, 23, 42, 0.42);
+      backdrop-filter: blur(2px);
+    }
+    .principles-dialog-head {
+      padding: 18px 20px 15px;
+      border-bottom: 1px solid #e4ebf4;
+      background: linear-gradient(180deg, #f8fbff 0%, #eef4fb 100%);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .principles-kicker {
+      display: block;
+      margin-bottom: 6px;
+      color: #526071;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .principles-dialog h2 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.15;
+      letter-spacing: 0;
+    }
+    .principles-dialog-close {
+      width: 34px;
+      min-height: 34px;
+      padding: 0;
+      border-radius: 999px;
+      font-size: 20px;
+      line-height: 1;
+    }
+    .principles-dialog-body {
+      padding: 18px 20px 20px;
+      display: grid;
+      gap: 16px;
+      overflow: auto;
+      max-height: calc(min(760px, 100dvh - 48px) - 78px);
+    }
+    .principles-dialog section {
+      padding-left: 14px;
+      border-left: 3px solid #9bbcff;
+    }
+    .principles-dialog section:nth-child(2) { border-left-color: #19a974; }
+    .principles-dialog section:nth-child(3) { border-left-color: #a78bfa; }
+    .principles-dialog h3 {
+      margin: 0 0 7px;
+      color: var(--ink);
+      font-size: 15px;
+      line-height: 1.25;
+    }
+    .principles-dialog p {
+      margin: 0;
+      color: var(--sub);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+    .principles-dialog p + p { margin-top: 7px; }
+    .principles-dialog code {
+      padding: 2px 5px;
+      border-radius: 5px;
+      background: #eef4fb;
+      color: var(--ink);
+      font-size: 12px;
+    }
     .toast {
       position: fixed;
       right: 22px;
@@ -1163,6 +1251,7 @@
               <button id="prevMonthBtn" type="button">上一月</button>
               <button class="primary" id="todayMonthBtn" type="button">今天</button>
               <button id="nextMonthBtn" type="button">下一月</button>
+              <button class="principles-button" id="principlesBtn" type="button" title="查看系统原理">原理</button>
             </div>
           </div>
           <div class="calendar-scroll">
@@ -1319,6 +1408,32 @@
 
     </div>
   </div>
+  <dialog class="principles-dialog" id="principlesDialog" aria-labelledby="principlesDialogTitle">
+    <div class="principles-dialog-head">
+      <div>
+        <span class="principles-kicker">排班系统</span>
+        <h2 id="principlesDialogTitle">系统原理</h2>
+      </div>
+      <button class="principles-dialog-close" id="principlesCloseBtn" type="button" aria-label="关闭系统原理说明">&times;</button>
+    </div>
+    <div class="principles-dialog-body">
+      <section>
+        <h3>排班规则</h3>
+        <p>每个团队独立排班，按成员名单顺序循环。管理页里的“接龙起点”表示上一次排到谁，系统会从下一个人开始排当月 1 号。</p>
+        <p>排班按自然日连续推进，周一到周日都算一天，不跳过周六周日。后续月份会从当前接龙结果继续往后推。</p>
+      </section>
+      <section>
+        <h3>为什么公平</h3>
+        <p>顺序轮转让每个人都按同一条队列往前走，人数不能整除月份天数时，最多也只是相差 1 天。</p>
+        <p>周六周日也放在同一条自然日队列里，周末值班会随着日期一起滚动，大家都有份，不会固定压在几个人身上。</p>
+      </section>
+      <section>
+        <h3>系统实现原理</h3>
+        <p>这个工具没有服务器。公开页读取仓库里的 <code>data/schedule.json</code> 展示排班，团队成员打开链接就能看，不需要登录。</p>
+        <p>负责人在管理页配置 GitHub PAT 后，点击发布会把新的排班文件提交到 GitHub。仓库负责保存数据，commit 负责留下历史记录。</p>
+      </section>
+    </div>
+  </dialog>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="./member-utils.js"></script>
@@ -2574,6 +2689,26 @@
       syncTopbar();
     }
 
+    function openPrinciplesDialog() {
+      const dialog = $("principlesDialog");
+      if (!dialog) return;
+      if (typeof dialog.showModal === "function") {
+        dialog.showModal();
+        return;
+      }
+      dialog.setAttribute("open", "");
+    }
+
+    function closePrinciplesDialog() {
+      const dialog = $("principlesDialog");
+      if (!dialog) return;
+      if (typeof dialog.close === "function") {
+        dialog.close();
+        return;
+      }
+      dialog.removeAttribute("open");
+    }
+
     async function handleTeamNextAction() {
       const button = $("teamNextActionBtn");
       const loadingStartedAt = Date.now();
@@ -2669,6 +2804,11 @@
     });
     $("copyMonthGridBtn")?.addEventListener("click", copyMonthGrid);
     $("printBtn")?.addEventListener("click", () => window.print());
+    $("principlesBtn")?.addEventListener("click", openPrinciplesDialog);
+    $("principlesCloseBtn")?.addEventListener("click", closePrinciplesDialog);
+    $("principlesDialog")?.addEventListener("click", (event) => {
+      if (event.target === $("principlesDialog")) closePrinciplesDialog();
+    });
     $("manageDetails").addEventListener("toggle", syncGithubBoxState);
     $("repoChip").addEventListener("click", () => openGithubSettings("repoSlug"));
     $("tokenChip").addEventListener("click", () => openGithubSettings("githubToken"));
