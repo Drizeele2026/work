@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="值班排班">
+  <defs>
+    <linearGradient id="bg" x1="10" y1="6" x2="54" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#243244"/>
+      <stop offset="1" stop-color="#111827"/>
+    </linearGradient>
+    <linearGradient id="mark" x1="20" y1="14" x2="47" y2="50" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f8fbff"/>
+      <stop offset="1" stop-color="#dbe7f5"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#bg)"/>
+  <rect x="17" y="16" width="30" height="34" rx="7" fill="url(#mark)"/>
+  <rect x="17" y="16" width="30" height="9" rx="7" fill="#7fb0ff"/>
+  <rect x="23" y="10" width="5" height="12" rx="2.5" fill="#dbe7f5"/>
+  <rect x="36" y="10" width="5" height="12" rx="2.5" fill="#dbe7f5"/>
+  <path d="M24 31h16M24 39h16" stroke="#243244" stroke-width="4" stroke-linecap="round"/>
+  <path d="M32 29v14M26 36h12" stroke="#1f5eff" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="47" cy="46" r="8" fill="#18a36f"/>
+  <path d="M43.5 46.2l2.3 2.4 4.9-5.4" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

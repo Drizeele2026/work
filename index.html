@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="icon" href="data:," />
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
   <title>值班排班工作台</title>
   <style>
     :root {
@@ -120,9 +120,11 @@
     label { display: block; margin: 0 0 6px; color: var(--muted); font-size: 12px; font-weight: 700; }
 
     .wrap {
-      max-width: 1520px;
+      width: 100%;
+      max-width: none;
+      min-height: 100dvh;
       margin: 0 auto;
-      padding: 18px;
+      padding: 16px clamp(12px, 1.4vw, 22px);
     }
 
     .topbar {
@@ -133,8 +135,8 @@
       align-items: center;
       justify-content: space-between;
       gap: 16px;
-      min-height: 64px;
-      margin-bottom: 16px;
+      min-height: 60px;
+      margin-bottom: 12px;
       padding: 14px 18px;
       border: 1px solid var(--line);
       border-radius: 12px;
@@ -191,19 +193,18 @@
     .chip-button.primary:hover { background: #e6efff; border-color: #b9ccff; color: #244bb4; }
     .chip-button.success:hover { background: #e4f8ee; border-color: #b8e5cd; color: #0b704e; }
     .chip-button.warn:hover { background: #ffe9b8; border-color: #edcb79; color: #805200; }
-    .admin-only, .nav-link.admin-nav, #manageDetails, .inspector { display: none; }
+    .admin-only, .nav-link.admin-nav, #manageDetails { display: none; }
     body.admin-mode .admin-only { display: inline-flex; }
     body.admin-mode .nav-link.admin-nav { display: flex; }
     body.admin-mode #manageDetails { display: block; }
-    body.admin-mode .inspector { display: block; }
 
     .layout {
       display: grid;
-      grid-template-columns: 224px minmax(0, 1fr);
-      gap: 16px;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 12px;
       align-items: start;
     }
-    body.admin-mode .layout { grid-template-columns: 224px minmax(0, 1fr) 252px; }
+    body.admin-mode .layout { grid-template-columns: 224px minmax(0, 1fr); }
 
     .panel, .card {
       border: 1px solid var(--line);
@@ -214,9 +215,27 @@
       min-width: 0;
     }
 
-    .side, .inspector {
+    .side {
+      display: none;
       position: sticky;
-      top: 94px;
+      top: 88px;
+    }
+    body.admin-mode .side { display: block; }
+
+    body:not(.admin-mode) .topbar { display: none; }
+    body:not(.admin-mode) .wrap { padding: 0; }
+    body:not(.admin-mode) .main { gap: 0; }
+    body:not(.admin-mode) .schedule-shell {
+      min-height: 100dvh;
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+    }
+    body:not(.admin-mode) .calendar-grid {
+      min-height: calc(100dvh - 94px);
+    }
+    body:not(.admin-mode) .day-cell {
+      min-height: max(118px, calc((100dvh - 142px) / var(--calendar-weeks)));
     }
 
     .section {
@@ -708,8 +727,15 @@
       min-width: 0;
     }
 
+    .schedule-shell {
+      min-height: calc(100dvh - 104px);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
     .main-header {
-      padding: 14px 14px 12px;
+      padding: 16px 18px 14px;
       display: flex;
       align-items: flex-start;
       justify-content: space-between;
@@ -717,7 +743,7 @@
     }
     .main-header h1 {
       margin: 0;
-      font-size: 25px;
+      font-size: 32px;
       line-height: 1.1;
       letter-spacing: 0;
     }
@@ -758,9 +784,16 @@
       font-weight: 700;
     }
 
+    .schedule-shell .calendar-scroll {
+      flex: 1;
+      min-height: 0;
+    }
+
     .calendar-grid {
+      --calendar-weeks: 6;
       display: grid;
       grid-template-columns: repeat(7, minmax(0, 1fr));
+      min-height: calc(100dvh - 206px);
       border-top: 1px solid var(--line);
       border-left: 1px solid var(--line);
       background: #fff;
@@ -770,16 +803,41 @@
       border-bottom: 1px solid var(--line);
     }
     .week-head {
-      padding: 10px 10px 9px;
-      background: #f5f7fa;
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 800;
+      position: relative;
+      min-height: 46px;
+      padding: 13px 12px 11px;
+      border-bottom: 2px solid #c7d2df;
+      background: linear-gradient(180deg, #eef3f8 0%, #e6edf5 100%);
+      color: #344256;
+      display: flex;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 900;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82), inset 0 -1px 0 rgba(15, 23, 42, 0.04);
+    }
+    .week-head::after {
+      content: "";
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: 0;
+      height: 2px;
+      border-radius: 999px;
+      background: #516173;
+      opacity: 0.36;
+    }
+    .week-head.weekend {
+      background: linear-gradient(180deg, #f4f0e8 0%, #ece7df 100%);
+      color: #614d35;
+    }
+    .week-head.weekend::after {
+      background: #bd7600;
+      opacity: 0.52;
     }
     .day-cell {
       position: relative;
-      min-height: 86px;
-      padding: 8px;
+      min-height: max(110px, calc((100dvh - 252px) / var(--calendar-weeks)));
+      padding: 10px;
       background: #fff;
     }
     .day-cell.empty { background: #f8fafc; }
@@ -803,8 +861,8 @@
       align-items: center;
       justify-content: space-between;
       gap: 8px;
-      margin-bottom: 6px;
-      font-size: 12px;
+      margin-bottom: 8px;
+      font-size: 14px;
       font-weight: 800;
       color: var(--ink);
     }
@@ -825,7 +883,7 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      height: 20px;
+      height: 22px;
       padding: 0 8px;
       border-radius: 999px;
       background: #101828;
@@ -833,16 +891,16 @@
       font-size: 11px;
       font-weight: 800;
     }
-    .duty-list { display: grid; gap: 4px; }
+    .duty-list { display: grid; gap: 6px; }
     .pill {
-      height: 20px;
-      border-radius: 999px;
-      padding: 0 8px;
+      min-height: 26px;
+      border-radius: 7px;
+      padding: 0 10px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 8px;
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 800;
       white-space: nowrap;
       overflow: hidden;
@@ -852,13 +910,12 @@
       text-overflow: ellipsis;
     }
 
-    .footer-panel {
+    .admin-summary { display: none; }
+
+    .summary-panel {
       padding: 12px 13px;
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 286px;
-      gap: 16px;
     }
-    .footer-panel h2 {
+    .summary-panel h2 {
       margin: 0 0 10px;
       font-size: 14px;
       line-height: 1.2;
@@ -908,7 +965,6 @@
       font-size: 12px;
       line-height: 1.45;
     }
-    .inspector-card { display: grid; gap: 0; }
     .status-line, .rail-item {
       display: flex;
       align-items: center;
@@ -1001,7 +1057,6 @@
     @media (max-width: 1280px) {
       .layout, body.admin-mode .layout, body.admin-mode.confirm-mode .layout { grid-template-columns: 1fr; }
       .side, .inspector { position: static; }
-      .footer-panel { grid-template-columns: 1fr; }
       .team-editor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .confirm-layout, .confirm-grid { grid-template-columns: 1fr; }
     }
@@ -1094,7 +1149,7 @@
       </aside>
 
       <main class="main">
-        <section class="card" id="scheduleView">
+        <section class="card schedule-shell" id="scheduleView">
           <div class="main-header">
             <div>
               <h1 id="calendarTitle">排班表</h1>
@@ -1220,8 +1275,8 @@
           </div>
         </section>
 
-        <section class="card" id="summaryView">
-          <div class="footer-panel">
+        <section class="card admin-summary" id="adminSummaryView">
+          <div class="summary-panel">
             <div>
               <h2>当前展示月汇总</h2>
               <table class="summary-table" id="summaryTable"></table>
@@ -1246,7 +1301,14 @@
             <li>介绍内容可以放在 <code>data/about.md</code>，后续再接页面渲染。</li>
             <li>仓库地址是 <a href="https://github.com/Drizeele2026/work" target="_blank" rel="noopener noreferrer">Drizeele2026/work</a>。</li>
           </ul>
-          <h3>为什么这么设计</h3>
+          <h3>排班规则</h3>
+          <p>每个团队独立排班，按成员名单顺序循环。管理页里的“接龙起点”表示上一次排到谁，系统会从下一个人开始排当月 1 号。</p>
+          <p>排班按自然日连续推进，周一到周日都算一天，不跳过周六周日。查看后续月份时，会从当前接龙结果继续往后推，不会每个月重新从第一个人开始。</p>
+          <h3>为什么这样排</h3>
+          <p>核心目标是公平，而且规则要透明。顺序轮转让每个人都按同一条队列往前走，人数不能整除月份天数时，最多也只是相差 1 天。</p>
+          <p>周六周日也放在同一条自然日队列里，周末值班会随着日期一起往后滚。这样大家都有份，不会固定压在几个人身上，也不会有人长期避开周末。</p>
+          <p>跨月继续接龙也是同一个原因。如果每个月都从第一个人重新开始，月初、月末和周末容易反复落到同一批人身上。连续推算可以把这种偏差摊开。</p>
+          <h3>系统实现原理</h3>
           <p>这个工具不需要服务器。公开页直接读取仓库里的排班文件，团队成员打开链接就能看，不需要登录，也不需要配置 token。</p>
           <p>需要改排班时，只有负责人进入管理地址，在可信电脑上配置一次 GitHub PAT。点击发布到公开页时，本质上就是把新的 <code>data/schedule.json</code> 提交到 GitHub。</p>
           <p>所以仓库就是持久化存储，commit 就是保存记录。每次修改都有提交历史，出了问题可以对比、追溯，也可以回滚。</p>
@@ -1255,28 +1317,6 @@
         </section>
       </main>
 
-      <aside class="panel inspector">
-        <div class="section">
-          <div class="section-title">同步状态</div>
-          <div class="status-line"><span>最近生成</span><strong id="syncTime">-</strong></div>
-          <div class="status-line"><span>当前月份</span><strong id="inspectorMonth">-</strong></div>
-          <div class="status-line"><span>后续范围</span><strong id="draftRange">未生成</strong></div>
-          <div class="status-line"><span>发布状态</span><strong id="dirtyState">公开页未更新</strong></div>
-          <div class="status-line"><span>锁定冲突</span><strong>0</strong></div>
-        </div>
-        <div class="section">
-          <div class="section-title">团队色标</div>
-          <div class="rail-item"><span><i class="dot blue"></i><span id="legendTeam1">前端</span></span><strong>蓝</strong></div>
-          <div class="rail-item"><span><i class="dot green"></i><span id="legendTeam2">后端</span></span><strong>绿</strong></div>
-          <div class="rail-item"><span><i class="dot violet"></i><span id="legendTeam3">测试</span></span><strong>紫</strong></div>
-        </div>
-        <div class="section">
-          <div class="section-title">变更摘要</div>
-          <div class="note"><span class="bullet blue"></span><span id="noteRoster">名单来自后台，点击发布后会直接更新公开页。</span></div>
-          <div class="note"><span class="bullet amber"></span><span id="noteMonth">还没有生成排班。</span></div>
-          <div class="note"><span class="bullet green"></span><span id="notePersistence">公开页只读取仓库数据；发布成功后才会更新。</span></div>
-        </div>
-      </aside>
     </div>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -1798,7 +1838,7 @@
       $("aboutView").classList.toggle("visible", isAbout);
       $("manageView").classList.toggle("visible", isManage);
       $("scheduleView").style.display = isAbout || isManage || isConfirm ? "none" : "";
-      $("summaryView").style.display = isAbout || isManage || isConfirm ? "none" : "";
+      $("adminSummaryView").style.display = admin && !isAbout && !isManage && !isConfirm ? "block" : "none";
       $("brandSub").textContent = admin ? "管理排班 · 修改名单并发布" : "公开查看 · 排班数据来自仓库";
       renderConfirmView();
     }
@@ -2182,7 +2222,9 @@
       pendingMonth = null;
       persistGithubSettings(settings);
       persistTeamConfigToStorage();
-      $("notePersistence").textContent = `${lastGeneratedState.monthKey} 已发布到公开页；未来月份会接着这个结果推算。`;
+      if ($("notePersistence")) {
+        $("notePersistence").textContent = `${lastGeneratedState.monthKey} 已发布到公开页；未来月份会接着这个结果推算。`;
+      }
       syncTopbar();
       setGithubMessage("ok", `已发布到公开页，同时提交到 ${settings.repoSlug}/${SCHEDULE_FILE}。`);
       return result;
@@ -2255,14 +2297,15 @@
       const grid = $("calendarGrid");
       grid.innerHTML = "";
 
-      weekdayNames.forEach((name) => {
+      weekdayNames.forEach((name, index) => {
         const head = document.createElement("div");
-        head.className = "week-head";
+        head.className = "week-head" + (index >= 5 ? " weekend" : "");
         head.textContent = name;
         grid.appendChild(head);
       });
 
       const totalCells = Math.ceil((startWeekday + daysInMonth) / 7) * 7;
+      grid.style.setProperty("--calendar-weeks", String(totalCells / 7));
       for (let index = 0; index < totalCells; index++) {
         const day = index - startWeekday + 1;
         const weekday = index % 7;
@@ -2337,9 +2380,9 @@
         </tbody>
       `;
 
-      $("noteMonth").textContent = `从 ${seedKey} 起连续推算，当前展示 ${monthKey}，共 ${dailyAssignments.length} 天、${teams.length} 个团队。`;
-      $("noteRoster").textContent = `当前花名册：${teams.map((team) => `${team.name}${team.members.length}人`).join("，")}。`;
-      $("draftRange").textContent = `${seedKey} 起，无上限向后`;
+      if ($("noteMonth")) $("noteMonth").textContent = `从 ${seedKey} 起连续推算，当前展示 ${monthKey}，共 ${dailyAssignments.length} 天、${teams.length} 个团队。`;
+      if ($("noteRoster")) $("noteRoster").textContent = `当前花名册：${teams.map((team) => `${team.name}${team.members.length}人`).join("，")}。`;
+      if ($("draftRange")) $("draftRange").textContent = `${seedKey} 起，无上限向后`;
       $("calendarSubtitle").textContent = `从 ${seedKey} 起自动接龙`;
     }
 
@@ -2445,10 +2488,12 @@
           confirmationReady = true;
         }
         updateMonthLabels(year, month);
-        $("syncTime").textContent = nowTime();
-        $("notePersistence").textContent = options.passive
-          ? "当前只是查看排班。要发布变更，请进入“修改名单”。"
-          : "本月排班已生成，正在准备发布到公开页。";
+        if ($("syncTime")) $("syncTime").textContent = nowTime();
+        if ($("notePersistence")) {
+          $("notePersistence").textContent = options.passive
+            ? "当前只是查看排班。要发布变更，请进入“修改名单”。"
+            : "本月排班已生成，正在准备发布到公开页。";
+        }
         renderConfirmView();
         syncTopbar();
 
@@ -2622,8 +2667,8 @@
       $("month").value = month;
       generateSchedule({ passive: true });
     });
-    $("copyMonthGridBtn").addEventListener("click", copyMonthGrid);
-    $("printBtn").addEventListener("click", () => window.print());
+    $("copyMonthGridBtn")?.addEventListener("click", copyMonthGrid);
+    $("printBtn")?.addEventListener("click", () => window.print());
     $("manageDetails").addEventListener("toggle", syncGithubBoxState);
     $("repoChip").addEventListener("click", () => openGithubSettings("repoSlug"));
     $("tokenChip").addEventListener("click", () => openGithubSettings("githubToken"));
