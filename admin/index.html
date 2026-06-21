@@ -1400,6 +1400,7 @@
           <h3>系统实现原理</h3>
           <p>这个工具不需要服务器。公开页直接读取仓库里的排班文件，团队成员打开链接就能看，不需要登录，也不需要配置 token。</p>
           <p>需要改排班时，只有负责人进入管理地址，在可信电脑上配置一次 GitHub PAT。点击发布到公开页时，本质上就是把新的 <code>data/schedule.json</code> 提交到 GitHub。</p>
+          <p>GitHub Pages 负责托管公开页和管理页；GitHub Actions 负责跑自动提醒；提醒规则写在 <code>.github/workflows/duty-reminder.yml</code> 这个 workflow 里。</p>
           <p>所以仓库就是持久化存储，commit 就是保存记录。每次修改都有提交历史，出了问题可以对比、追溯，也可以回滚。</p>
           <h3>当前版本</h3>
           <p>这版把普通查看和管理页面分开。团队成员看排班和复制内容，负责人使用单独管理地址改成员、重排后续月份和保存。</p>
@@ -1430,7 +1431,7 @@
       <section>
         <h3>系统实现原理</h3>
         <p>这个工具没有服务器。公开页读取仓库里的 <code>data/schedule.json</code> 展示排班，团队成员打开链接就能看，不需要登录。</p>
-        <p>负责人在管理页配置 GitHub PAT 后，点击发布会把新的排班文件提交到 GitHub。仓库负责保存数据，commit 负责留下历史记录。</p>
+        <p>负责人在管理页配置 GitHub PAT 后，点击发布会把新的排班文件提交到 GitHub。GitHub Pages 负责托管页面，GitHub Actions 按 <code>.github/workflows/duty-reminder.yml</code> 这个 workflow 跑每日提醒，commit 负责留下历史记录。</p>
       </section>
     </div>
   </dialog>

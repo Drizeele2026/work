@@ -39,6 +39,13 @@
 
 这个工具没有服务器，也没有数据库。页面是静态 HTML，数据存在仓库里的 `data/schedule.json`。
 
+用到的 GitHub 能力主要有这几块：
+
+- GitHub Pages 负责托管公开页和管理页，团队成员打开链接就能看。
+- GitHub 仓库里的 `data/schedule.json` 负责保存排班数据。
+- GitHub commit 负责保存每次发布的历史记录，后续可以追溯和回滚。
+- GitHub Actions 负责跑自动提醒；具体规则写在 `.github/workflows/duty-reminder.yml` 这个 workflow 里。
+
 这样做有几个好处：
 
 - 团队成员只是查看排班，不需要注册、登录、配置任何东西。
@@ -47,7 +54,7 @@
 - 每次发布天然有历史记录，可以在仓库提交记录里追溯。
 - 不需要维护后端服务，也没有额外部署成本。
 
-换句话说，GitHub 仓库就是这个工具的持久化存储。页面负责展示和编辑，GitHub Pages 负责托管，GitHub commit 负责保存历史。
+换句话说，GitHub 仓库就是这个工具的持久化存储。GitHub Pages 负责展示，GitHub Actions 负责定时任务，GitHub workflow 负责描述任务怎么跑，GitHub commit 负责保存历史。
 
 ## 负责人怎么发布
 

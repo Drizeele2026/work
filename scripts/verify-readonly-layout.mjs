@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 const adminHtml = await readFile(new URL("../admin/index.html", import.meta.url), "utf8");
 const favicon = await readFile(new URL("../favicon.svg", import.meta.url), "utf8");
+const readme = await readFile(new URL("../README.md", import.meta.url), "utf8");
 
 assert.match(html, /<link rel="icon" href="\.\/favicon\.svg" type="image\/svg\+xml" \/>/, "公开页需要使用自定义 favicon");
 assert.match(adminHtml, /<link rel="icon" href="\.\.\/favicon\.svg" type="image\/svg\+xml" \/>/, "管理页需要使用同一个自定义 favicon");
@@ -30,11 +31,13 @@ function verify(htmlText, label) {
   assert.match(htmlText, /<dialog class="principles-dialog" id="principlesDialog" aria-labelledby="principlesDialogTitle">/, `${label} 系统原理说明需要放在弹窗里`);
   assert.match(htmlText, /id="principlesDialogTitle"[\s\S]*排班说明/, `${label} 弹窗标题需要叫排班说明`);
   assert.match(htmlText, /<h3>排班规则<\/h3>[\s\S]*<h3>为什么公平<\/h3>[\s\S]*<h3>系统实现原理<\/h3>/, `${label} 弹窗需要覆盖规则、公平性和实现原理`);
+  assert.match(htmlText, /<h3>系统实现原理<\/h3>[\s\S]*GitHub Pages[\s\S]*GitHub Actions[\s\S]*\.github\/workflows\/duty-reminder\.yml/, `${label} 系统实现原理需要说明用到的 GitHub Pages、Actions 和 workflow`);
   assert.match(htmlText, /function openPrinciplesDialog\(\)/, `${label} 需要有打开系统原理弹窗的逻辑`);
   assert.match(htmlText, /\$\("principlesBtn"\)\?\.addEventListener\("click", openPrinciplesDialog\);/, `${label} 顶部原理按钮需要能打开弹窗`);
 }
 
 verify(html, "公开页");
 verify(adminHtml, "管理页");
+assert.match(readme, /## 系统实现原理[\s\S]*GitHub Pages[\s\S]*GitHub Actions[\s\S]*\.github\/workflows\/duty-reminder\.yml/, "README 的系统实现原理需要写清楚用到的 GitHub Pages、Actions 和 workflow");
 
 console.log("只读排班布局检查通过");
