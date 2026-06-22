@@ -51,6 +51,7 @@ for (const [label, html] of [["管理页", adminHtml], ["公开页", publicHtml]
   assert.match(html, /当天值班人/, `${label} 需要支持当天值班人模式`);
   assert.match(html, /前一天值班人/, `${label} 需要支持前一天值班人模式`);
   assert.match(html, /anchors:/, `${label} 需要在团队配置里读写 anchors`);
+  assert.match(html, /mode:\s*"currentDay",\s*person:\s*last/, `${label} 推导默认节点时需要默认选择当天值班人`);
 
   const helpers = extractAnchorHelpers(html, label);
   const names = ["A", "B", "C", "D"];

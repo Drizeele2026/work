@@ -1728,7 +1728,7 @@
       if (anchors.length) return anchors;
       const last = String(team?.last || "").trim().replace(/@/g, "");
       return names.includes(last)
-        ? [{ date: currentMonthFirstDateKey(), mode: "previousDay", person: last }]
+        ? [{ date: currentMonthFirstDateKey(), mode: "currentDay", person: last }]
         : [];
     }
 
