@@ -1494,7 +1494,7 @@
   </dialog>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="./member-utils.js"></script>
+  <script src="../member-utils.js"></script>
   <script>
     const weekdayNames = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
     const weekdayNamesByDate = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
@@ -1503,6 +1503,7 @@
       { name: "green", bg: "#def6ec", text: "#0f7b55" },
       { name: "violet", bg: "#eee7ff", text: "#663bdf" }
     ];
+    const teamColorMap = Object.fromEntries(teamColors.map((color) => [color.name, color]));
 
     const DEFAULT_CONFIG = {
       team1Name: "前端",
@@ -1537,6 +1538,7 @@
     let teamConfigDirty = false;
     let teamConfigSavedAt = null;
     let confirmationReady = false;
+    let remoteScheduleDocument = null;
 
     function pad2(num) {
       return String(num).padStart(2, "0");
@@ -1607,6 +1609,11 @@
 
     function wrapIndex(index, length) {
       return ((index % length) + length) % length;
+    }
+
+    function resolveTeamColor(color, fallbackIndex = 0) {
+      const name = typeof color === "string" ? color : color?.name;
+      return teamColorMap[name] || teamColors[fallbackIndex % teamColors.length] || teamColors[0];
     }
 
     // Anchor scheduling helpers start
@@ -1728,7 +1735,7 @@
       if (anchors.length) return anchors;
       const last = String(team?.last || "").trim().replace(/@/g, "");
       return names.includes(last)
-        ? [{ date: currentMonthFirstDateKey(), mode: "currentDay", person: last }]
+        ? [{ date: currentMonthFirstDateKey(), mode: "previousDay", person: last }]
         : [];
     }
 
@@ -2266,8 +2273,9 @@
       const storedRepo = normalizeRepoSlug(localStorage.getItem(LS_REPO) || DEFAULT_REPO) || DEFAULT_REPO;
       const storedToken = String(localStorage.getItem(LS_TOKEN) || "").trim();
       applyGithubSettings({ repoSlug: storedRepo, token: storedToken });
-      loadTeamConfigFromStorage();
+      const loadedTeamConfig = isAdminRoute() ? loadTeamConfigFromStorage() : false;
       $("manageDetails").open = false;
+      return loadedTeamConfig;
     }
 
     function openGithubSettings(targetId) {
@@ -2447,6 +2455,99 @@
       } catch (error) {
         return null;
       }
+    }
+
+    function normalizePublishedDutyTeam(team, index = 0) {
+      const personValue = typeof team?.person === "object" && team.person ? team.person : { name: team?.person };
+      return {
+        name: String(team?.name || `团队${index + 1}`).trim(),
+        person: memberUtils.memberName(personValue),
+        feishuOpenId: String(team?.feishuOpenId || memberUtils.memberOpenId(personValue) || "").trim(),
+        color: resolveTeamColor(team?.color, index)
+      };
+    }
+
+    function publishedDayNumber(item) {
+      const day = Number(item?.day);
+      if (day) return day;
+      return Number(normalizeDateKey(item?.dateStr).slice(8, 10)) || 0;
+    }
+
+    function normalizePublishedAssignmentsForMonth(monthEntry, year, month) {
+      const daysInMonth = new Date(year, month, 0).getDate();
+      const byDay = new Map((monthEntry?.dailyAssignments || []).map((item) => [publishedDayNumber(item), item]));
+      return Array.from({ length: daysInMonth }, (_, dayIndex) => {
+        const day = dayIndex + 1;
+        const currentDate = new Date(year, month - 1, day);
+        const source = byDay.get(day) || {};
+        return {
+          day,
+          dateStr: source.dateStr || `${year}/${pad2(month)}/${pad2(day)}`,
+          weekdayStr: source.weekdayStr || weekdayNamesByDate[currentDate.getDay()],
+          teams: (Array.isArray(source.teams) ? source.teams : []).map(normalizePublishedDutyTeam)
+        };
+      });
+    }
+
+    function collectPublishedMembers(dailyAssignments, teamName) {
+      const seen = new Set();
+      dailyAssignments.forEach((day) => {
+        (day.teams || []).forEach((team) => {
+          if (team.name === teamName && team.person) seen.add(team.person);
+        });
+      });
+      return Array.from(seen);
+    }
+
+    function normalizePublishedTeams(document, monthEntry, dailyAssignments) {
+      const sourceTeams = Array.isArray(monthEntry?.teams) && monthEntry.teams.length
+        ? monthEntry.teams
+        : (document?.config?.teams || []);
+      const sourceByName = new Map(sourceTeams.map((team) => [String(team?.name || "").trim(), team]));
+      const firstDayTeams = dailyAssignments.find((day) => day.teams?.length)?.teams || [];
+      const names = firstDayTeams.length
+        ? firstDayTeams.map((team) => team.name)
+        : sourceTeams.map((team) => String(team?.name || "").trim()).filter(Boolean);
+
+      return names.map((name, index) => {
+        const source = sourceByName.get(name) || {};
+        const assignmentTeam = firstDayTeams.find((team) => team.name === name);
+        const members = Array.isArray(source.members) && source.members.length
+          ? source.members
+          : collectPublishedMembers(dailyAssignments, name);
+        return {
+          name,
+          members: memberUtils.serializeMembers(members),
+          last: String(source.last || "").trim().replace(/@/g, ""),
+          anchors: Array.isArray(source.anchors) ? source.anchors : [],
+          color: resolveTeamColor(assignmentTeam?.color || source.color, index)
+        };
+      });
+    }
+
+    function countPublishedAssignments(teams, dailyAssignments) {
+      const counts = {};
+      teams.forEach((team) => {
+        counts[team.name] = Object.fromEntries(memberUtils.memberNames(team.members).map((member) => [member, 0]));
+      });
+      dailyAssignments.forEach((day) => {
+        (day.teams || []).forEach((team) => {
+          if (!counts[team.name]) counts[team.name] = {};
+          if (!Object.prototype.hasOwnProperty.call(counts[team.name], team.person)) {
+            counts[team.name][team.person] = 0;
+          }
+          counts[team.name][team.person] += 1;
+        });
+      });
+      return counts;
+    }
+
+    function findPublishedDutyTeam(document, dateKey, teamName) {
+      const month = document?.months?.[dateKey.slice(0, 7)];
+      const day = month?.dailyAssignments?.find((item) => normalizeDateKey(item.dateStr) === dateKey);
+      const index = (day?.teams || []).findIndex((team) => String(team?.name || "").trim() === teamName);
+      if (index < 0) return null;
+      return normalizePublishedDutyTeam(day.teams[index], index);
     }
 
     // 用仓库已发布数据里的 openId，补全管理页名单中同名成员（仅管理页执行）。
@@ -2641,6 +2742,30 @@
       return { startWeekday, daysInMonth, counts, dailyAssignments };
     }
 
+    function getDutyPersonFromTeamsForDate(teams, teamIndex, dateKey) {
+      const [year, month, day] = dateKey.split("-").map(Number);
+      const targetTeam = teams[teamIndex - 1];
+      if (!targetTeam || !year || !month || !day) return "";
+      const result = generateAssignments(year, month, teams);
+      return result.dailyAssignments[day - 1]?.teams.find((team) => team.name === targetTeam.name)?.person || "";
+    }
+
+    function getCurrentTeamDutyPerson(index, fallback = "") {
+      const now = new Date();
+      const dateKey = dateKeyForDay(now.getFullYear(), now.getMonth() + 1, now.getDate());
+      try {
+        const teams = buildTeamData();
+        const person = getDutyPersonFromTeamsForDate(teams, index, dateKey);
+        if (person) return person;
+      } catch (error) {
+        // 表单编辑到一半时先不打断添加节点，后面用已发布排班或兜底人员。
+      }
+
+      const teamName = $(`team${index}Name`)?.value.trim();
+      const published = teamName ? findPublishedDutyTeam(remoteScheduleDocument, dateKey, teamName) : null;
+      return published?.person || fallback;
+    }
+
     function renderCalendar(year, month, startWeekday, daysInMonth, dailyAssignments) {
       const today = new Date();
       $("calendarTitle").textContent = `${year} 年 ${month} 月`;
@@ -2683,10 +2808,11 @@
         const list = document.createElement("div");
         list.className = "duty-list";
         data.teams.forEach((team) => {
+          const color = resolveTeamColor(team.color, data.teams.indexOf(team));
           const pill = document.createElement("div");
           pill.className = "pill";
-          pill.style.background = team.color.bg;
-          pill.style.color = team.color.text;
+          pill.style.background = color.bg;
+          pill.style.color = color.text;
           pill.innerHTML = `<span>${escapeHtml(team.name)}</span><span>${escapeHtml(team.person)}</span>`;
           list.appendChild(pill);
         });
@@ -2735,6 +2861,49 @@
       if ($("noteRoster")) $("noteRoster").textContent = `当前花名册：${teams.map((team) => `${team.name}${team.members.length}人`).join("，")}。`;
       if ($("draftRange")) $("draftRange").textContent = `${seedKey} 起，无上限向后`;
       $("calendarSubtitle").textContent = `从 ${seedKey} 起按节点接龙`;
+    }
+
+    function renderPublishedScheduleMonth(document, year, month) {
+      const monthKey = formatMonthKey(year, month);
+      const monthEntry = document?.months?.[monthKey];
+      if (!monthEntry?.dailyAssignments?.length) return false;
+
+      const firstDay = new Date(year, month - 1, 1);
+      const startWeekday = (firstDay.getDay() + 6) % 7;
+      const daysInMonth = new Date(year, month, 0).getDate();
+      const dailyAssignments = normalizePublishedAssignmentsForMonth(monthEntry, year, month);
+      const teams = normalizePublishedTeams(document, monthEntry, dailyAssignments);
+      const counts = countPublishedAssignments(teams, dailyAssignments);
+
+      renderCalendar(year, month, startWeekday, daysInMonth, dailyAssignments);
+      renderSummary(year, month, teams, counts, dailyAssignments);
+      renderLegends(teams);
+      renderMonthGridCopy(year, month, teams, startWeekday, daysInMonth, dailyAssignments);
+
+      lastGeneratedState = {
+        year,
+        month,
+        monthKey,
+        teams,
+        configTeams: normalizePublishedTeams({ config: document?.config }, { teams: document?.config?.teams || [] }, dailyAssignments),
+        draftSeed: null,
+        result: { startWeekday, daysInMonth, counts, dailyAssignments },
+        summary: lastSummary,
+        remotePreview: document
+      };
+      persistedMonth = monthKey;
+      pendingMonth = null;
+      confirmationReady = false;
+      updateMonthLabels(year, month);
+      if ($("syncTime")) $("syncTime").textContent = nowTime();
+      if ($("notePersistence")) $("notePersistence").textContent = `${monthKey} 已从公开排班读取。`;
+      if ($("noteMonth")) $("noteMonth").textContent = `${monthKey} 已发布排班，共 ${dailyAssignments.length} 天、${teams.length} 个团队。`;
+      if ($("noteRoster")) $("noteRoster").textContent = `当前花名册：${teams.map((team) => `${team.name}${team.members.length}人`).join("，")}。`;
+      if ($("draftRange")) $("draftRange").textContent = "已发布快照";
+      $("calendarSubtitle").textContent = "已发布排班";
+      renderConfirmView();
+      syncTopbar();
+      return true;
     }
 
     function renderLegends(teams) {
@@ -2809,6 +2978,10 @@
         }
         if (!options.passive && teamConfigDirty) {
           throw new Error("名单还没保存。请先发布，系统会自动保存名单。");
+        }
+        if (options.passive && !teamConfigDirty && remoteScheduleDocument && renderPublishedScheduleMonth(remoteScheduleDocument, year, month)) {
+          if (!options.silent) showOk("已读取公开排班。");
+          return true;
         }
 
         const formTeams = buildTeamData();
@@ -3021,7 +3194,7 @@
           anchors.push({
             date: dateKeyForDay(now.getFullYear(), now.getMonth() + 1, now.getDate()),
             mode: "currentDay",
-            person: names[0]
+            person: getCurrentTeamDutyPerson(index, names[0])
           });
           renderAnchorEditor(index, members, anchors);
           setTeamConfigDirty(true);
@@ -3030,23 +3203,34 @@
       });
     }
 
-    function boot() {
+    async function boot() {
       setCurrentYearMonth();
       applyDefaultMembers();
-      loadLocalUiState();
+      const loadedTeamConfig = loadLocalUiState();
       syncTeamCards();
       renderTeamConfigStatus();
       populateMonthPicker(Number($("year").value), Number($("month").value));
       updateMonthLabels(Number($("year").value), Number($("month").value));
-      loadRemoteSchedulePreview().then((remotePreview) => {
+      const remotePreview = await loadRemoteSchedulePreview();
+      remoteScheduleDocument = remotePreview;
+      if (remotePreview) {
+        if (isAdminRoute() && !loadedTeamConfig && Array.isArray(remotePreview.config?.teams)) {
+          applyTeamFormState(remotePreview.config.teams);
+          setTeamConfigDirty(false);
+        }
         if (lastGeneratedState) {
           lastGeneratedState.remotePreview = remotePreview;
         }
         applyOpenIdsFromRemote(remotePreview);
-      });
+      }
       applyViewState();
       syncTopbar();
-      generateSchedule({ silent: true, passive: true });
+      const year = Number($("year").value);
+      const month = Number($("month").value);
+      const renderedPublished = remotePreview && !teamConfigDirty && renderPublishedScheduleMonth(remotePreview, year, month);
+      if (!renderedPublished) {
+        generateSchedule({ silent: true, passive: true });
+      }
     }
 
     $("prevMonthBtn").addEventListener("click", () => shiftMonth(-1));

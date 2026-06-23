@@ -19,7 +19,7 @@ assert.equal(JSON.stringify(memberUtils.parseMembers("张三 | ou_1\n李四")), 
   { name: "李四", feishuOpenId: "" }
 ]));
 assert.equal(memberUtils.formatMembers([{ name: "张三", feishuOpenId: "ou_1" }, { name: "李四", feishuOpenId: "" }]), "张三 | ou_1\n李四");
-assert.match(adminHtml, /<script src="\.\/member-utils\.js"><\/script>/, "管理页需要从 admin 目录加载 member-utils.js");
+assert.match(adminHtml, /<script src="\.\.\/member-utils\.js"><\/script>/, "管理页需要从上级目录加载 member-utils.js");
 assert.match(publicHtml, /<script src="\.\/member-utils\.js"><\/script>/, "公开页需要从当前目录加载 member-utils.js");
 
 function extractAnchorHelpers(html, label) {
@@ -51,7 +51,11 @@ for (const [label, html] of [["管理页", adminHtml], ["公开页", publicHtml]
   assert.match(html, /当天值班人/, `${label} 需要支持当天值班人模式`);
   assert.match(html, /前一天值班人/, `${label} 需要支持前一天值班人模式`);
   assert.match(html, /anchors:/, `${label} 需要在团队配置里读写 anchors`);
-  assert.match(html, /mode:\s*"currentDay",\s*person:\s*last/, `${label} 推导默认节点时需要默认选择当天值班人`);
+  assert.match(html, /mode:\s*"previousDay",\s*person:\s*last/, `${label} 兼容旧 last 时必须按“前一天值班人”处理`);
+  assert.match(html, /function getCurrentTeamDutyPerson\(/, `${label} 添加节点时需要能取当前日期值班人`);
+  assert.match(html, /person:\s*getCurrentTeamDutyPerson\(index,\s*names\[0\]\)/, `${label} 新增节点需要默认选择当天值班人`);
+  assert.match(html, /function renderPublishedScheduleMonth\(/, `${label} 公开排班需要支持直接渲染已发布快照`);
+  assert.match(html, /renderPublishedScheduleMonth\(remotePreview/, `${label} 加载远端排班后需要优先渲染已发布快照`);
 
   const helpers = extractAnchorHelpers(html, label);
   const names = ["A", "B", "C", "D"];
