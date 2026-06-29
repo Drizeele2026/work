@@ -129,6 +129,22 @@
     return latest;
   }
 
+  function findPublishedOpenId(schedule, teamName, personName) {
+    let latest = null;
+    Object.values(schedule?.months || {}).forEach((month) => {
+      (month.dailyAssignments || []).forEach((day) => {
+        const dayKey = normalizeDateKey(day.dateStr);
+        if (!dayKey) return;
+        const team = (day.teams || []).map(normalizeDutyTeam)
+          .find((item) => item.name === teamName && item.person === personName && item.feishuOpenId);
+        if (team && (!latest || dayKey > latest.date)) {
+          latest = { date: dayKey, feishuOpenId: team.feishuOpenId };
+        }
+      });
+    });
+    return latest?.feishuOpenId || "";
+  }
+
   function teamsFromConfig(schedule) {
     const teams = (Array.isArray(schedule?.config?.teams) ? schedule.config.teams : []).map(normalizeTeam);
     if (!teams.length) {
@@ -160,7 +176,7 @@
     return {
       name: normalized.name,
       person: member.name,
-      feishuOpenId: member.feishuOpenId,
+      feishuOpenId: member.feishuOpenId || findPublishedOpenId(schedule, normalized.name, member.name),
       color: normalized.color
     };
   }

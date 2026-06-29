@@ -65,6 +65,29 @@ test("findAssignmentForDateWithFallback 没有下月快照时从最近历史快�
   assert.equal(result.teams[0].feishuOpenId, "ou_a");
 });
 
+test("顺排生成未来日期时从历史快照补全 OpenID", () => {
+  const historyOnlyOpenId = {
+    config: {
+      teams: [
+        { name: "后端", members: ["D", "E"], last: "D", color: "green" }
+      ]
+    },
+    months: {
+      "2026-06": {
+        dailyAssignments: [
+          { dateStr: "2026/06/29", teams: [{ name: "后端", person: "D", feishuOpenId: "ou_d", color: "green" }] },
+          { dateStr: "2026/06/30", teams: [{ name: "后端", person: "E", feishuOpenId: "ou_e", color: "green" }] }
+        ]
+      }
+    }
+  };
+
+  const result = utils.findAssignmentForDateWithFallback(historyOnlyOpenId, "2026-07-01");
+
+  assert.equal(result.teams[0].person, "D");
+  assert.equal(result.teams[0].feishuOpenId, "ou_d");
+});
+
 test("显式 currentDay 节点优先于历史快照种子", () => {
   const withAnchor = structuredClone(schedule);
   withAnchor.config.teams[0].anchors = [
