@@ -54,11 +54,18 @@ test("findAssignmentForDate reads today's duty from schedule.json", () => {
   );
 });
 
-test("findAssignmentForDate reports missing month clearly", () => {
-  assert.throws(
-    () => findAssignmentForDate({ months: {} }, "2026-06-19"),
-    /没有找到 2026-06 的已发布排班/
-  );
+test("findAssignmentForDate 没有快照但有配置时顺排生成", () => {
+  const result = findAssignmentForDate({
+    config: {
+      teams: [
+        { name: "前端", members: ["A", "B"], last: "A", color: "blue" }
+      ]
+    },
+    months: {}
+  }, "2026-07-01");
+
+  assert.equal(result.dateStr, "2026/07/01");
+  assert.equal(result.teams[0].person, "B");
 });
 
 test("buildFeishuCardMessage 用色点标记团队、@ 配了 openId 的人、其余显示姓名", () => {
@@ -87,6 +94,11 @@ test("buildFeishuCardMessage 用色点标记团队、@ 配了 openId 的人、�
 
 test("collectUpcoming 顺排取未来几天、缺的天跳过", () => {
   const multiDay = {
+    config: {
+      teams: [
+        { name: "前端", members: ["郑刘利", "林颖", "林胜聪"], last: "郑刘利", color: "blue" }
+      ]
+    },
     months: {
       "2026-06": {
         dailyAssignments: [
@@ -98,11 +110,43 @@ test("collectUpcoming 顺排取未来几天、缺的天跳过", () => {
     }
   };
   const days = collectUpcoming(multiDay, "2026-06-20", 3);
-  // 6-21、6-22 有数据，6-23 没有 → 跳过
-  assert.equal(days.length, 2);
+  assert.equal(days.length, 3);
   assert.equal(days[0].label, "6/21 周日");
   assert.equal(days[0].teams[0].person, "林颖");
   assert.equal(days[1].label, "6/22 周一");
+  assert.equal(days[2].label, "6/23 周二");
+});
+
+test("collectUpcoming 在只有 6 月快照时也能预告 7 月前三天", () => {
+  const endOfMonth = {
+    config: {
+      teams: [
+        { name: "前端", members: ["A", "B", "C"], last: "A", color: "blue" },
+        { name: "后端", members: ["D", "E"], last: "D", color: "green" }
+      ]
+    },
+    months: {
+      "2026-06": {
+        dailyAssignments: [
+          {
+            dateStr: "2026/06/30",
+            teams: [
+              { name: "前端", person: "C", color: "blue" },
+              { name: "后端", person: "E", color: "green" }
+            ]
+          }
+        ]
+      }
+    }
+  };
+
+  const days = collectUpcoming(endOfMonth, "2026-06-30", 3);
+
+  assert.deepEqual(days.map((day) => day.label), ["7/1 周三", "7/2 周四", "7/3 周五"]);
+  assert.deepEqual(days[0].teams.map((team) => `${team.name}:${team.person}`), [
+    "前端:A",
+    "后端:D"
+  ]);
 });
 
 test("buildFeishuCardMessage 预告段只显示姓名、不 @", () => {
@@ -167,9 +211,18 @@ async function setupTmp() {
   const schedulePath = path.join(dir, "schedule.json");
   const statePath = path.join(dir, "state.json");
   await fs.writeFile(schedulePath, JSON.stringify({
-    months: { "2026-06": { dailyAssignments: [
-      { dateStr: "2026/06/20", teams: [{ name: "前端", person: "郑刘利", feishuOpenId: "ou_x" }] }
-    ] } }
+    config: {
+      teams: [
+        { name: "前端", members: [{ name: "郑刘利", feishuOpenId: "ou_x" }, "林颖"], last: "林颖", color: "blue" }
+      ]
+    },
+    months: {
+      "2026-06": {
+        dailyAssignments: [
+          { dateStr: "2026/06/20", teams: [{ name: "前端", person: "郑刘利", feishuOpenId: "ou_x", color: "blue" }] }
+        ]
+      }
+    }
   }));
   return { schedulePath, statePath };
 }

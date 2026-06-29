@@ -54,11 +54,12 @@
       ? team.person
       : { name: team?.person };
     const person = normalizeMember(personValue);
+    const color = typeof team?.color === "string" ? team.color : (team?.color?.name || "");
     return {
       name: String(team?.name || `团队${index + 1}`).trim(),
       person: person.name,
       feishuOpenId: String(team?.feishuOpenId || person.feishuOpenId || "").trim(),
-      color: typeof team?.color === "string" ? team.color : (team?.color?.name || "")
+      ...(color ? { color } : {})
     };
   }
 

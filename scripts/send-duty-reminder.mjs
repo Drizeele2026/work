@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import scheduleUtils from "../schedule-utils.js";
 
 const DEFAULT_SCHEDULE_PATH = "data/schedule.json";
 const DEFAULT_STATE_PATH = "data/reminder-state.json";
@@ -28,54 +29,13 @@ export function formatBeijingDate(date = new Date()) {
   };
 }
 
-function normalizeDateKey(dateStr) {
-  return String(dateStr || "").replaceAll("/", "-");
-}
-
-function normalizeDutyTeam(team) {
-  const person = typeof team?.person === "object" && team.person
-    ? team.person
-    : { name: team?.person };
-  return {
-    ...team,
-    person: String(person.name || ""),
-    feishuOpenId: String(team?.feishuOpenId || person.feishuOpenId || "").trim()
-  };
-}
-
 export function findAssignmentForDate(schedule, dateKey) {
-  const monthKey = dateKey.slice(0, 7);
-  const month = schedule?.months?.[monthKey];
-  if (!month) {
-    throw new Error(`没有找到 ${monthKey} 的已发布排班，请先在管理页发布这个月的排班。`);
-  }
-
-  const assignment = month.dailyAssignments?.find((item) => normalizeDateKey(item.dateStr) === dateKey);
-  if (!assignment) {
-    throw new Error(`没有找到 ${dateKey} 的值班安排，请检查已发布排班。`);
-  }
-
-  return {
-    ...assignment,
-    teams: Array.isArray(assignment.teams) ? assignment.teams.map(normalizeDutyTeam) : []
-  };
+  return scheduleUtils.findAssignmentForDateWithFallback(schedule, dateKey);
 }
 
-// 顺着今天往后取未来 days 天的值班（已发布数据），跨月自然顺排；缺的天跳过。
+// 顺着今天往后取未来 days 天的值班；没有月快照时按已发布规则顺排。
 export function collectUpcoming(schedule, todayKey, days = 3) {
-  const result = [];
-  const base = new Date(`${todayKey}T12:00:00+08:00`); // 北京中午，避开时区边界
-  for (let n = 1; n <= days; n++) {
-    const info = formatBeijingDate(new Date(base.getTime() + n * 86400000));
-    const month = schedule?.months?.[info.dateKey.slice(0, 7)];
-    const assignment = month?.dailyAssignments?.find((item) => normalizeDateKey(item.dateStr) === info.dateKey);
-    if (!assignment) continue;
-    result.push({
-      label: `${Number(info.dateKey.slice(5, 7))}/${Number(info.dateKey.slice(8, 10))} ${info.weekday}`,
-      teams: (Array.isArray(assignment.teams) ? assignment.teams : []).map(normalizeDutyTeam)
-    });
-  }
-  return result;
+  return scheduleUtils.collectUpcoming(schedule, todayKey, days);
 }
 
 // 团队色圆点，对应公开页的蓝/绿/紫色标，让飞书卡片和网页视觉统一。
