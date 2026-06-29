@@ -5,6 +5,7 @@ const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 const adminHtml = await readFile(new URL("../admin/index.html", import.meta.url), "utf8");
 const favicon = await readFile(new URL("../favicon.svg", import.meta.url), "utf8");
 const readme = await readFile(new URL("../README.md", import.meta.url), "utf8");
+const workflow = await readFile(new URL("../.github/workflows/duty-reminder.yml", import.meta.url), "utf8");
 
 assert.match(html, /<link rel="icon" href="\.\/favicon\.svg" type="image\/svg\+xml" \/>/, "公开页需要使用自定义 favicon");
 assert.match(adminHtml, /<link rel="icon" href="\.\.\/favicon\.svg" type="image\/svg\+xml" \/>/, "管理页需要使用同一个自定义 favicon");
@@ -39,5 +40,8 @@ function verify(htmlText, label) {
 verify(html, "公开页");
 verify(adminHtml, "管理页");
 assert.match(readme, /## 系统实现原理[\s\S]*GitHub Pages[\s\S]*GitHub Actions[\s\S]*\.github\/workflows\/duty-reminder\.yml/, "README 的系统实现原理需要写清楚用到的 GitHub Pages、Actions 和 workflow");
+assert.match(workflow, /workflow_dispatch:/, "提醒 workflow 需要保留 workflow_dispatch 给 cron-job.org 调用");
+assert.doesNotMatch(workflow, /^\s*schedule:/m, "提醒 workflow 不应再使用 GitHub 自带 schedule");
+assert.doesNotMatch(workflow, /^\s*-\s*cron:/m, "提醒 workflow 不应再配置 GitHub cron");
 
 console.log("只读排班布局检查通过");

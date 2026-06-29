@@ -82,22 +82,22 @@
 
 ## 日常规则
 
-- 不需要选择排班几个月。系统会从已发布结果继续往后推算。
+- 不需要选择排班几个月。系统会按已发布规则继续往后推算。
 - 修改名单后，直接重新发布即可。
 - 发布成功后不能重复点发布；再次修改名单后按钮才会恢复可发布。
 - 公开页只展示排班，不展示管理入口。
 
 ## 每日飞书提醒
 
-仓库里有一个 GitHub Actions 定时任务：
+仓库里有一个 GitHub Actions 提醒 workflow：
 
 ```text
 .github/workflows/duty-reminder.yml
 ```
 
-测试期临时每 5 分钟执行一次。GitHub Actions 定时任务最短间隔是 5 分钟，测试完成后改回每天北京时间 09:00。
+GitHub Actions 只保留 `workflow_dispatch`，不再使用 GitHub 自带 schedule。每天北京时间 09:00 的自动提醒由 cron-job.org 调 GitHub API 触发这个 workflow。
 
-它会读取 `data/schedule.json`，找到当天值班人，然后调用飞书群机器人发消息。
+它会读取 `data/schedule.json`，找到当天值班人，然后调用飞书群机器人发消息。如果当天没有月快照，脚本会按成员名单、接龙节点和历史快照连续顺排。
 
 提醒消息会优先 @ 当天值班人。负责人在管理页的成员名单里这样填：
 
@@ -127,7 +127,7 @@ scripts/send-duty-reminder.mjs
 node scripts/send-duty-reminder.mjs --dry-run
 ```
 
-如果当天所在月份还没有发布排班，定时任务会失败并提示先发布当月排班。
+如果当天没有月快照，提醒脚本会按已发布规则顺排；只有成员名单和接龙节点都不可用时才会失败。
 
 ## 数据文件
 
@@ -136,6 +136,8 @@ node scripts/send-duty-reminder.mjs --dry-run
 ```text
 data/schedule.json
 ```
+
+`config.teams` 是长期规则来源，保存团队、成员、OpenID、颜色和接龙节点。`months` 是历史快照，不代表必须逐月发布。未来月份没有快照时，公开页和提醒脚本会按已发布规则顺排。
 
 页面文件：
 
