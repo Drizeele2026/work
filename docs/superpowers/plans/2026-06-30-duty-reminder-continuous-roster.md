@@ -307,7 +307,7 @@ Create `/private/tmp/workrepo.reminder-debug/schedule-utils.js` with these expor
     const names = normalized.members.map((member) => member.name);
     const snapshot = findLatestSnapshotBeforeDate(schedule, dateKey, normalized.name);
     const anchors = [...normalized.anchors];
-    if (snapshot) anchors.push({ date: snapshot.date, mode: "previousDay", person: snapshot.person });
+    if (snapshot) anchors.push({ date: snapshot.date, mode: "currentDay", person: snapshot.person });
     anchors.sort((a, b) => a.date.localeCompare(b.date));
     const anchor = getAnchorForDate(dateKey, anchors);
     const person = anchor
