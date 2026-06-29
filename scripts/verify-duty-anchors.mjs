@@ -54,8 +54,11 @@ for (const [label, html] of [["管理页", adminHtml], ["公开页", publicHtml]
   assert.match(html, /mode:\s*"previousDay",\s*person:\s*last/, `${label} 兼容旧 last 时必须按“前一天值班人”处理`);
   assert.match(html, /function getCurrentTeamDutyPerson\(/, `${label} 添加节点时需要能取当前日期值班人`);
   assert.match(html, /person:\s*getCurrentTeamDutyPerson\(index,\s*names\[0\]\)/, `${label} 新增节点需要默认选择当天值班人`);
+  assert.match(html, /schedule-utils\.js/, `${label} 需要加载连续顺排工具`);
   assert.match(html, /function renderPublishedScheduleMonth\(/, `${label} 公开排班需要支持直接渲染已发布快照`);
+  assert.match(html, /function renderContinuousScheduleMonth\(/, `${label} 需要支持没有月快照时按规则顺排`);
   assert.match(html, /renderPublishedScheduleMonth\(remotePreview/, `${label} 加载远端排班后需要优先渲染已发布快照`);
+  assert.match(html, /renderContinuousScheduleMonth\(remotePreview,\s*year,\s*month\)/, `${label} 初始化时月快照缺失需要回退到规则顺排`);
 
   const helpers = extractAnchorHelpers(html, label);
   const names = ["A", "B", "C", "D"];
