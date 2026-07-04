@@ -215,17 +215,16 @@ export async function sendOrganizationReminder(organization, options = {}) {
     fetchImpl = globalThis.fetch
   } = options;
 
-  const schedule = await loadSchedule(organization.schedulePath);
-  const assignment = findAssignmentForDate(schedule, dateInfo.dateKey);
-  const upcoming = collectUpcoming(schedule, dateInfo.dateKey, 3);
-  const message = buildFeishuCardMessage({
-    dateInfo,
-    assignment,
-    upcoming,
-    publicUrl: publicUrlForOrganization(organization)
-  });
-
   if (dryRun) {
+    const schedule = await loadSchedule(organization.schedulePath);
+    const assignment = findAssignmentForDate(schedule, dateInfo.dateKey);
+    const upcoming = collectUpcoming(schedule, dateInfo.dateKey, 3);
+    const message = buildFeishuCardMessage({
+      dateInfo,
+      assignment,
+      upcoming,
+      publicUrl: publicUrlForOrganization(organization)
+    });
     console.log(JSON.stringify({
       organization: organization.slug,
       name: organization.name,
@@ -240,6 +239,16 @@ export async function sendOrganizationReminder(organization, options = {}) {
     console.log(`${organization.name} ${dateInfo.dateKey} 今天已发送过值班提醒，跳过。`);
     return { organization, skipped: true, dateKey: dateInfo.dateKey };
   }
+
+  const schedule = await loadSchedule(organization.schedulePath);
+  const assignment = findAssignmentForDate(schedule, dateInfo.dateKey);
+  const upcoming = collectUpcoming(schedule, dateInfo.dateKey, 3);
+  const message = buildFeishuCardMessage({
+    dateInfo,
+    assignment,
+    upcoming,
+    publicUrl: publicUrlForOrganization(organization)
+  });
 
   await postFeishuMessage(webhookForOrganization(organization, env), message, fetchImpl);
   if (!force) {

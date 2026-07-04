@@ -103,6 +103,35 @@
 ### 改了什么
 
 - `scripts/send-duty-reminder.mjs`
+  - 调整了 `sendOrganizationReminder()` 的读取顺序：
+    - `dry-run` 仍然直接读 `schedule.json`，不读也不写 `reminder-state.json`
+    - 非 `dry-run` 先读状态文件
+    - 如果当天已经发送过且没有 `force`，直接跳过，不再读取 `schedule.json`
+  - 这样已发送组织的坏 `schedule.json` 或缺失文件不会把整次多组织发送打断。
+- `scripts/send-duty-reminder.test.mjs`
+  - 新增回归测试：
+    - 一个组织已发送且 `schedule.json` 损坏时，会直接跳过
+    - 另一个未发送组织仍会正常发送
+    - 已发送组织的状态文件不会被重新写入
+
+### 测试命令和结果
+
+1. `node --test scripts/send-duty-reminder.test.mjs`
+   - 结果：通过，20/20 通过
+2. `node --test scripts/organization-utils.test.mjs scripts/schedule-utils.test.mjs`
+   - 结果：通过，17/17 通过
+
+### 文件列表
+
+- `scripts/send-duty-reminder.mjs`
+- `scripts/send-duty-reminder.test.mjs`
+- `.superpowers/sdd/task-4-report.md`
+
+## 本次 review finding 修复追加
+
+### 改了什么
+
+- `scripts/send-duty-reminder.mjs`
   - 在 `data/organizations.json` 缺失时加了显式组织校验。
   - 现在只有两种情况会走旧单文件 fallback：
     - 没有显式指定组织
