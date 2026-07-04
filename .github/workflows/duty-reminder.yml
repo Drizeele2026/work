@@ -3,6 +3,10 @@ name: Duty Reminder
 on:
   workflow_dispatch:
     inputs:
+      org:
+        description: "只发送指定组织，例如 shm；留空则遍历所有启用组织"
+        type: string
+        default: ""
       force:
         description: "跳过去重，强制发送一条（用于测试）"
         type: boolean
@@ -30,6 +34,7 @@ jobs:
           FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
           FEISHU_WEBHOOK_TAKEAWAY: ${{ secrets.FEISHU_WEBHOOK_TAKEAWAY }}
           FEISHU_WEBHOOK_SHM: ${{ secrets.FEISHU_WEBHOOK_SHM }}
+          REMINDER_ORG: ${{ github.event_name == 'workflow_dispatch' && inputs.org || '' }}
           FORCE_SEND: ${{ (github.event_name == 'workflow_dispatch' && inputs.force) && '1' || '0' }}
         run: |
           set +e
