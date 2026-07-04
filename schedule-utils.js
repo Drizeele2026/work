@@ -119,10 +119,14 @@
   function findMemberIndex(members, personOrMember) {
     const target = normalizeMember(personOrMember);
     if (!target.name && !target.feishuOpenId) return -1;
-    return members.findIndex((member) => {
-      if (target.feishuOpenId && member.feishuOpenId) return member.feishuOpenId === target.feishuOpenId;
-      return member.name === target.name;
-    });
+    if (target.feishuOpenId) {
+      const openIdIndex = members.findIndex((member) => member.feishuOpenId === target.feishuOpenId);
+      if (openIdIndex >= 0) return openIdIndex;
+    }
+    if (target.name) {
+      return members.findIndex((member) => member.name === target.name);
+    }
+    return -1;
   }
 
   function teamSignature(team) {
