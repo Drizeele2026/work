@@ -94,7 +94,7 @@
 
 GitHub Actions 只保留 `workflow_dispatch`，不再使用 GitHub 自带 schedule。每天北京时间 09:00 的自动提醒由 cron-job.org 调 GitHub API 触发这个 workflow。
 
-它会读取 `data/schedule.json`，找到当天排班人，然后调用飞书群机器人发消息。如果当天没有月快照，脚本会按已发布规则版本连续顺排。
+它会读取 `data/schedule.json`，然后按已发布规则版本连续顺排，计算当天值班人，再调用飞书群机器人发消息。
 
 提醒消息会优先 @ 当日排班人。负责人在管理页的成员名单里这样填：
 
