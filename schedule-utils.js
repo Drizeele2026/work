@@ -250,10 +250,6 @@
     return dateKeyForDay(now.getFullYear(), now.getMonth() + 1, now.getDate());
   }
 
-  function memberNamesSignature(team) {
-    return normalizeMembers(team?.members).map((member) => member.name).join("\n");
-  }
-
   function anchorSignature(anchor) {
     return anchor ? `${anchor.date}|${anchor.mode}|${anchor.person}` : "";
   }
@@ -305,48 +301,14 @@
     const remote = remoteTeam ? normalizeTeam(remoteTeam) : null;
     if (!remote) return publishDateKey || monthFirstDate;
 
-    let firstAffected = "";
-    if (memberNamesSignature(current) !== memberNamesSignature(remote)) {
-      firstAffected = publishDateKey || monthFirstDate;
-    }
-    if (!current.anchors.length && !remote.anchors.length && current.last !== remote.last) {
-      firstAffected = firstAffected || (publishDateKey || monthFirstDate);
-    }
-    firstAffected = firstAffected || anchorDifferenceDateForTeam(current, remote, monthFirstDate);
-
+    const firstAffected = anchorDifferenceDateForTeam(current, remote, monthFirstDate);
     return firstAffected ? maxDateKey(firstAffected, publishDateKey) : "";
-  }
-
-  function shouldContinueFromRemoteSeed(currentTeam, remoteTeam, monthFirstDate) {
-    const current = normalizeTeam(currentTeam);
-    const remote = remoteTeam ? normalizeTeam(remoteTeam) : null;
-    if (!remote) return false;
-    const rosterChanged = memberNamesSignature(current) !== memberNamesSignature(remote) || current.last !== remote.last;
-    return rosterChanged && !anchorDifferenceDateForTeam(current, remote, monthFirstDate);
   }
 
   function remoteTeamsByName(remoteDocument) {
     return new Map((remoteDocument?.config?.teams || [])
       .map((team) => [normalizeTeam(team).name, team])
       .filter(([name]) => name));
-  }
-
-  function generateTeamFromRemoteSeed(remoteDocument, currentTeam, dateKey, seedDateKey, teamIndex = 0) {
-    const team = normalizeTeam(currentTeam, teamIndex);
-    const names = team.members.map((member) => member.name);
-    if (!names.length) return normalizeDutyTeam(currentTeam, teamIndex);
-
-    const seedAssignment = findAssignmentForDateWithFallback(remoteDocument, seedDateKey);
-    const seedPerson = (seedAssignment.teams || []).find((item) => item.name === team.name)?.person;
-    const anchorPerson = names.includes(seedPerson) ? seedPerson : names[0];
-    const personName = getPersonFromAnchor({ date: seedDateKey, mode: "currentDay", person: anchorPerson }, dateKey, names);
-    const member = team.members.find((item) => item.name === personName) || team.members[0];
-    return {
-      name: team.name,
-      person: member.name,
-      feishuOpenId: member.feishuOpenId || findPublishedOpenId(remoteDocument, team.name, member.name),
-      ...(team.color ? { color: team.color } : {})
-    };
   }
 
   function mergeGeneratedMonthWithRemote(monthEntry, remoteDocument, options = {}) {
@@ -365,11 +327,6 @@
       const name = normalizeTeam(team).name;
       return [name, firstAffectedDateForTeam(team, remoteByTeamName.get(name), monthFirstDate, publishDateKey)];
     }));
-    const continueFromRemoteSeed = new Map((monthEntry.teams || []).map((team) => {
-      const name = normalizeTeam(team).name;
-      return [name, shouldContinueFromRemoteSeed(team, remoteByTeamName.get(name), monthFirstDate)];
-    }));
-    const currentConfigByName = new Map((monthEntry.teams || []).map((team) => [normalizeTeam(team).name, team]));
     const remoteDayByDate = new Map(remoteMonth.dailyAssignments.map((day) => [normalizeDateKey(day.dateStr), day]));
 
     monthEntry.dailyAssignments = (monthEntry.dailyAssignments || []).map((day) => {
@@ -396,17 +353,7 @@
           return;
         }
         if (dateKey >= firstAffected) {
-          if (continueFromRemoteSeed.get(normalized.name)) {
-            teams.push(generateTeamFromRemoteSeed(
-              remoteDocument,
-              currentConfigByName.get(normalized.name) || team,
-              dateKey,
-              firstAffected,
-              index
-            ));
-          } else {
-            teams.push(team);
-          }
+          teams.push(team);
           return;
         }
         if (remoteTeam) teams.push(remoteTeam);

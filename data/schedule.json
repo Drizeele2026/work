@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-04T07:22:34.029Z",
+  "updatedAt": "2026-07-04T07:45:06.052Z",
   "config": {
     "teams": [
       {
@@ -1008,7 +1008,7 @@
     "2026-07": {
       "year": 2026,
       "month": 7,
-      "generatedAt": "2026-07-04T07:22:34.029Z",
+      "generatedAt": "2026-07-04T07:45:06.052Z",
       "teams": [
         {
           "name": "前端",
@@ -1295,8 +1295,8 @@
             },
             {
               "name": "测试",
-              "person": "陈鸿历",
-              "feishuOpenId": "ou_a8cc7aa5cc061691f60a127e23f36340",
+              "person": "许绵绵",
+              "feishuOpenId": "ou_92ac090c14a7f4484c5b8efafd374615",
               "color": "violet"
             }
           ]
@@ -1320,8 +1320,8 @@
             },
             {
               "name": "测试",
-              "person": "许绵绵",
-              "feishuOpenId": "ou_92ac090c14a7f4484c5b8efafd374615",
+              "person": "郑成清",
+              "feishuOpenId": "ou_75648e125c0ab651e0f2defb9e80b628",
               "color": "violet"
             }
           ]
@@ -1345,8 +1345,8 @@
             },
             {
               "name": "测试",
-              "person": "郑成清",
-              "feishuOpenId": "ou_75648e125c0ab651e0f2defb9e80b628",
+              "person": "谭贤",
+              "feishuOpenId": "ou_a675026629060b973ca8d39578fdb7c5",
               "color": "violet"
             }
           ]
@@ -1370,8 +1370,8 @@
             },
             {
               "name": "测试",
-              "person": "谭贤",
-              "feishuOpenId": "ou_a675026629060b973ca8d39578fdb7c5",
+              "person": "钟右梅",
+              "feishuOpenId": "ou_a699ef811812abeb889986b37fc997c0",
               "color": "violet"
             }
           ]
@@ -1395,8 +1395,8 @@
             },
             {
               "name": "测试",
-              "person": "钟右梅",
-              "feishuOpenId": "ou_a699ef811812abeb889986b37fc997c0",
+              "person": "许绵绵",
+              "feishuOpenId": "ou_92ac090c14a7f4484c5b8efafd374615",
               "color": "violet"
             }
           ]
@@ -1420,8 +1420,8 @@
             },
             {
               "name": "测试",
-              "person": "陈鸿历",
-              "feishuOpenId": "ou_a8cc7aa5cc061691f60a127e23f36340",
+              "person": "郑成清",
+              "feishuOpenId": "ou_75648e125c0ab651e0f2defb9e80b628",
               "color": "violet"
             }
           ]
@@ -1445,8 +1445,8 @@
             },
             {
               "name": "测试",
-              "person": "许绵绵",
-              "feishuOpenId": "ou_92ac090c14a7f4484c5b8efafd374615",
+              "person": "谭贤",
+              "feishuOpenId": "ou_a675026629060b973ca8d39578fdb7c5",
               "color": "violet"
             }
           ]
@@ -1470,8 +1470,8 @@
             },
             {
               "name": "测试",
-              "person": "郑成清",
-              "feishuOpenId": "ou_75648e125c0ab651e0f2defb9e80b628",
+              "person": "钟右梅",
+              "feishuOpenId": "ou_a699ef811812abeb889986b37fc997c0",
               "color": "violet"
             }
           ]
@@ -1495,8 +1495,8 @@
             },
             {
               "name": "测试",
-              "person": "谭贤",
-              "feishuOpenId": "ou_a675026629060b973ca8d39578fdb7c5",
+              "person": "许绵绵",
+              "feishuOpenId": "ou_92ac090c14a7f4484c5b8efafd374615",
               "color": "violet"
             }
           ]
@@ -1520,8 +1520,8 @@
             },
             {
               "name": "测试",
-              "person": "钟右梅",
-              "feishuOpenId": "ou_a699ef811812abeb889986b37fc997c0",
+              "person": "郑成清",
+              "feishuOpenId": "ou_75648e125c0ab651e0f2defb9e80b628",
               "color": "violet"
             }
           ]
@@ -1545,8 +1545,8 @@
             },
             {
               "name": "测试",
-              "person": "陈鸿历",
-              "feishuOpenId": "ou_a8cc7aa5cc061691f60a127e23f36340",
+              "person": "谭贤",
+              "feishuOpenId": "ou_a675026629060b973ca8d39578fdb7c5",
               "color": "violet"
             }
           ]
@@ -1570,8 +1570,8 @@
             },
             {
               "name": "测试",
-              "person": "许绵绵",
-              "feishuOpenId": "ou_92ac090c14a7f4484c5b8efafd374615",
+              "person": "钟右梅",
+              "feishuOpenId": "ou_a699ef811812abeb889986b37fc997c0",
               "color": "violet"
             }
           ]
@@ -1595,8 +1595,8 @@
             },
             {
               "name": "测试",
-              "person": "郑成清",
-              "feishuOpenId": "ou_75648e125c0ab651e0f2defb9e80b628",
+              "person": "许绵绵",
+              "feishuOpenId": "ou_92ac090c14a7f4484c5b8efafd374615",
               "color": "violet"
             }
           ]
@@ -1620,8 +1620,8 @@
             },
             {
               "name": "测试",
-              "person": "谭贤",
-              "feishuOpenId": "ou_a675026629060b973ca8d39578fdb7c5",
+              "person": "郑成清",
+              "feishuOpenId": "ou_75648e125c0ab651e0f2defb9e80b628",
               "color": "violet"
             }
           ]
@@ -1645,8 +1645,8 @@
             },
             {
               "name": "测试",
-              "person": "钟右梅",
-              "feishuOpenId": "ou_a699ef811812abeb889986b37fc997c0",
+              "person": "谭贤",
+              "feishuOpenId": "ou_a675026629060b973ca8d39578fdb7c5",
               "color": "violet"
             }
           ]
@@ -1670,8 +1670,8 @@
             },
             {
               "name": "测试",
-              "person": "陈鸿历",
-              "feishuOpenId": "ou_a8cc7aa5cc061691f60a127e23f36340",
+              "person": "钟右梅",
+              "feishuOpenId": "ou_a699ef811812abeb889986b37fc997c0",
               "color": "violet"
             }
           ]
@@ -1795,8 +1795,8 @@
             },
             {
               "name": "测试",
-              "person": "陈鸿历",
-              "feishuOpenId": "ou_a8cc7aa5cc061691f60a127e23f36340",
+              "person": "许绵绵",
+              "feishuOpenId": "ou_92ac090c14a7f4484c5b8efafd374615",
               "color": "violet"
             }
           ]
@@ -1820,8 +1820,8 @@
             },
             {
               "name": "测试",
-              "person": "许绵绵",
-              "feishuOpenId": "ou_92ac090c14a7f4484c5b8efafd374615",
+              "person": "郑成清",
+              "feishuOpenId": "ou_75648e125c0ab651e0f2defb9e80b628",
               "color": "violet"
             }
           ]
@@ -1845,8 +1845,8 @@
             },
             {
               "name": "测试",
-              "person": "郑成清",
-              "feishuOpenId": "ou_75648e125c0ab651e0f2defb9e80b628",
+              "person": "谭贤",
+              "feishuOpenId": "ou_a675026629060b973ca8d39578fdb7c5",
               "color": "violet"
             }
           ]
@@ -1870,8 +1870,8 @@
             },
             {
               "name": "测试",
-              "person": "谭贤",
-              "feishuOpenId": "ou_a675026629060b973ca8d39578fdb7c5",
+              "person": "钟右梅",
+              "feishuOpenId": "ou_a699ef811812abeb889986b37fc997c0",
               "color": "violet"
             }
           ]
@@ -1895,8 +1895,8 @@
             },
             {
               "name": "测试",
-              "person": "钟右梅",
-              "feishuOpenId": "ou_a699ef811812abeb889986b37fc997c0",
+              "person": "许绵绵",
+              "feishuOpenId": "ou_92ac090c14a7f4484c5b8efafd374615",
               "color": "violet"
             }
           ]
@@ -1972,26 +1972,26 @@
           "members": [
             {
               "name": "许绵绵",
-              "count": 6
+              "count": 8
             },
             {
               "name": "郑成清",
-              "count": 6
+              "count": 7
             },
             {
               "name": "谭贤",
-              "count": 7
+              "count": 8
             },
             {
               "name": "钟右梅",
-              "count": 7
+              "count": 8
             },
             {
               "name": "陈鸿历",
-              "count": 5
+              "count": 0
             }
           ],
-          "lastPerson": "钟右梅"
+          "lastPerson": "许绵绵"
         }
       ]
     }
