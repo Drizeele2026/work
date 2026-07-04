@@ -16,10 +16,6 @@
     return `${year}-${pad2(month)}-${pad2(day)}`;
   }
 
-  function monthKeyForDate(dateKey) {
-    return normalizeDateKey(dateKey).slice(0, 7);
-  }
-
   function daysBetweenDateKeys(fromKey, toKey) {
     const [fromYear, fromMonth, fromDay] = normalizeDateKey(fromKey).split("-").map(Number);
     const [toYear, toMonth, toDay] = normalizeDateKey(toKey).split("-").map(Number);
@@ -49,153 +45,157 @@
       .filter((member) => member.name);
   }
 
-  function normalizeDutyTeam(team, index = 0) {
-    const personValue = typeof team?.person === "object" && team.person
-      ? team.person
-      : { name: team?.person };
-    const person = normalizeMember(personValue);
-    const color = typeof team?.color === "string" ? team.color : (team?.color?.name || "");
-    return {
-      name: String(team?.name || `团队${index + 1}`).trim(),
-      person: person.name,
-      feishuOpenId: String(team?.feishuOpenId || person.feishuOpenId || "").trim(),
-      ...(color ? { color } : {})
-    };
-  }
-
-  function normalizeAnchors(anchors, names) {
-    const seen = new Map();
-    (Array.isArray(anchors) ? anchors : []).forEach((anchor) => {
-      const date = normalizeDateKey(anchor?.date);
-      const person = String(anchor?.person || "").trim().replace(/@/g, "");
-      const mode = anchor?.mode === "previousDay" ? "previousDay" : "currentDay";
-      if (!date || !names.includes(person)) return;
-      seen.set(date, { date, mode, person });
-    });
-    return [...seen.values()].sort((a, b) => a.date.localeCompare(b.date));
-  }
-
   function normalizeTeam(team, index = 0) {
     const members = normalizeMembers(team?.members);
+    const startPerson = String(team?.startPerson || "").trim().replace(/@/g, "");
     return {
       name: String(team?.name || `团队${index + 1}`).trim(),
       members,
-      last: String(team?.last || "").trim().replace(/@/g, ""),
-      anchors: normalizeAnchors(team?.anchors, members.map((member) => member.name)),
+      ...(startPerson ? { startPerson } : {}),
       color: typeof team?.color === "string" ? team.color : (team?.color?.name || "")
     };
   }
 
-  function getAnchorForDate(dateKey, anchors) {
-    let active = null;
-    (Array.isArray(anchors) ? anchors : []).forEach((anchor) => {
-      if (anchor.date <= dateKey) active = anchor;
+  function normalizeTeams(teams) {
+    return (Array.isArray(teams) ? teams : [])
+      .map(normalizeTeam)
+      .filter((team) => team.name && team.members.length);
+  }
+
+  function normalizeRuleVersion(version) {
+    const effectiveDate = normalizeDateKey(version?.effectiveDate);
+    const teams = normalizeTeams(version?.teams);
+    if (!effectiveDate || !teams.length) return null;
+    return { effectiveDate, teams };
+  }
+
+  function getRuleVersions(schedule) {
+    const byDate = new Map();
+    (Array.isArray(schedule?.ruleVersions) ? schedule.ruleVersions : [])
+      .map(normalizeRuleVersion)
+      .filter(Boolean)
+      .forEach((version) => byDate.set(version.effectiveDate, version));
+    return [...byDate.values()].sort((a, b) => a.effectiveDate.localeCompare(b.effectiveDate));
+  }
+
+  function getCurrentTeams(schedule) {
+    return normalizeTeams(schedule?.current?.teams);
+  }
+
+  function memberKey(member) {
+    return member.feishuOpenId || member.name;
+  }
+
+  function findMemberIndex(members, personOrMember) {
+    const target = normalizeMember(personOrMember);
+    if (!target.name && !target.feishuOpenId) return -1;
+    return members.findIndex((member) => {
+      if (target.feishuOpenId && member.feishuOpenId) return member.feishuOpenId === target.feishuOpenId;
+      return member.name === target.name;
+    });
+  }
+
+  function teamSignature(team) {
+    const normalized = normalizeTeam(team);
+    return [
+      normalized.name,
+      normalized.color,
+      normalized.members.map((member) => `${member.name}|${member.feishuOpenId}`).join(";")
+    ].join("\n");
+  }
+
+  function teamsSignature(teams) {
+    return normalizeTeams(teams).map(teamSignature).join("\n---\n");
+  }
+
+  function findVersionIndexForDate(versions, dateKey, maxIndex = versions.length - 1) {
+    let active = -1;
+    versions.forEach((version, index) => {
+      if (index <= maxIndex && version.effectiveDate <= dateKey) active = index;
     });
     return active;
   }
 
-  function getPersonFromAnchor(anchor, dateKey, names) {
-    if (!anchor || !names.length) return "";
-    const anchorIndex = names.indexOf(anchor.person);
-    if (anchorIndex < 0) return "";
-    const modeOffset = anchor.mode === "previousDay" ? 1 : 0;
-    const offset = daysBetweenDateKeys(anchor.date, dateKey);
-    return names[wrapIndex(anchorIndex + modeOffset + offset, names.length)];
+  function findTeamByName(teams, teamName) {
+    return (teams || []).find((team) => team.name === teamName) || null;
   }
 
-  function findPublishedAssignment(schedule, dateKey) {
-    const month = schedule?.months?.[monthKeyForDate(dateKey)];
-    const day = month?.dailyAssignments?.find((item) => normalizeDateKey(item.dateStr) === dateKey);
-    if (!day) return null;
+  function getTeamDutyFromVersion(versions, versionIndex, teamName, dateKey) {
+    const version = versions[versionIndex];
+    const team = findTeamByName(version?.teams, teamName);
+    if (!version || !team || !team.members.length) return null;
+
+    let startIndex = findMemberIndex(team.members, { name: team.startPerson });
+    if (startIndex < 0 && versionIndex > 0) {
+      const previousDuty = getTeamDutyAt(versions, versionIndex - 1, teamName, version.effectiveDate);
+      startIndex = findMemberIndex(team.members, previousDuty?.member || { name: previousDuty?.person || "" });
+    }
+    if (startIndex < 0) startIndex = 0;
+
+    const offset = daysBetweenDateKeys(version.effectiveDate, dateKey);
+    const member = team.members[wrapIndex(startIndex + offset, team.members.length)];
     return {
-      ...day,
-      dateStr: day.dateStr || dateKey.replaceAll("-", "/"),
-      teams: (Array.isArray(day.teams) ? day.teams : []).map(normalizeDutyTeam)
-    };
-  }
-
-  function findLatestSnapshotBeforeDate(schedule, dateKey, teamName) {
-    let latest = null;
-    Object.values(schedule?.months || {}).forEach((month) => {
-      (month.dailyAssignments || []).forEach((day) => {
-        const dayKey = normalizeDateKey(day.dateStr);
-        if (!dayKey || dayKey >= dateKey) return;
-        const team = (day.teams || []).map(normalizeDutyTeam).find((item) => item.name === teamName);
-        if (team?.person && (!latest || dayKey > latest.date)) {
-          latest = { date: dayKey, person: team.person };
-        }
-      });
-    });
-    return latest;
-  }
-
-  function findPublishedOpenId(schedule, teamName, personName) {
-    let latest = null;
-    Object.values(schedule?.months || {}).forEach((month) => {
-      (month.dailyAssignments || []).forEach((day) => {
-        const dayKey = normalizeDateKey(day.dateStr);
-        if (!dayKey) return;
-        const team = (day.teams || []).map(normalizeDutyTeam)
-          .find((item) => item.name === teamName && item.person === personName && item.feishuOpenId);
-        if (team && (!latest || dayKey > latest.date)) {
-          latest = { date: dayKey, feishuOpenId: team.feishuOpenId };
-        }
-      });
-    });
-    return latest?.feishuOpenId || "";
-  }
-
-  function teamsFromConfig(schedule) {
-    const teams = (Array.isArray(schedule?.config?.teams) ? schedule.config.teams : []).map(normalizeTeam);
-    if (!teams.length) {
-      throw new Error("没有找到当天值班快照，也没有可用于顺排的团队配置。请先配置成员名单和接龙节点。");
-    }
-    return teams;
-  }
-
-  function generateTeamForDate(schedule, team, teamIndex, dateKey) {
-    const normalized = normalizeTeam(team, teamIndex);
-    if (!normalized.members.length) {
-      throw new Error(`团队【${normalized.name}】没有可用于顺排的成员名单。`);
-    }
-
-    const names = normalized.members.map((member) => member.name);
-    const snapshot = findLatestSnapshotBeforeDate(schedule, dateKey, normalized.name);
-    const anchors = [...normalized.anchors];
-    if (snapshot) {
-      anchors.push({ date: snapshot.date, mode: "currentDay", person: snapshot.person });
-    }
-    anchors.sort((a, b) => a.date.localeCompare(b.date));
-
-    const anchor = getAnchorForDate(dateKey, anchors);
-    const personName = anchor
-      ? getPersonFromAnchor(anchor, dateKey, names)
-      : names[wrapIndex(names.indexOf(normalized.last) + Number(dateKey.slice(8, 10)), names.length)];
-    const member = normalized.members.find((item) => item.name === personName) || normalized.members[0];
-
-    return {
-      name: normalized.name,
+      name: team.name,
       person: member.name,
-      feishuOpenId: member.feishuOpenId || findPublishedOpenId(schedule, normalized.name, member.name),
-      color: normalized.color
+      member,
+      feishuOpenId: member.feishuOpenId,
+      color: team.color
     };
+  }
+
+  function getTeamDutyAt(versions, maxVersionIndex, teamName, dateKey) {
+    const activeIndex = findVersionIndexForDate(versions, dateKey, maxVersionIndex);
+    if (activeIndex < 0) return null;
+    return getTeamDutyFromVersion(versions, activeIndex, teamName, dateKey);
+  }
+
+  function teamsFromRules(schedule, dateKey) {
+    const versions = getRuleVersions(schedule);
+    const activeIndex = findVersionIndexForDate(versions, dateKey);
+    if (activeIndex >= 0) return versions[activeIndex].teams;
+
+    const currentTeams = getCurrentTeams(schedule);
+    if (currentTeams.length) {
+      return currentTeams.map((team) => ({
+        ...team,
+        startPerson: team.startPerson || team.members[0]?.name || ""
+      }));
+    }
+
+    throw new Error("没有可用于顺排的团队规则。请先维护团队成员并发布。");
   }
 
   function generatedAssignmentForDate(schedule, dateKey) {
-    const [year, month, day] = normalizeDateKey(dateKey).split("-").map(Number);
+    const normalizedDate = normalizeDateKey(dateKey);
+    const [year, month, day] = normalizedDate.split("-").map(Number);
     const date = new Date(year, month - 1, day);
+    const versions = getRuleVersions(schedule);
+    const activeIndex = findVersionIndexForDate(versions, normalizedDate);
+    const teams = teamsFromRules(schedule, normalizedDate);
+    const dutyTeams = activeIndex >= 0
+      ? teams.map((team) => getTeamDutyFromVersion(versions, activeIndex, team.name, normalizedDate))
+      : teams.map((team) => {
+          const member = team.members[0];
+          return {
+            name: team.name,
+            person: member.name,
+            feishuOpenId: member.feishuOpenId,
+            color: team.color
+          };
+        });
+
     return {
       day,
       dateStr: `${year}/${pad2(month)}/${pad2(day)}`,
       weekdayStr: WEEKDAYS[date.getDay()],
-      teams: teamsFromConfig(schedule).map((team, index) => generateTeamForDate(schedule, team, index, dateKey))
+      teams: dutyTeams.filter(Boolean).map(({ member, ...team }) => team)
     };
   }
 
   function findAssignmentForDateWithFallback(schedule, dateKey) {
     const normalizedDate = normalizeDateKey(dateKey);
     if (!normalizedDate) throw new Error(`日期格式不正确：${dateKey}`);
-    return findPublishedAssignment(schedule, normalizedDate) || generatedAssignmentForDate(schedule, normalizedDate);
+    return generatedAssignmentForDate(schedule, normalizedDate);
   }
 
   function formatUpcomingLabel(dateKey) {
@@ -225,7 +225,7 @@
     const dailyAssignments = Array.from({ length: daysInMonth }, (_, index) =>
       findAssignmentForDateWithFallback(schedule, dateKeyForDay(year, month, index + 1))
     );
-    const teams = teamsFromConfig(schedule);
+    const teams = teamsFromRules(schedule, dateKeyForDay(year, month, 1));
     const counts = {};
     teams.forEach((team) => {
       counts[team.name] = Object.fromEntries(team.members.map((member) => [member.name, 0]));
@@ -250,178 +250,54 @@
     return dateKeyForDay(now.getFullYear(), now.getMonth() + 1, now.getDate());
   }
 
-  function memberNamesSignature(team) {
-    return normalizeMembers(team?.members).map((member) => member.name).join("\n");
-  }
-
-  function anchorSignature(anchor) {
-    return anchor ? `${anchor.date}|${anchor.mode}|${anchor.person}` : "";
-  }
-
-  function anchorsSignature(anchors) {
-    return (Array.isArray(anchors) ? anchors : []).map(anchorSignature).join("\n");
-  }
-
-  function firstAnchorDifferenceDate(currentAnchors, remoteAnchors) {
-    const dates = [...new Set([
-      ...(Array.isArray(currentAnchors) ? currentAnchors : []).map((anchor) => anchor.date),
-      ...(Array.isArray(remoteAnchors) ? remoteAnchors : []).map((anchor) => anchor.date)
-    ])].filter(Boolean).sort();
-    return dates.find((date) =>
-      anchorSignature((currentAnchors || []).find((anchor) => anchor.date === date)) !==
-      anchorSignature((remoteAnchors || []).find((anchor) => anchor.date === date))
-    ) || "";
-  }
-
-  function isImplicitMonthStartAnchor(current, remote, monthFirstDate) {
-    if (remote.anchors.length || current.anchors.length !== 1) return false;
-    const anchor = current.anchors[0];
-    return current.last === remote.last &&
-      anchor.date === monthFirstDate &&
-      anchor.mode === "previousDay" &&
-      anchor.person === current.last;
-  }
-
-  function maxDateKey(left, right) {
-    const a = normalizeDateKey(left);
-    const b = normalizeDateKey(right);
-    if (!a) return b;
-    if (!b) return a;
-    return a > b ? a : b;
-  }
-
-  function anchorDifferenceDateForTeam(current, remote, monthFirstDate) {
-    if (
-      anchorsSignature(current.anchors) === anchorsSignature(remote.anchors) ||
-      isImplicitMonthStartAnchor(current, remote, monthFirstDate)
-    ) {
-      return "";
-    }
-    return firstAnchorDifferenceDate(current.anchors, remote.anchors);
-  }
-
-  function firstAffectedDateForTeam(currentTeam, remoteTeam, monthFirstDate, publishDateKey) {
-    const current = normalizeTeam(currentTeam);
-    const remote = remoteTeam ? normalizeTeam(remoteTeam) : null;
-    if (!remote) return publishDateKey || monthFirstDate;
-
-    const firstAffected = anchorDifferenceDateForTeam(current, remote, monthFirstDate);
-    return firstAffected ? maxDateKey(firstAffected, publishDateKey) : "";
-  }
-
-  function remoteTeamsByName(remoteDocument) {
-    return new Map((remoteDocument?.config?.teams || [])
-      .map((team) => [normalizeTeam(team).name, team])
-      .filter(([name]) => name));
-  }
-
-  function findDutyPersonForTeam(schedule, dateKey, teamName) {
-    try {
-      const assignment = findAssignmentForDateWithFallback(schedule, dateKey);
-      return (assignment.teams || []).find((team) => team.name === teamName)?.person || "";
-    } catch {
-      return "";
-    }
-  }
-
-  function applyRosterChangeAnchors(teams, remoteDocument, options = {}) {
-    const publishDateKey = normalizeDateKey(options.publishDateKey) || todayDateKey();
-    const remoteByTeamName = remoteTeamsByName(remoteDocument);
-    return (Array.isArray(teams) ? teams : []).map((team, index) => {
-      const current = normalizeTeam(team, index);
-      const remoteTeam = remoteByTeamName.get(current.name);
-      const remote = remoteTeam ? normalizeTeam(remoteTeam) : null;
-      if (!remote || memberNamesSignature(current) === memberNamesSignature(remote)) return team;
-
-      const names = current.members.map((member) => member.name);
-      if (!names.length) return team;
-      const publishedPerson = findDutyPersonForTeam(remoteDocument, publishDateKey, current.name);
-      const anchorPerson = names.includes(publishedPerson) ? publishedPerson : names[0];
-      const anchors = normalizeAnchors(team?.anchors, names);
-      if (anchors.some((anchor) => anchor.date === publishDateKey)) {
-        return { ...team, anchors };
+  function buildVersionTeamsFromPublish(remoteDocument, currentTeams, publishDateKey) {
+    const versions = getRuleVersions(remoteDocument);
+    const remoteActiveIndex = findVersionIndexForDate(versions, publishDateKey);
+    const normalizedTeams = normalizeTeams(currentTeams);
+    return normalizedTeams.map((team) => {
+      let startPerson = team.members[0]?.name || "";
+      if (remoteActiveIndex >= 0) {
+        const previousDuty = getTeamDutyAt(versions, remoteActiveIndex, team.name, publishDateKey);
+        const previousIndex = findMemberIndex(team.members, previousDuty?.member || { name: previousDuty?.person || "" });
+        if (previousIndex >= 0) startPerson = team.members[previousIndex].name;
       }
-
-      return {
-        ...team,
-        anchors: normalizeAnchors([
-          ...anchors,
-          { date: publishDateKey, mode: "currentDay", person: anchorPerson }
-        ], names)
-      };
+      return { ...team, startPerson };
     });
   }
 
-  function mergeGeneratedMonthWithRemote(monthEntry, remoteDocument, options = {}) {
-    if (!monthEntry || !remoteDocument) return monthEntry;
-    let remoteMonth = null;
-    try {
-      remoteMonth = generateAssignmentsForMonth(remoteDocument, monthEntry.year, monthEntry.month);
-    } catch {
-      return monthEntry;
+  function buildPublishedDocument(remoteDocument, currentTeams, options = {}) {
+    const publishDateKey = normalizeDateKey(options.publishDateKey) || todayDateKey();
+    const updatedAt = options.updatedAt || new Date().toISOString();
+    const normalizedTeams = normalizeTeams(currentTeams);
+    if (!normalizedTeams.length) throw new Error("至少要配置一个团队和成员名单。");
+
+    const existingVersions = getRuleVersions(remoteDocument);
+    const lastVersion = existingVersions.at(-1);
+    const nextVersionTeams = buildVersionTeamsFromPublish(remoteDocument, normalizedTeams, publishDateKey);
+    const nextVersion = { effectiveDate: publishDateKey, teams: nextVersionTeams };
+    let ruleVersions = existingVersions;
+
+    if (!lastVersion || teamsSignature(lastVersion.teams) !== teamsSignature(normalizedTeams)) {
+      ruleVersions = existingVersions.filter((version) => version.effectiveDate !== publishDateKey);
+      ruleVersions.push(nextVersion);
+      ruleVersions.sort((a, b) => a.effectiveDate.localeCompare(b.effectiveDate));
     }
 
-    const publishDateKey = normalizeDateKey(options.publishDateKey) || todayDateKey();
-    const monthFirstDate = dateKeyForDay(monthEntry.year, monthEntry.month, 1);
-    const remoteByTeamName = remoteTeamsByName(remoteDocument);
-    const firstAffectedByTeam = new Map((monthEntry.teams || []).map((team) => {
-      const name = normalizeTeam(team).name;
-      return [name, firstAffectedDateForTeam(team, remoteByTeamName.get(name), monthFirstDate, publishDateKey)];
-    }));
-    const remoteDayByDate = new Map(remoteMonth.dailyAssignments.map((day) => [normalizeDateKey(day.dateStr), day]));
-
-    monthEntry.dailyAssignments = (monthEntry.dailyAssignments || []).map((day) => {
-      const dateKey = normalizeDateKey(day.dateStr);
-      const remoteDay = remoteDayByDate.get(dateKey);
-      if (!remoteDay) return day;
-
-      const remoteTeamByName = new Map((remoteDay.teams || []).map((team, index) => {
-        const normalized = normalizeDutyTeam(team, index);
-        return [normalized.name, normalized];
-      }));
-      const used = new Set();
-      const teams = [];
-
-      (day.teams || []).forEach((team, index) => {
-        const normalized = normalizeDutyTeam(team, index);
-        const firstAffected = firstAffectedByTeam.get(normalized.name);
-        const remoteTeam = remoteTeamByName.get(normalized.name);
-        used.add(normalized.name);
-
-        if (!firstAffected) {
-          if (remoteTeam) teams.push(remoteTeam);
-          else teams.push(team);
-          return;
-        }
-        if (dateKey >= firstAffected) {
-          teams.push(team);
-          return;
-        }
-        if (remoteTeam) teams.push(remoteTeam);
-      });
-
-      (remoteDay.teams || []).map(normalizeDutyTeam).forEach((team) => {
-        if (!used.has(team.name) && dateKey < publishDateKey) teams.push(team);
-      });
-
-      return { ...day, teams };
-    });
-
-    return monthEntry;
+    return {
+      version: 2,
+      updatedAt,
+      current: { teams: normalizedTeams },
+      ruleVersions
+    };
   }
 
   const api = {
     normalizeDateKey,
     dateKeyForDay,
-    normalizeAnchors,
-    getAnchorForDate,
-    getPersonFromAnchor,
-    findLatestSnapshotBeforeDate,
     findAssignmentForDateWithFallback,
     collectUpcoming,
     generateAssignmentsForMonth,
-    applyRosterChangeAnchors,
-    mergeGeneratedMonthWithRemote
+    buildPublishedDocument
   };
 
   global.DutyRosterSchedule = api;
