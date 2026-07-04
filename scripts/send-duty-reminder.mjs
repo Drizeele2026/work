@@ -114,8 +114,11 @@ export async function loadSchedule(path = DEFAULT_SCHEDULE_PATH) {
 export async function loadOrganizationIndex(path = DEFAULT_ORGANIZATIONS_PATH) {
   try {
     return JSON.parse(await fs.readFile(path, "utf8"));
-  } catch {
-    return null;
+  } catch (error) {
+    if (error?.code === "ENOENT") {
+      return null;
+    }
+    throw error;
   }
 }
 
@@ -302,6 +305,17 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
 
   const organizationsPath = env.ORGANIZATIONS_PATH || DEFAULT_ORGANIZATIONS_PATH;
   const indexDocument = await loadOrganizationIndex(organizationsPath);
+  if (indexDocument === null) {
+    return runSingleScheduleReminder({
+      dryRun,
+      force,
+      schedulePath: DEFAULT_SCHEDULE_PATH,
+      statePath,
+      publicUrl,
+      dateInfo,
+      env
+    });
+  }
   const organizations = resolveReminderOrganizations(indexDocument, orgSlug);
   if (!organizations.length) {
     console.log("没有启用提醒的组织，跳过。");

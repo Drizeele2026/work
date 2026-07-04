@@ -70,3 +70,30 @@
 ## 疑虑
 
 - 当前 `--dry-run` 会打印卡片内容 JSON，这是原有行为延续。里面不包含 webhook secret，但会包含组织名、公开页地址和值班内容。
+
+## 本次 review findings 修复追加
+
+### 改了什么
+
+- `scripts/send-duty-reminder.mjs`
+  - 调整 `loadOrganizationIndex()`：只在组织索引文件不存在时返回 `null`，`JSON` 解析错误、权限错误等其他异常直接抛出。
+  - 调整 `main()`：当没有显式传 `SCHEDULE_PATH` 且 `data/organizations.json` 缺失时，不再静默输出“没有启用提醒的组织，跳过”，而是回退到旧单文件默认：
+    - `data/schedule.json`
+    - `data/reminder-state.json`
+    - `FEISHU_WEBHOOK`
+- `scripts/send-duty-reminder.test.mjs`
+  - 新增测试：组织索引缺失时，按旧默认单文件路径发送并写 `data/reminder-state.json`
+  - 新增测试：组织索引 `JSON` 损坏时，`main()` 直接抛错，不能当作正常跳过
+
+### 测试命令和结果
+
+1. `node --test scripts/send-duty-reminder.test.mjs`
+   - 结果：通过，18/18 通过
+2. `node --test scripts/organization-utils.test.mjs scripts/schedule-utils.test.mjs`
+   - 结果：通过，17/17 通过
+
+### 文件列表
+
+- `scripts/send-duty-reminder.mjs`
+- `scripts/send-duty-reminder.test.mjs`
+- `.superpowers/sdd/task-4-report.md`

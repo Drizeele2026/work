@@ -445,3 +445,67 @@ test("main：某组织缺少 webhook secret 时，其他组织仍会发送，最
     globalThis.fetch = orig;
   }
 });
+
+test("main：未显式传 SCHEDULE_PATH 且组织索引缺失时回退到旧单文件默认", async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "duty-legacy-"));
+  const dataDir = path.join(dir, "data");
+  const schedulePath = path.join(dataDir, "schedule.json");
+  const statePath = path.join(dataDir, "reminder-state.json");
+  await fs.mkdir(dataDir, { recursive: true });
+  await fs.writeFile(schedulePath, JSON.stringify({
+    version: 2,
+    current: {
+      teams: [
+        { name: "前端", color: "blue", members: ["张三", "李四"] }
+      ]
+    },
+    ruleVersions: [
+      {
+        effectiveDate: "2026-06-20",
+        teams: [
+          { name: "前端", color: "blue", startPerson: "张三", members: ["张三", "李四"] }
+        ]
+      }
+    ]
+  }), "utf8");
+
+  const calls = [];
+  const origFetch = globalThis.fetch;
+  const origCwd = process.cwd();
+  globalThis.fetch = async (url, options) => {
+    calls.push({ url, body: JSON.parse(options.body) });
+    return { ok: true, text: async () => '{"code":0}' };
+  };
+
+  try {
+    process.chdir(dir);
+    const result = await main([], {
+      REMINDER_DATE: "2026-06-20T02:00:00Z",
+      FEISHU_WEBHOOK: "https://example.com/legacy-hook"
+    });
+
+    assert.equal(result.msg_type, "interactive");
+    assert.deepEqual(calls.map((call) => call.url), ["https://example.com/legacy-hook"]);
+    const saved = JSON.parse(await fs.readFile(statePath, "utf8"));
+    assert.equal(saved.lastSentDate, "2026-06-20");
+  } finally {
+    process.chdir(origCwd);
+    globalThis.fetch = origFetch;
+  }
+});
+
+test("main：组织索引 JSON 损坏时直接抛错", async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "duty-bad-index-"));
+  const dataDir = path.join(dir, "data");
+  const organizationsPath = path.join(dataDir, "organizations.json");
+  await fs.mkdir(dataDir, { recursive: true });
+  await fs.writeFile(organizationsPath, "{bad json", "utf8");
+
+  await assert.rejects(
+    () => main([], {
+      ORGANIZATIONS_PATH: organizationsPath,
+      REMINDER_DATE: "2026-06-20T02:00:00Z"
+    }),
+    SyntaxError
+  );
+});
