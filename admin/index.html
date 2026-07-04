@@ -1426,6 +1426,7 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="../member-utils.js"></script>
+  <script src="../organization-utils.js"></script>
   <script src="../schedule-utils.js"></script>
   <script>
     const weekdayNames = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
@@ -1448,12 +1449,13 @@
 
     const $ = (id) => document.getElementById(id);
     const memberUtils = window.DutyRosterMembers;
+    const orgUtils = window.DutyRosterOrganizations;
     const scheduleUtils = window.DutyRosterSchedule;
     const LS_TOKEN = "duty-roster-token";
     const LS_REPO = "duty-roster-repo";
     const LS_TEAM_CONFIG = "duty-roster-team-config";
     const DEFAULT_REPO = "Drizeele2026/work";
-    const SCHEDULE_FILE = "data/schedule.json";
+    const ORGANIZATIONS_FILE = orgUtils.ORGANIZATIONS_PATH;
     const API_BASE = "https://api.github.com";
     const PUBLISH_LOADING_MIN_MS = 800;
     let pendingMonth = null;
@@ -1467,6 +1469,8 @@
     let teamConfigDirty = false;
     let teamConfigSavedAt = null;
     let confirmationReady = false;
+    let organizationIndexDocument = null;
+    let currentOrganization = null;
     let remoteScheduleDocument = null;
 
     function pad2(num) {
@@ -1490,12 +1494,26 @@
       return path.endsWith("/admin") || path.endsWith("/admin/index.html");
     }
 
+    function getRequestedOrgSlug() {
+      return new URLSearchParams(window.location.search).get("org") || "";
+    }
+
+    function getCurrentSchedulePath() {
+      return currentOrganization?.schedulePath || orgUtils.LEGACY_SCHEDULE_PATH;
+    }
+
     function getScheduleUrl() {
-      return isAdminRoute() ? `../${SCHEDULE_FILE}` : SCHEDULE_FILE;
+      return orgUtils.relativeDataPath(getCurrentSchedulePath(), isAdminRoute());
+    }
+
+    function getOrganizationsUrl() {
+      return orgUtils.relativeDataPath(ORGANIZATIONS_FILE, isAdminRoute());
     }
 
     function getPublicPageUrl() {
-      return isAdminRoute() ? "../" : "./";
+      const base = isAdminRoute() ? "../" : "./";
+      if (!currentOrganization || currentOrganization.slug === "default") return base;
+      return `${base}?org=${encodeURIComponent(currentOrganization.slug)}`;
     }
 
     function shiftMonthValue(year, month, delta) {
@@ -1930,7 +1948,8 @@
       $("manageView").classList.toggle("visible", isManage);
       $("scheduleView").style.display = isAbout || isManage || isConfirm ? "none" : "";
       $("adminSummaryView").style.display = admin && !isAbout && !isManage && !isConfirm ? "block" : "none";
-      $("brandSub").textContent = admin ? "管理排班 · 修改名单并发布" : "公开查看 · 排班数据来自仓库";
+      const orgName = currentOrganization?.name || "默认组织";
+      $("brandSub").textContent = admin ? `管理排班 · ${orgName}` : `公开查看 · ${orgName}`;
       renderConfirmView();
     }
 
@@ -2185,6 +2204,23 @@
       });
     }
 
+    async function loadCurrentOrganization() {
+      try {
+        const response = await fetch(`${getOrganizationsUrl()}?_=${Date.now()}`, { cache: "no-store" });
+        if (response.ok) {
+          organizationIndexDocument = await response.json();
+        }
+      } catch (error) {
+        organizationIndexDocument = null;
+      }
+
+      const result = orgUtils.resolveOrganization(organizationIndexDocument, getRequestedOrgSlug(), { allowLegacy: true });
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      currentOrganization = result.organization;
+    }
+
     async function loadRemoteSchedulePreview() {
       try {
         const response = await fetch(`${getScheduleUrl()}?_=${Date.now()}`, { cache: "no-store" });
@@ -2333,7 +2369,7 @@
 
     async function loadGithubScheduleDocument() {
       const repoApiBase = getRepoApiBase();
-      const contentsUrl = `${repoApiBase}/contents/${SCHEDULE_FILE}`;
+      const contentsUrl = `${repoApiBase}/contents/${getCurrentSchedulePath()}`;
       const response = await githubRequest(contentsUrl);
       if (response.status === 404) {
         return { sha: null, document: null };
@@ -2370,7 +2406,7 @@
       }
       const settings = readGithubSettings();
       const repoApiBase = getRepoApiBase();
-      const contentsUrl = `${repoApiBase}/contents/${SCHEDULE_FILE}`;
+      const contentsUrl = `${repoApiBase}/contents/${getCurrentSchedulePath()}`;
       const remote = preloadedRemote || await loadGithubScheduleDocument();
 
       const document = buildScheduleDocument(lastGeneratedState, remote.document);
@@ -2398,7 +2434,7 @@
         $("notePersistence").textContent = `已发布值班规则；今天之前不主动改变，今天及以后按新规则顺排。`;
       }
       syncTopbar();
-      setGithubMessage("ok", `已发布到公开页，同时提交到 ${settings.repoSlug}/${SCHEDULE_FILE}。`);
+      setGithubMessage("ok", `已发布到公开页，同时提交到 ${settings.repoSlug}/${getCurrentSchedulePath()}。`);
       return result;
     }
 
@@ -2902,6 +2938,14 @@
       renderTeamConfigStatus();
       populateMonthPicker(Number($("year").value), Number($("month").value));
       updateMonthLabels(Number($("year").value), Number($("month").value));
+      try {
+        await loadCurrentOrganization();
+      } catch (error) {
+        showError(error.message || "组织加载失败。");
+        applyViewState();
+        syncTopbar();
+        return;
+      }
       const remotePreview = await loadRemoteSchedulePreview();
       remoteScheduleDocument = remotePreview;
       if (remotePreview) {

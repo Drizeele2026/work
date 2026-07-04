@@ -1,0 +1,26 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+
+const publicHtml = await readFile(new URL("../index.html", import.meta.url), "utf8");
+const adminHtml = await readFile(new URL("../admin/index.html", import.meta.url), "utf8");
+const workflow = await readFile(new URL("../.github/workflows/duty-reminder.yml", import.meta.url), "utf8");
+const organizations = JSON.parse(await readFile(new URL("../data/organizations.json", import.meta.url), "utf8"));
+
+function verifyPage(html, label, scriptPath) {
+  assert.match(html, new RegExp(`<script src="${scriptPath}"></script>`), `${label} 需要引入 organization-utils.js`);
+  assert.match(html, /const orgUtils = window\.DutyRosterOrganizations;/, `${label} 需要使用组织工具`);
+  assert.match(html, /let currentOrganization = null;/, `${label} 需要保存当前组织`);
+  assert.match(html, /async function loadCurrentOrganization\(\)/, `${label} 需要加载当前组织`);
+  assert.match(html, /function getCurrentSchedulePath\(\)/, `${label} 需要按组织返回 schedule 路径`);
+  assert.match(html, /orgUtils\.relativeDataPath\(getCurrentSchedulePath\(\), isAdminRoute\(\)\)/, `${label} 读取排班时不能写死 data\/schedule.json`);
+  assert.doesNotMatch(html, /const SCHEDULE_FILE = "data\/schedule\.json";/, `${label} 不应再用固定 SCHEDULE_FILE`);
+}
+
+verifyPage(publicHtml, "公开页", "./organization-utils.js");
+verifyPage(adminHtml, "管理页", "../organization-utils.js");
+
+assert.equal(organizations.defaultOrg, "default");
+assert.equal(organizations.organizations[0].schedulePath, "data/orgs/default/schedule.json");
+assert.match(workflow, /FEISHU_WEBHOOK:/, "workflow 需要继续暴露默认组织使用的 FEISHU_WEBHOOK");
+
+console.log("多组织静态检查通过");
