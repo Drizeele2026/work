@@ -124,7 +124,7 @@ scripts/send-duty-reminder.mjs
 node scripts/send-duty-reminder.mjs --dry-run
 ```
 
-如果当天没有月快照，提醒脚本会按已发布规则顺排；只有成员名单和规则版本都不可用时才会失败。
+提醒脚本会按已发布规则版本连续顺排；只有成员名单和规则版本都不可用时才会失败。
 
 ## 数据文件
 
