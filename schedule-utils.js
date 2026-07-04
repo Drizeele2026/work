@@ -250,6 +250,10 @@
     return dateKeyForDay(now.getFullYear(), now.getMonth() + 1, now.getDate());
   }
 
+  function memberNamesSignature(team) {
+    return normalizeMembers(team?.members).map((member) => member.name).join("\n");
+  }
+
   function anchorSignature(anchor) {
     return anchor ? `${anchor.date}|${anchor.mode}|${anchor.person}` : "";
   }
@@ -309,6 +313,43 @@
     return new Map((remoteDocument?.config?.teams || [])
       .map((team) => [normalizeTeam(team).name, team])
       .filter(([name]) => name));
+  }
+
+  function findDutyPersonForTeam(schedule, dateKey, teamName) {
+    try {
+      const assignment = findAssignmentForDateWithFallback(schedule, dateKey);
+      return (assignment.teams || []).find((team) => team.name === teamName)?.person || "";
+    } catch {
+      return "";
+    }
+  }
+
+  function applyRosterChangeAnchors(teams, remoteDocument, options = {}) {
+    const publishDateKey = normalizeDateKey(options.publishDateKey) || todayDateKey();
+    const remoteByTeamName = remoteTeamsByName(remoteDocument);
+    return (Array.isArray(teams) ? teams : []).map((team, index) => {
+      const current = normalizeTeam(team, index);
+      const remoteTeam = remoteByTeamName.get(current.name);
+      const remote = remoteTeam ? normalizeTeam(remoteTeam) : null;
+      if (!remote || memberNamesSignature(current) === memberNamesSignature(remote)) return team;
+
+      const names = current.members.map((member) => member.name);
+      if (!names.length) return team;
+      const publishedPerson = findDutyPersonForTeam(remoteDocument, publishDateKey, current.name);
+      const anchorPerson = names.includes(publishedPerson) ? publishedPerson : names[0];
+      const anchors = normalizeAnchors(team?.anchors, names);
+      if (anchors.some((anchor) => anchor.date === publishDateKey)) {
+        return { ...team, anchors };
+      }
+
+      return {
+        ...team,
+        anchors: normalizeAnchors([
+          ...anchors,
+          { date: publishDateKey, mode: "currentDay", person: anchorPerson }
+        ], names)
+      };
+    });
   }
 
   function mergeGeneratedMonthWithRemote(monthEntry, remoteDocument, options = {}) {
@@ -379,6 +420,7 @@
     findAssignmentForDateWithFallback,
     collectUpcoming,
     generateAssignmentsForMonth,
+    applyRosterChangeAnchors,
     mergeGeneratedMonthWithRemote
   };
 

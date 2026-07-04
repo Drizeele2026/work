@@ -59,6 +59,10 @@ for (const [label, html] of [["管理页", adminHtml], ["公开页", publicHtml]
   assert.match(html, /function renderContinuousScheduleMonth\(/, `${label} 需要支持没有月快照时按规则顺排`);
   assert.match(html, /renderPublishedScheduleMonth\(remotePreview/, `${label} 加载远端排班后需要优先渲染已发布快照`);
   assert.match(html, /renderContinuousScheduleMonth\(remotePreview,\s*year,\s*month\)/, `${label} 初始化时月快照缺失需要回退到规则顺排`);
+  if (label === "管理页") {
+    assert.match(html, /applyRosterChangeAnchorsToForm/, "管理页发布名单变更时需要自动补当天节点");
+    assert.match(html, /applyRosterChangeAnchors/, "管理页需要调用共享逻辑判断名单变更节点");
+  }
 
   const helpers = extractAnchorHelpers(html, label);
   const names = ["A", "B", "C", "D"];

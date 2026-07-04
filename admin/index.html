@@ -2659,7 +2659,7 @@
       return { sha: payload.sha || null, document };
     }
 
-    async function saveScheduleToGithub() {
+    async function saveScheduleToGithub(preloadedRemote = null) {
       clearGithubMessage();
       if (!lastGeneratedState) {
         throw new Error("请先生成本月排班，再发布到公开页。");
@@ -2667,7 +2667,7 @@
       const settings = readGithubSettings();
       const repoApiBase = getRepoApiBase();
       const contentsUrl = `${repoApiBase}/contents/${SCHEDULE_FILE}`;
-      const remote = await loadGithubScheduleDocument();
+      const remote = preloadedRemote || await loadGithubScheduleDocument();
 
       const document = buildScheduleDocument(lastGeneratedState, remote.document);
       if (remote.document?.months) {
@@ -2732,6 +2732,18 @@
         });
       });
 
+      return teams;
+    }
+
+    function applyRosterChangeAnchorsToForm(remoteDocument = remoteScheduleDocument) {
+      const teams = buildTeamData();
+      if (!remoteDocument || !scheduleUtils?.applyRosterChangeAnchors) return teams;
+
+      const anchoredTeams = scheduleUtils.applyRosterChangeAnchors(teams, remoteDocument, { publishDateKey: todayDateKey() });
+      if (JSON.stringify(simplifyTeams(anchoredTeams)) !== JSON.stringify(simplifyTeams(teams))) {
+        applyTeamFormState(anchoredTeams);
+        return buildTeamData();
+      }
       return teams;
     }
 
@@ -3226,7 +3238,11 @@
         button.textContent = "发布中...";
       }
       try {
-        buildTeamData();
+        const settings = readGithubSettings();
+        const remote = settings.token
+          ? await loadGithubScheduleDocument()
+          : { sha: null, document: remoteScheduleDocument };
+        applyRosterChangeAnchorsToForm(remote.document);
         persistTeamConfigToStorage();
         setCurrentYearMonth();
         populateMonthPicker(Number($("year").value), Number($("month").value));
@@ -3235,13 +3251,13 @@
         if (!ok) {
           throw new Error("本月排班生成失败，请检查名单和接龙节点。");
         }
-        if (!readGithubSettings().token) {
+        if (!settings.token) {
           openGithubSettings("githubToken");
           setTeamPublishMessage("info", "还差 GitHub Token。填写并保存到本机后，再点“发布到公开页”。");
           showToast("先配置 Token", "error");
           return;
         }
-        const result = await saveScheduleToGithub();
+        const result = await saveScheduleToGithub(remote);
         confirmationReady = false;
         resetConfirmChecks();
         setTeamPublishMessage("ok", `已发布到公开页，提交：${result.commit?.sha ? result.commit.sha.slice(0, 7) : "完成"}。`);
