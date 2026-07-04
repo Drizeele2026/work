@@ -222,7 +222,6 @@
     }
     body.admin-mode .side { display: block; }
 
-    body:not(.admin-mode) .topbar { display: none; }
     body:not(.admin-mode) .wrap { padding: 0; }
     body:not(.admin-mode) .main { gap: 0; }
     body:not(.admin-mode) .schedule-shell {
@@ -2900,8 +2899,8 @@
         }
         if (!settings.token) {
           openGithubSettings("githubToken");
-          setTeamPublishMessage("info", "还差 GitHub Token。填写并保存到本机后，再点“发布到公开页”。");
-          showToast("先配置 Token", "error");
+          setTeamPublishMessage("error", "先填写 GitHub Token。");
+          showToast("先填写 GitHub Token。", "error");
           return;
         }
         const result = await saveScheduleToGithub(remote);

@@ -26,7 +26,8 @@ function verify(htmlText, label) {
   assert.match(htmlText, /\.week-head\s*\{[^}]*border-bottom:\s*2px solid/s, `${label} 周一到周日表头需要更强的底部分隔线`);
   assert.match(htmlText, /\.week-head\.weekend\b/, `${label} 周末表头需要和工作日略微区分`);
   assert.match(htmlText, /head\.className = "week-head" \+ \(index >= 5 \? " weekend" : ""\);/, `${label} 周末表头需要在渲染时加 weekend 类名`);
-  assert.match(htmlText, /body:not\(\.admin-mode\) \.topbar\s*\{\s*display:\s*none;\s*\}/, `${label} 展示页需要隐藏外层顶栏，把空间留给排班`);
+  assert.match(htmlText, /id="brandSub"/, `${label} 顶栏需要保留组织副标题位置`);
+  assert.match(htmlText, /\$\("brandSub"\)\.textContent = admin \? `管理排班 · \$\{orgName\}` : `公开查看 · \$\{orgName\}`;/, `${label} 顶栏副标题需要显示当前组织名称`);
   assert.match(htmlText, /body:not\(\.admin-mode\) \.schedule-shell\s*\{[^}]*min-height:\s*100dvh/s, `${label} 展示页排班区域需要接近全屏高度`);
   assert.match(htmlText, /<div class="header-controls">[\s\S]*id="principlesBtn"[\s\S]*>说明<\/button>/, `${label} 需要在顶部控制区提供排班说明入口`);
   assert.match(htmlText, /<dialog class="principles-dialog" id="principlesDialog" aria-labelledby="principlesDialogTitle">/, `${label} 系统原理说明需要放在弹窗里`);
