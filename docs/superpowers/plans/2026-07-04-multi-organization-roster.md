@@ -946,7 +946,6 @@ Expected: FAIL，提示多组织函数或行为不存在。
 
 ```js
 import fs from "node:fs/promises";
-import path from "node:path";
 import scheduleUtils from "../schedule-utils.js";
 import organizationUtils from "../organization-utils.js";
 
