@@ -27,16 +27,16 @@ jobs:
       - name: Send Feishu duty reminder
         env:
           FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
-          PUBLIC_ROSTER_URL: https://drizeele2026.github.io/work/
+          FEISHU_WEBHOOK_TAKEAWAY: ${{ secrets.FEISHU_WEBHOOK_TAKEAWAY }}
           FORCE_SEND: ${{ (github.event_name == 'workflow_dispatch' && inputs.force) && '1' || '0' }}
         run: node scripts/send-duty-reminder.mjs
 
       - name: Commit reminder state
         run: |
-          if [ -n "$(git status --porcelain data/reminder-state.json)" ]; then
+          if [ -n "$(git status --porcelain data/orgs)" ]; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add data/reminder-state.json
+            git add data/orgs/*/reminder-state.json
             git commit -m "chore: duty reminder sent $(TZ=Asia/Shanghai date +%Y-%m-%d)"
             git pull --rebase --autostash
             git push

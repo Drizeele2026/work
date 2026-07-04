@@ -28,5 +28,12 @@ const defaultOrganization = organizations.organizations.find((org) => org.slug =
 assert.ok(defaultOrganization, "默认组织必须存在");
 assert.equal(defaultOrganization.schedulePath, "data/orgs/default/schedule.json");
 assert.match(workflow, /FEISHU_WEBHOOK:/, "workflow 需要继续暴露默认组织使用的 FEISHU_WEBHOOK");
+const readme = await readFile(new URL("../README.md", import.meta.url), "utf8");
+assert.match(workflow, /FEISHU_WEBHOOK:\s*\$\{\{ secrets\.FEISHU_WEBHOOK \}\}/, "workflow 需要暴露默认组织 webhook");
+assert.match(workflow, /git status --porcelain data\/orgs/, "workflow 需要检查组织提醒状态");
+assert.match(workflow, /git add data\/orgs\/\*\/reminder-state\.json/, "workflow 需要提交组织提醒状态");
+assert.match(readme, /多组织/, "README 需要说明多组织");
+assert.match(readme, /\/work\/\?org=/, "README 需要说明按 org 查看排班");
+assert.match(readme, /data\/organizations\.json/, "README 需要说明组织索引文件");
 
 console.log("多组织静态检查通过");

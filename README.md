@@ -35,12 +35,12 @@
 
 ## 系统实现原理
 
-这个工具没有服务器，也没有数据库。页面是静态 HTML，数据存在仓库里的 `data/schedule.json`。
+这个工具没有服务器，也没有数据库。页面是静态 HTML，数据直接存在仓库里。
 
 用到的 GitHub 能力主要有这几块：
 
 - GitHub Pages 负责托管公开页和管理页，团队成员打开链接就能看。
-- GitHub 仓库里的 `data/schedule.json` 负责保存排班数据。
+- GitHub 仓库里的 `data/organizations.json` 和 `data/orgs/{slug}/schedule.json` 负责保存组织索引和各组织排班数据。
 - GitHub commit 负责保存每次发布的历史记录，后续可以追溯和回滚。
 - GitHub Actions 负责跑自动提醒；具体规则写在 `.github/workflows/duty-reminder.yml` 这个 workflow 里。
 
@@ -53,6 +53,37 @@
 - 不需要维护后端服务，也没有额外部署成本。
 
 换句话说，GitHub 仓库就是这个工具的持久化存储。GitHub Pages 负责展示，GitHub Actions 负责定时任务，GitHub workflow 负责描述任务怎么跑，GitHub commit 负责保存历史。
+
+## 多组织
+
+默认组织仍然可以直接打开：
+
+```text
+/work/
+/work/admin/
+```
+
+其他组织使用 `org` 参数：
+
+```text
+/work/?org=takeaway
+/work/admin/?org=takeaway
+```
+
+组织列表保存在：
+
+```text
+data/organizations.json
+```
+
+每个组织有自己的排班和提醒状态：
+
+```text
+data/orgs/{slug}/schedule.json
+data/orgs/{slug}/reminder-state.json
+```
+
+第一版是内部可信模式。管理页会按 URL 只操作当前组织，但 GitHub PAT 仍然是仓库级权限。
 
 ## 负责人怎么发布
 
@@ -94,7 +125,7 @@
 
 GitHub Actions 只保留 `workflow_dispatch`，不再使用 GitHub 自带 schedule。每天北京时间 09:00 的自动提醒由 cron-job.org 调 GitHub API 触发这个 workflow。
 
-它会读取 `data/schedule.json`，然后按已发布规则版本连续顺排，计算当天值班人，再调用飞书群机器人发消息。
+每日提醒会读取 `data/organizations.json`，遍历已启用提醒的组织。每个组织用自己的 `data/orgs/{slug}/schedule.json` 算当天值班人，再发到该组织配置的飞书群。
 
 提醒消息会优先 @ 当日排班人。负责人在管理页的成员名单里这样填：
 
@@ -106,11 +137,13 @@ GitHub Actions 只保留 `workflow_dispatch`，不再使用 GitHub 自带 schedu
 
 `|` 前面是排班里显示的名字，后面是飞书 OpenID。没填 OpenID 的成员不会被 @，消息里仍然会显示名字，提醒照常发送。
 
-飞书 webhook 不写进代码。需要在 GitHub 仓库里配置 Secret：
+默认组织继续使用现有 Secret：
 
 ```text
-FEISHU_WEBHOOK=飞书群机器人的 webhook
+FEISHU_WEBHOOK
 ```
+
+新增组织时，需要在 `data/organizations.json` 填 `reminder.webhookSecretName`，在 GitHub Secrets 创建同名 secret，并在 `.github/workflows/duty-reminder.yml` 的提醒步骤 env 中暴露它。
 
 脚本位置：
 
@@ -128,13 +161,20 @@ node scripts/send-duty-reminder.mjs --dry-run
 
 ## 数据文件
 
-排班结果保存在：
+组织索引保存在：
 
 ```text
-data/schedule.json
+data/organizations.json
 ```
 
-`current.teams` 是当前维护的团队名单。`ruleVersions` 是已经发布的规则版本，每个版本有 `effectiveDate` 和团队成员顺序。版本里的 `startPerson` 是系统内部起算人，不需要在管理页手动填写。
+每个组织的排班和提醒状态保存在：
+
+```text
+data/orgs/{slug}/schedule.json
+data/orgs/{slug}/reminder-state.json
+```
+
+`data/organizations.json` 只管组织列表、默认组织和提醒配置。每个 `data/orgs/{slug}/schedule.json` 里，`current.teams` 是当前维护的团队名单，`ruleVersions` 是已经发布的规则版本，每个版本有 `effectiveDate` 和团队成员顺序。版本里的 `startPerson` 是系统内部起算人，不需要在管理页手动填写。
 
 页面文件：
 

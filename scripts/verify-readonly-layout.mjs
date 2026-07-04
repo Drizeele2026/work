@@ -40,6 +40,7 @@ function verify(htmlText, label) {
 verify(html, "公开页");
 verify(adminHtml, "管理页");
 assert.match(readme, /## 系统实现原理[\s\S]*GitHub Pages[\s\S]*GitHub Actions[\s\S]*\.github\/workflows\/duty-reminder\.yml/, "README 的系统实现原理需要写清楚用到的 GitHub Pages、Actions 和 workflow");
+assert.match(readme, /data\/organizations\.json[\s\S]*data\/orgs\/\{slug\}\/schedule\.json/, "README 需要说明多组织数据文件");
 assert.match(workflow, /workflow_dispatch:/, "提醒 workflow 需要保留 workflow_dispatch 给 cron-job.org 调用");
 assert.doesNotMatch(workflow, /^\s*schedule:/m, "提醒 workflow 不应再使用 GitHub 自带 schedule");
 assert.doesNotMatch(workflow, /^\s*-\s*cron:/m, "提醒 workflow 不应再配置 GitHub cron");
