@@ -33,7 +33,7 @@ export function findAssignmentForDate(schedule, dateKey) {
   return scheduleUtils.findAssignmentForDateWithFallback(schedule, dateKey);
 }
 
-// 顺着今天往后取未来 days 天的值班；没有月快照时按已发布规则顺排。
+// 顺着今天往后取未来 days 天的值班，按已发布规则版本连续顺排。
 export function collectUpcoming(schedule, todayKey, days = 3) {
   return scheduleUtils.collectUpcoming(schedule, todayKey, days);
 }

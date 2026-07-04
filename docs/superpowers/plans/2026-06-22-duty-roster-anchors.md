@@ -1,5 +1,7 @@
 # Duty Roster Anchors Implementation Plan
 
+> 这份文档是历史方案，当前实现已改为 `ruleVersions` 模型。不要再按这里的 `anchors` / `last` / 接龙节点设计继续扩展。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 给每个团队增加独立接龙节点，让系统能从任意日期接上已有排期。

@@ -1,5 +1,7 @@
 # Duty Reminder Continuous Roster Implementation Plan
 
+> 这份文档是历史方案，当前实现已改为 `ruleVersions` 模型。不要再按这里的 `anchors` / `last` / 接龙节点设计继续扩展。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 取消 GitHub Actions 自带定时，只保留 cron-job.org 触发，并让提醒和公开页在没有月快照时按已发布规则连续顺排。
