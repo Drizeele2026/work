@@ -62,6 +62,36 @@
       .filter((team) => team.name && team.members.length);
   }
 
+  function mergeTeamMembers(targetTeam, members) {
+    normalizeMembers(members).forEach((member) => {
+      if (findMemberIndex(targetTeam.members, member) < 0) {
+        targetTeam.members.push(member);
+      }
+    });
+  }
+
+  function collectTeamUnion(teamGroups) {
+    const teamsByName = new Map();
+    teamGroups.forEach((teams) => {
+      normalizeTeams(teams).forEach((team) => {
+        const existing = teamsByName.get(team.name);
+        if (!existing) {
+          teamsByName.set(team.name, {
+            name: team.name,
+            color: team.color,
+            members: [...team.members],
+            ...(team.startPerson ? { startPerson: team.startPerson } : {})
+          });
+          return;
+        }
+        if (!existing.color && team.color) existing.color = team.color;
+        if (!existing.startPerson && team.startPerson) existing.startPerson = team.startPerson;
+        mergeTeamMembers(existing, team.members);
+      });
+    });
+    return [...teamsByName.values()];
+  }
+
   function normalizeRuleVersion(version) {
     const effectiveDate = normalizeDateKey(version?.effectiveDate);
     const teams = normalizeTeams(version?.teams);
@@ -222,10 +252,26 @@
   function generateAssignmentsForMonth(schedule, year, month) {
     const firstDay = new Date(year, month - 1, 1);
     const daysInMonth = new Date(year, month, 0).getDate();
+    const monthStartKey = dateKeyForDay(year, month, 1);
+    const monthEndKey = dateKeyForDay(year, month, daysInMonth);
     const dailyAssignments = Array.from({ length: daysInMonth }, (_, index) =>
       findAssignmentForDateWithFallback(schedule, dateKeyForDay(year, month, index + 1))
     );
-    const teams = teamsFromRules(schedule, dateKeyForDay(year, month, 1));
+    const versions = getRuleVersions(schedule);
+    const activeTeamsInMonth = [
+      teamsFromRules(schedule, monthStartKey),
+      ...versions
+        .filter((version) => version.effectiveDate >= monthStartKey && version.effectiveDate <= monthEndKey)
+        .map((version) => version.teams),
+      ...dailyAssignments.map((day) =>
+        day.teams.map((team) => ({
+          name: team.name,
+          color: team.color,
+          members: [{ name: team.person, feishuOpenId: team.feishuOpenId }]
+        }))
+      )
+    ];
+    const teams = collectTeamUnion(activeTeamsInMonth);
     const counts = {};
     teams.forEach((team) => {
       counts[team.name] = Object.fromEntries(team.members.map((member) => [member.name, 0]));
@@ -272,12 +318,13 @@
     if (!normalizedTeams.length) throw new Error("至少要配置一个团队和成员名单。");
 
     const existingVersions = getRuleVersions(remoteDocument);
-    const lastVersion = existingVersions.at(-1);
+    const activeVersionIndex = findVersionIndexForDate(existingVersions, publishDateKey);
+    const activeVersion = activeVersionIndex >= 0 ? existingVersions[activeVersionIndex] : null;
     const nextVersionTeams = buildVersionTeamsFromPublish(remoteDocument, normalizedTeams, publishDateKey);
     const nextVersion = { effectiveDate: publishDateKey, teams: nextVersionTeams };
     let ruleVersions = existingVersions;
 
-    if (!lastVersion || teamsSignature(lastVersion.teams) !== teamsSignature(normalizedTeams)) {
+    if (!activeVersion || teamsSignature(activeVersion.teams) !== teamsSignature(normalizedTeams)) {
       ruleVersions = existingVersions.filter((version) => version.effectiveDate !== publishDateKey);
       ruleVersions.push(nextVersion);
       ruleVersions.sort((a, b) => a.effectiveDate.localeCompare(b.effectiveDate));

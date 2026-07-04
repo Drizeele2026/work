@@ -85,6 +85,40 @@ test("generateAssignmentsForMonth 按规则版本生成整月", () => {
   ]);
 });
 
+test("generateAssignmentsForMonth 同月切换 ruleVersion 时返回团队和统计包含整月实际排到的人", () => {
+  const scheduleWithMidMonthChange = {
+    version: 2,
+    current: {
+      teams: [
+        { name: "前端", color: "blue", members: ["A", "B", "C"] }
+      ]
+    },
+    ruleVersions: [
+      {
+        effectiveDate: "2026-07-01",
+        teams: [
+          { name: "前端", color: "blue", startPerson: "A", members: ["A", "B"] }
+        ]
+      },
+      {
+        effectiveDate: "2026-07-16",
+        teams: [
+          { name: "前端", color: "blue", startPerson: "C", members: ["C", "D"] }
+        ]
+      }
+    ]
+  };
+
+  const result = utils.generateAssignmentsForMonth(scheduleWithMidMonthChange, 2026, 7);
+
+  assert.deepEqual(Array.from(result.teams, (team) => `${team.name}:${Array.from(team.members, (member) => member.name).join(",")}`), [
+    "前端:A,B,C,D"
+  ]);
+  assert.deepEqual(Object.keys(result.counts["前端"]).sort(), ["A", "B", "C", "D"]);
+  assert.deepEqual(result.dailyAssignments[14].teams.map((team) => `${team.name}:${team.person}`), ["前端:A"]);
+  assert.deepEqual(result.dailyAssignments[15].teams.map((team) => `${team.name}:${team.person}`), ["前端:C"]);
+});
+
 test("发布当天原值班人仍在新名单里，当天不变，后续按新名单顺排", () => {
   const remote = {
     version: 2,
@@ -181,6 +215,42 @@ test("名单没变化时重复发布不追加规则版本", () => {
   });
 
   assert.equal(document.ruleVersions.length, 1);
+});
+
+test("已有未来规则版本时，发布今天的名单比较发布日生效版本而不是最后一个版本", () => {
+  const remote = {
+    version: 2,
+    current: {
+      teams: [
+        { name: "前端", color: "blue", members: ["A", "B"] }
+      ]
+    },
+    ruleVersions: [
+      {
+        effectiveDate: "2026-07-01",
+        teams: [
+          { name: "前端", color: "blue", startPerson: "A", members: ["A", "B"] }
+        ]
+      },
+      {
+        effectiveDate: "2026-08-01",
+        teams: [
+          { name: "前端", color: "blue", startPerson: "B", members: ["A", "B", "C"] }
+        ]
+      }
+    ]
+  };
+
+  const document = utils.buildPublishedDocument(remote, [
+    { name: "前端", color: "blue", members: ["A", "B"] }
+  ], {
+    publishDateKey: "2026-07-10",
+    updatedAt: "2026-07-10T00:00:00.000Z"
+  });
+
+  assert.equal(document.ruleVersions.length, 2);
+  assert.equal(document.ruleVersions[0].effectiveDate, "2026-07-01");
+  assert.equal(document.ruleVersions[1].effectiveDate, "2026-08-01");
 });
 
 test("没有规则版本且没有 current.teams 时给中文错误", () => {
