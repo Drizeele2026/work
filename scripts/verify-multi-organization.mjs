@@ -44,7 +44,7 @@ const shmOrganization = organizations.organizations.find((org) => org.slug === "
 assert.ok(shmOrganization, "需要配置营运通组织");
 assert.equal(shmOrganization.name, "营运通");
 assert.equal(shmOrganization.schedulePath, "data/orgs/shm/schedule.json");
-assert.equal(shmOrganization.reminder?.enabled, false, "营运通未配置 webhook 前不能启用提醒");
+assert.equal(shmOrganization.reminder?.enabled, true, "营运通配置 webhook 后需要启用提醒");
 assert.match(workflow, /FEISHU_WEBHOOK:/, "workflow 需要继续暴露默认组织使用的 FEISHU_WEBHOOK");
 assert.match(workflow, /FEISHU_WEBHOOK_SHM:\s*\$\{\{ secrets\.FEISHU_WEBHOOK_SHM \}\}/, "workflow 需要预留营运通 webhook secret");
 const readme = await readFile(new URL("../README.md", import.meta.url), "utf8");

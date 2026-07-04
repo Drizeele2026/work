@@ -33,7 +33,7 @@
       "schedulePath": "data/orgs/shm/schedule.json",
       "enabled": true,
       "reminder": {
-        "enabled": false,
+        "enabled": true,
         "webhookSecretName": "FEISHU_WEBHOOK_SHM",
         "publicUrl": "https://drizeele2026.github.io/work/?org=shm"
       }
