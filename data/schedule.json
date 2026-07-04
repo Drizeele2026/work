@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-04T06:21:23.385Z",
+  "updatedAt": "2026-07-04T07:22:34.029Z",
   "config": {
     "teams": [
       {
@@ -1008,7 +1008,7 @@
     "2026-07": {
       "year": 2026,
       "month": 7,
-      "generatedAt": "2026-07-04T06:21:23.385Z",
+      "generatedAt": "2026-07-04T07:22:34.029Z",
       "teams": [
         {
           "name": "前端",
@@ -1139,14 +1139,14 @@
             },
             {
               "name": "后端",
-              "person": "张凯",
-              "feishuOpenId": "ou_717c4842226d47f536884f544bba155a",
+              "person": "綦鹏",
+              "feishuOpenId": "ou_6a10281075f0d40d197bec40ed60e1bb",
               "color": "green"
             },
             {
               "name": "测试",
-              "person": "陈鸿历",
-              "feishuOpenId": "ou_a8cc7aa5cc061691f60a127e23f36340",
+              "person": "谭贤",
+              "feishuOpenId": "ou_a675026629060b973ca8d39578fdb7c5",
               "color": "violet"
             }
           ]
@@ -1164,14 +1164,14 @@
             },
             {
               "name": "后端",
-              "person": "张家南",
-              "feishuOpenId": "ou_5b5297ee0c45592cb128e63903b4a161",
+              "person": "陈琦",
+              "feishuOpenId": "ou_8b5987145cea8b2955ff132b6cf8ace0",
               "color": "green"
             },
             {
               "name": "测试",
-              "person": "许绵绵",
-              "feishuOpenId": "ou_92ac090c14a7f4484c5b8efafd374615",
+              "person": "钟右梅",
+              "feishuOpenId": "ou_a699ef811812abeb889986b37fc997c0",
               "color": "violet"
             }
           ]
@@ -1189,14 +1189,14 @@
             },
             {
               "name": "后端",
-              "person": "唐宇宏",
-              "feishuOpenId": "ou_b515205ef38d5a88161d4dfe180baba4",
+              "person": "张凯",
+              "feishuOpenId": "ou_717c4842226d47f536884f544bba155a",
               "color": "green"
             },
             {
               "name": "测试",
-              "person": "郑成清",
-              "feishuOpenId": "ou_75648e125c0ab651e0f2defb9e80b628",
+              "person": "许绵绵",
+              "feishuOpenId": "ou_92ac090c14a7f4484c5b8efafd374615",
               "color": "violet"
             }
           ]
@@ -1214,14 +1214,14 @@
             },
             {
               "name": "后端",
-              "person": "俞如滃",
-              "feishuOpenId": "ou_d1dc9845c7ee23f4a5d06f7669afa51e",
+              "person": "张家南",
+              "feishuOpenId": "ou_5b5297ee0c45592cb128e63903b4a161",
               "color": "green"
             },
             {
               "name": "测试",
-              "person": "谭贤",
-              "feishuOpenId": "ou_a675026629060b973ca8d39578fdb7c5",
+              "person": "郑成清",
+              "feishuOpenId": "ou_75648e125c0ab651e0f2defb9e80b628",
               "color": "violet"
             }
           ]
@@ -1239,14 +1239,14 @@
             },
             {
               "name": "后端",
-              "person": "杨朋举",
-              "feishuOpenId": "ou_87e96da9292a86c158d0439ec8f578fd",
+              "person": "唐宇宏",
+              "feishuOpenId": "ou_b515205ef38d5a88161d4dfe180baba4",
               "color": "green"
             },
             {
               "name": "测试",
-              "person": "钟右梅",
-              "feishuOpenId": "ou_a699ef811812abeb889986b37fc997c0",
+              "person": "谭贤",
+              "feishuOpenId": "ou_a675026629060b973ca8d39578fdb7c5",
               "color": "violet"
             }
           ]
@@ -1264,14 +1264,14 @@
             },
             {
               "name": "后端",
-              "person": "郭绍东",
-              "feishuOpenId": "ou_fc0d8e2b217c6958b96e83f72cecc1e7",
+              "person": "俞如滃",
+              "feishuOpenId": "ou_d1dc9845c7ee23f4a5d06f7669afa51e",
               "color": "green"
             },
             {
               "name": "测试",
-              "person": "陈鸿历",
-              "feishuOpenId": "ou_a8cc7aa5cc061691f60a127e23f36340",
+              "person": "钟右梅",
+              "feishuOpenId": "ou_a699ef811812abeb889986b37fc997c0",
               "color": "violet"
             }
           ]
@@ -1289,14 +1289,14 @@
             },
             {
               "name": "后端",
-              "person": "綦鹏",
-              "feishuOpenId": "ou_6a10281075f0d40d197bec40ed60e1bb",
+              "person": "杨朋举",
+              "feishuOpenId": "ou_87e96da9292a86c158d0439ec8f578fd",
               "color": "green"
             },
             {
               "name": "测试",
-              "person": "许绵绵",
-              "feishuOpenId": "ou_92ac090c14a7f4484c5b8efafd374615",
+              "person": "陈鸿历",
+              "feishuOpenId": "ou_a8cc7aa5cc061691f60a127e23f36340",
               "color": "violet"
             }
           ]
@@ -1314,14 +1314,14 @@
             },
             {
               "name": "后端",
-              "person": "陈琦",
-              "feishuOpenId": "ou_8b5987145cea8b2955ff132b6cf8ace0",
+              "person": "郭绍东",
+              "feishuOpenId": "ou_fc0d8e2b217c6958b96e83f72cecc1e7",
               "color": "green"
             },
             {
               "name": "测试",
-              "person": "郑成清",
-              "feishuOpenId": "ou_75648e125c0ab651e0f2defb9e80b628",
+              "person": "许绵绵",
+              "feishuOpenId": "ou_92ac090c14a7f4484c5b8efafd374615",
               "color": "violet"
             }
           ]
@@ -1339,14 +1339,14 @@
             },
             {
               "name": "后端",
-              "person": "张凯",
-              "feishuOpenId": "ou_717c4842226d47f536884f544bba155a",
+              "person": "綦鹏",
+              "feishuOpenId": "ou_6a10281075f0d40d197bec40ed60e1bb",
               "color": "green"
             },
             {
               "name": "测试",
-              "person": "谭贤",
-              "feishuOpenId": "ou_a675026629060b973ca8d39578fdb7c5",
+              "person": "郑成清",
+              "feishuOpenId": "ou_75648e125c0ab651e0f2defb9e80b628",
               "color": "violet"
             }
           ]
@@ -1364,14 +1364,14 @@
             },
             {
               "name": "后端",
-              "person": "张家南",
-              "feishuOpenId": "ou_5b5297ee0c45592cb128e63903b4a161",
+              "person": "陈琦",
+              "feishuOpenId": "ou_8b5987145cea8b2955ff132b6cf8ace0",
               "color": "green"
             },
             {
               "name": "测试",
-              "person": "钟右梅",
-              "feishuOpenId": "ou_a699ef811812abeb889986b37fc997c0",
+              "person": "谭贤",
+              "feishuOpenId": "ou_a675026629060b973ca8d39578fdb7c5",
               "color": "violet"
             }
           ]
@@ -1389,14 +1389,14 @@
             },
             {
               "name": "后端",
-              "person": "唐宇宏",
-              "feishuOpenId": "ou_b515205ef38d5a88161d4dfe180baba4",
+              "person": "张凯",
+              "feishuOpenId": "ou_717c4842226d47f536884f544bba155a",
               "color": "green"
             },
             {
               "name": "测试",
-              "person": "陈鸿历",
-              "feishuOpenId": "ou_a8cc7aa5cc061691f60a127e23f36340",
+              "person": "钟右梅",
+              "feishuOpenId": "ou_a699ef811812abeb889986b37fc997c0",
               "color": "violet"
             }
           ]
@@ -1414,14 +1414,14 @@
             },
             {
               "name": "后端",
-              "person": "俞如滃",
-              "feishuOpenId": "ou_d1dc9845c7ee23f4a5d06f7669afa51e",
+              "person": "张家南",
+              "feishuOpenId": "ou_5b5297ee0c45592cb128e63903b4a161",
               "color": "green"
             },
             {
               "name": "测试",
-              "person": "许绵绵",
-              "feishuOpenId": "ou_92ac090c14a7f4484c5b8efafd374615",
+              "person": "陈鸿历",
+              "feishuOpenId": "ou_a8cc7aa5cc061691f60a127e23f36340",
               "color": "violet"
             }
           ]
@@ -1439,14 +1439,14 @@
             },
             {
               "name": "后端",
-              "person": "杨朋举",
-              "feishuOpenId": "ou_87e96da9292a86c158d0439ec8f578fd",
+              "person": "唐宇宏",
+              "feishuOpenId": "ou_b515205ef38d5a88161d4dfe180baba4",
               "color": "green"
             },
             {
               "name": "测试",
-              "person": "郑成清",
-              "feishuOpenId": "ou_75648e125c0ab651e0f2defb9e80b628",
+              "person": "许绵绵",
+              "feishuOpenId": "ou_92ac090c14a7f4484c5b8efafd374615",
               "color": "violet"
             }
           ]
@@ -1464,14 +1464,14 @@
             },
             {
               "name": "后端",
-              "person": "郭绍东",
-              "feishuOpenId": "ou_fc0d8e2b217c6958b96e83f72cecc1e7",
+              "person": "俞如滃",
+              "feishuOpenId": "ou_d1dc9845c7ee23f4a5d06f7669afa51e",
               "color": "green"
             },
             {
               "name": "测试",
-              "person": "谭贤",
-              "feishuOpenId": "ou_a675026629060b973ca8d39578fdb7c5",
+              "person": "郑成清",
+              "feishuOpenId": "ou_75648e125c0ab651e0f2defb9e80b628",
               "color": "violet"
             }
           ]
@@ -1489,14 +1489,14 @@
             },
             {
               "name": "后端",
-              "person": "綦鹏",
-              "feishuOpenId": "ou_6a10281075f0d40d197bec40ed60e1bb",
+              "person": "杨朋举",
+              "feishuOpenId": "ou_87e96da9292a86c158d0439ec8f578fd",
               "color": "green"
             },
             {
               "name": "测试",
-              "person": "钟右梅",
-              "feishuOpenId": "ou_a699ef811812abeb889986b37fc997c0",
+              "person": "谭贤",
+              "feishuOpenId": "ou_a675026629060b973ca8d39578fdb7c5",
               "color": "violet"
             }
           ]
@@ -1514,14 +1514,14 @@
             },
             {
               "name": "后端",
-              "person": "陈琦",
-              "feishuOpenId": "ou_8b5987145cea8b2955ff132b6cf8ace0",
+              "person": "郭绍东",
+              "feishuOpenId": "ou_fc0d8e2b217c6958b96e83f72cecc1e7",
               "color": "green"
             },
             {
               "name": "测试",
-              "person": "陈鸿历",
-              "feishuOpenId": "ou_a8cc7aa5cc061691f60a127e23f36340",
+              "person": "钟右梅",
+              "feishuOpenId": "ou_a699ef811812abeb889986b37fc997c0",
               "color": "violet"
             }
           ]
@@ -1539,14 +1539,14 @@
             },
             {
               "name": "后端",
-              "person": "张凯",
-              "feishuOpenId": "ou_717c4842226d47f536884f544bba155a",
+              "person": "綦鹏",
+              "feishuOpenId": "ou_6a10281075f0d40d197bec40ed60e1bb",
               "color": "green"
             },
             {
               "name": "测试",
-              "person": "许绵绵",
-              "feishuOpenId": "ou_92ac090c14a7f4484c5b8efafd374615",
+              "person": "陈鸿历",
+              "feishuOpenId": "ou_a8cc7aa5cc061691f60a127e23f36340",
               "color": "violet"
             }
           ]
@@ -1564,14 +1564,14 @@
             },
             {
               "name": "后端",
-              "person": "张家南",
-              "feishuOpenId": "ou_5b5297ee0c45592cb128e63903b4a161",
+              "person": "陈琦",
+              "feishuOpenId": "ou_8b5987145cea8b2955ff132b6cf8ace0",
               "color": "green"
             },
             {
               "name": "测试",
-              "person": "郑成清",
-              "feishuOpenId": "ou_75648e125c0ab651e0f2defb9e80b628",
+              "person": "许绵绵",
+              "feishuOpenId": "ou_92ac090c14a7f4484c5b8efafd374615",
               "color": "violet"
             }
           ]
@@ -1589,14 +1589,14 @@
             },
             {
               "name": "后端",
-              "person": "唐宇宏",
-              "feishuOpenId": "ou_b515205ef38d5a88161d4dfe180baba4",
+              "person": "张凯",
+              "feishuOpenId": "ou_717c4842226d47f536884f544bba155a",
               "color": "green"
             },
             {
               "name": "测试",
-              "person": "谭贤",
-              "feishuOpenId": "ou_a675026629060b973ca8d39578fdb7c5",
+              "person": "郑成清",
+              "feishuOpenId": "ou_75648e125c0ab651e0f2defb9e80b628",
               "color": "violet"
             }
           ]
@@ -1614,14 +1614,14 @@
             },
             {
               "name": "后端",
-              "person": "俞如滃",
-              "feishuOpenId": "ou_d1dc9845c7ee23f4a5d06f7669afa51e",
+              "person": "张家南",
+              "feishuOpenId": "ou_5b5297ee0c45592cb128e63903b4a161",
               "color": "green"
             },
             {
               "name": "测试",
-              "person": "钟右梅",
-              "feishuOpenId": "ou_a699ef811812abeb889986b37fc997c0",
+              "person": "谭贤",
+              "feishuOpenId": "ou_a675026629060b973ca8d39578fdb7c5",
               "color": "violet"
             }
           ]
@@ -1639,14 +1639,14 @@
             },
             {
               "name": "后端",
-              "person": "杨朋举",
-              "feishuOpenId": "ou_87e96da9292a86c158d0439ec8f578fd",
+              "person": "唐宇宏",
+              "feishuOpenId": "ou_b515205ef38d5a88161d4dfe180baba4",
               "color": "green"
             },
             {
               "name": "测试",
-              "person": "陈鸿历",
-              "feishuOpenId": "ou_a8cc7aa5cc061691f60a127e23f36340",
+              "person": "钟右梅",
+              "feishuOpenId": "ou_a699ef811812abeb889986b37fc997c0",
               "color": "violet"
             }
           ]
@@ -1664,14 +1664,14 @@
             },
             {
               "name": "后端",
-              "person": "郭绍东",
-              "feishuOpenId": "ou_fc0d8e2b217c6958b96e83f72cecc1e7",
+              "person": "俞如滃",
+              "feishuOpenId": "ou_d1dc9845c7ee23f4a5d06f7669afa51e",
               "color": "green"
             },
             {
               "name": "测试",
-              "person": "许绵绵",
-              "feishuOpenId": "ou_92ac090c14a7f4484c5b8efafd374615",
+              "person": "陈鸿历",
+              "feishuOpenId": "ou_a8cc7aa5cc061691f60a127e23f36340",
               "color": "violet"
             }
           ]
@@ -1689,14 +1689,14 @@
             },
             {
               "name": "后端",
-              "person": "綦鹏",
-              "feishuOpenId": "ou_6a10281075f0d40d197bec40ed60e1bb",
+              "person": "杨朋举",
+              "feishuOpenId": "ou_87e96da9292a86c158d0439ec8f578fd",
               "color": "green"
             },
             {
               "name": "测试",
-              "person": "郑成清",
-              "feishuOpenId": "ou_75648e125c0ab651e0f2defb9e80b628",
+              "person": "许绵绵",
+              "feishuOpenId": "ou_92ac090c14a7f4484c5b8efafd374615",
               "color": "violet"
             }
           ]
@@ -1714,14 +1714,14 @@
             },
             {
               "name": "后端",
-              "person": "陈琦",
-              "feishuOpenId": "ou_8b5987145cea8b2955ff132b6cf8ace0",
+              "person": "郭绍东",
+              "feishuOpenId": "ou_fc0d8e2b217c6958b96e83f72cecc1e7",
               "color": "green"
             },
             {
               "name": "测试",
-              "person": "谭贤",
-              "feishuOpenId": "ou_a675026629060b973ca8d39578fdb7c5",
+              "person": "郑成清",
+              "feishuOpenId": "ou_75648e125c0ab651e0f2defb9e80b628",
               "color": "violet"
             }
           ]
@@ -1739,14 +1739,14 @@
             },
             {
               "name": "后端",
-              "person": "张凯",
-              "feishuOpenId": "ou_717c4842226d47f536884f544bba155a",
+              "person": "綦鹏",
+              "feishuOpenId": "ou_6a10281075f0d40d197bec40ed60e1bb",
               "color": "green"
             },
             {
               "name": "测试",
-              "person": "钟右梅",
-              "feishuOpenId": "ou_a699ef811812abeb889986b37fc997c0",
+              "person": "谭贤",
+              "feishuOpenId": "ou_a675026629060b973ca8d39578fdb7c5",
               "color": "violet"
             }
           ]
@@ -1764,14 +1764,14 @@
             },
             {
               "name": "后端",
-              "person": "张家南",
-              "feishuOpenId": "ou_5b5297ee0c45592cb128e63903b4a161",
+              "person": "陈琦",
+              "feishuOpenId": "ou_8b5987145cea8b2955ff132b6cf8ace0",
               "color": "green"
             },
             {
               "name": "测试",
-              "person": "陈鸿历",
-              "feishuOpenId": "ou_a8cc7aa5cc061691f60a127e23f36340",
+              "person": "钟右梅",
+              "feishuOpenId": "ou_a699ef811812abeb889986b37fc997c0",
               "color": "violet"
             }
           ]
@@ -1789,14 +1789,14 @@
             },
             {
               "name": "后端",
-              "person": "唐宇宏",
-              "feishuOpenId": "ou_b515205ef38d5a88161d4dfe180baba4",
+              "person": "张凯",
+              "feishuOpenId": "ou_717c4842226d47f536884f544bba155a",
               "color": "green"
             },
             {
               "name": "测试",
-              "person": "许绵绵",
-              "feishuOpenId": "ou_92ac090c14a7f4484c5b8efafd374615",
+              "person": "陈鸿历",
+              "feishuOpenId": "ou_a8cc7aa5cc061691f60a127e23f36340",
               "color": "violet"
             }
           ]
@@ -1814,14 +1814,14 @@
             },
             {
               "name": "后端",
-              "person": "俞如滃",
-              "feishuOpenId": "ou_d1dc9845c7ee23f4a5d06f7669afa51e",
+              "person": "张家南",
+              "feishuOpenId": "ou_5b5297ee0c45592cb128e63903b4a161",
               "color": "green"
             },
             {
               "name": "测试",
-              "person": "郑成清",
-              "feishuOpenId": "ou_75648e125c0ab651e0f2defb9e80b628",
+              "person": "许绵绵",
+              "feishuOpenId": "ou_92ac090c14a7f4484c5b8efafd374615",
               "color": "violet"
             }
           ]
@@ -1839,14 +1839,14 @@
             },
             {
               "name": "后端",
-              "person": "杨朋举",
-              "feishuOpenId": "ou_87e96da9292a86c158d0439ec8f578fd",
+              "person": "唐宇宏",
+              "feishuOpenId": "ou_b515205ef38d5a88161d4dfe180baba4",
               "color": "green"
             },
             {
               "name": "测试",
-              "person": "谭贤",
-              "feishuOpenId": "ou_a675026629060b973ca8d39578fdb7c5",
+              "person": "郑成清",
+              "feishuOpenId": "ou_75648e125c0ab651e0f2defb9e80b628",
               "color": "violet"
             }
           ]
@@ -1864,14 +1864,14 @@
             },
             {
               "name": "后端",
-              "person": "郭绍东",
-              "feishuOpenId": "ou_fc0d8e2b217c6958b96e83f72cecc1e7",
+              "person": "俞如滃",
+              "feishuOpenId": "ou_d1dc9845c7ee23f4a5d06f7669afa51e",
               "color": "green"
             },
             {
               "name": "测试",
-              "person": "钟右梅",
-              "feishuOpenId": "ou_a699ef811812abeb889986b37fc997c0",
+              "person": "谭贤",
+              "feishuOpenId": "ou_a675026629060b973ca8d39578fdb7c5",
               "color": "violet"
             }
           ]
@@ -1889,14 +1889,14 @@
             },
             {
               "name": "后端",
-              "person": "綦鹏",
-              "feishuOpenId": "ou_6a10281075f0d40d197bec40ed60e1bb",
+              "person": "杨朋举",
+              "feishuOpenId": "ou_87e96da9292a86c158d0439ec8f578fd",
               "color": "green"
             },
             {
               "name": "测试",
-              "person": "陈鸿历",
-              "feishuOpenId": "ou_a8cc7aa5cc061691f60a127e23f36340",
+              "person": "钟右梅",
+              "feishuOpenId": "ou_a699ef811812abeb889986b37fc997c0",
               "color": "violet"
             }
           ]
@@ -1938,7 +1938,7 @@
             },
             {
               "name": "陈琦",
-              "count": 3
+              "count": 4
             },
             {
               "name": "张凯",
@@ -1962,10 +1962,10 @@
             },
             {
               "name": "郭绍东",
-              "count": 4
+              "count": 3
             }
           ],
-          "lastPerson": "綦鹏"
+          "lastPerson": "杨朋举"
         },
         {
           "team": "测试",
@@ -1980,18 +1980,18 @@
             },
             {
               "name": "谭贤",
-              "count": 6
+              "count": 7
             },
             {
               "name": "钟右梅",
-              "count": 6
+              "count": 7
             },
             {
               "name": "陈鸿历",
-              "count": 7
+              "count": 5
             }
           ],
-          "lastPerson": "陈鸿历"
+          "lastPerson": "钟右梅"
         }
       ]
     }

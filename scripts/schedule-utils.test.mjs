@@ -117,6 +117,61 @@ test("generateAssignmentsForMonth 没有月快照时按配置生成整月", () =
   assert.equal(result.dailyAssignments[0].teams[0].person, "A");
 });
 
+test("发布当月新名单时从旧计划当天节点接续，未变团队整月不重排", () => {
+  const oldRemote = {
+    config: {
+      teams: [
+        { name: "前端", members: ["郑刘利", "林颖", "林胜聪", "刘红辉", "王朋伟"], last: "郑刘利", color: "blue" },
+        { name: "后端", members: ["綦鹏", "陈琦", "张凯", "张家南", "唐宇宏", "俞如滃", "杨朋举", "郭绍东"], last: "陈琦", color: "green" },
+        { name: "测试", members: ["许绵绵", "郑成清", "谭贤", "钟右梅"], last: "钟右梅", color: "violet" }
+      ]
+    },
+    months: {
+      "2026-06": {
+        dailyAssignments: [
+          {
+            dateStr: "2026/06/30",
+            teams: [
+              { name: "前端", person: "郑刘利", color: "blue" },
+              { name: "后端", person: "郭绍东", color: "green" },
+              { name: "测试", person: "郑成清", color: "violet" }
+            ]
+          }
+        ]
+      }
+    }
+  };
+  const nextTeams = [
+    { name: "前端", members: oldRemote.config.teams[0].members, last: "郑刘利", anchors: [{ date: "2026-07-01", mode: "previousDay", person: "郑刘利" }], color: "blue" },
+    { name: "后端", members: oldRemote.config.teams[1].members, last: "陈琦", anchors: [{ date: "2026-07-01", mode: "previousDay", person: "陈琦" }], color: "green" },
+    { name: "测试", members: ["许绵绵", "郑成清", "谭贤", "钟右梅", "陈鸿历"], last: "钟右梅", anchors: [{ date: "2026-07-01", mode: "previousDay", person: "钟右梅" }], color: "violet" }
+  ];
+  const generated = utils.generateAssignmentsForMonth({ config: { teams: nextTeams }, months: {} }, 2026, 7);
+  const monthEntry = {
+    year: 2026,
+    month: 7,
+    teams: nextTeams,
+    dailyAssignments: generated.dailyAssignments
+  };
+
+  const merged = utils.mergeGeneratedMonthWithRemote(monthEntry, oldRemote, { publishDateKey: "2026-07-04" });
+
+  assert.deepEqual(
+    Array.from(merged.dailyAssignments.slice(0, 7), (day) =>
+      `${day.dateStr} ${day.teams.map((team) => `${team.name}:${team.person}`).join(" | ")}`
+    ),
+    [
+      "2026/07/01 前端:林颖 | 后端:綦鹏 | 测试:谭贤",
+      "2026/07/02 前端:林胜聪 | 后端:陈琦 | 测试:钟右梅",
+      "2026/07/03 前端:刘红辉 | 后端:张凯 | 测试:许绵绵",
+      "2026/07/04 前端:王朋伟 | 后端:张家南 | 测试:郑成清",
+      "2026/07/05 前端:郑刘利 | 后端:唐宇宏 | 测试:谭贤",
+      "2026/07/06 前端:林颖 | 后端:俞如滃 | 测试:钟右梅",
+      "2026/07/07 前端:林胜聪 | 后端:杨朋举 | 测试:陈鸿历"
+    ]
+  );
+});
+
 test("没有快照且没有 config.teams 时给中文错误", () => {
   assert.throws(
     () => utils.findAssignmentForDateWithFallback({ months: {} }, "2026-07-01"),

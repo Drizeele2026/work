@@ -245,6 +245,183 @@
     };
   }
 
+  function todayDateKey() {
+    const now = new Date();
+    return dateKeyForDay(now.getFullYear(), now.getMonth() + 1, now.getDate());
+  }
+
+  function memberNamesSignature(team) {
+    return normalizeMembers(team?.members).map((member) => member.name).join("\n");
+  }
+
+  function anchorSignature(anchor) {
+    return anchor ? `${anchor.date}|${anchor.mode}|${anchor.person}` : "";
+  }
+
+  function anchorsSignature(anchors) {
+    return (Array.isArray(anchors) ? anchors : []).map(anchorSignature).join("\n");
+  }
+
+  function firstAnchorDifferenceDate(currentAnchors, remoteAnchors) {
+    const dates = [...new Set([
+      ...(Array.isArray(currentAnchors) ? currentAnchors : []).map((anchor) => anchor.date),
+      ...(Array.isArray(remoteAnchors) ? remoteAnchors : []).map((anchor) => anchor.date)
+    ])].filter(Boolean).sort();
+    return dates.find((date) =>
+      anchorSignature((currentAnchors || []).find((anchor) => anchor.date === date)) !==
+      anchorSignature((remoteAnchors || []).find((anchor) => anchor.date === date))
+    ) || "";
+  }
+
+  function isImplicitMonthStartAnchor(current, remote, monthFirstDate) {
+    if (remote.anchors.length || current.anchors.length !== 1) return false;
+    const anchor = current.anchors[0];
+    return current.last === remote.last &&
+      anchor.date === monthFirstDate &&
+      anchor.mode === "previousDay" &&
+      anchor.person === current.last;
+  }
+
+  function maxDateKey(left, right) {
+    const a = normalizeDateKey(left);
+    const b = normalizeDateKey(right);
+    if (!a) return b;
+    if (!b) return a;
+    return a > b ? a : b;
+  }
+
+  function anchorDifferenceDateForTeam(current, remote, monthFirstDate) {
+    if (
+      anchorsSignature(current.anchors) === anchorsSignature(remote.anchors) ||
+      isImplicitMonthStartAnchor(current, remote, monthFirstDate)
+    ) {
+      return "";
+    }
+    return firstAnchorDifferenceDate(current.anchors, remote.anchors);
+  }
+
+  function firstAffectedDateForTeam(currentTeam, remoteTeam, monthFirstDate, publishDateKey) {
+    const current = normalizeTeam(currentTeam);
+    const remote = remoteTeam ? normalizeTeam(remoteTeam) : null;
+    if (!remote) return publishDateKey || monthFirstDate;
+
+    let firstAffected = "";
+    if (memberNamesSignature(current) !== memberNamesSignature(remote)) {
+      firstAffected = publishDateKey || monthFirstDate;
+    }
+    if (!current.anchors.length && !remote.anchors.length && current.last !== remote.last) {
+      firstAffected = firstAffected || (publishDateKey || monthFirstDate);
+    }
+    firstAffected = firstAffected || anchorDifferenceDateForTeam(current, remote, monthFirstDate);
+
+    return firstAffected ? maxDateKey(firstAffected, publishDateKey) : "";
+  }
+
+  function shouldContinueFromRemoteSeed(currentTeam, remoteTeam, monthFirstDate) {
+    const current = normalizeTeam(currentTeam);
+    const remote = remoteTeam ? normalizeTeam(remoteTeam) : null;
+    if (!remote) return false;
+    const rosterChanged = memberNamesSignature(current) !== memberNamesSignature(remote) || current.last !== remote.last;
+    return rosterChanged && !anchorDifferenceDateForTeam(current, remote, monthFirstDate);
+  }
+
+  function remoteTeamsByName(remoteDocument) {
+    return new Map((remoteDocument?.config?.teams || [])
+      .map((team) => [normalizeTeam(team).name, team])
+      .filter(([name]) => name));
+  }
+
+  function generateTeamFromRemoteSeed(remoteDocument, currentTeam, dateKey, seedDateKey, teamIndex = 0) {
+    const team = normalizeTeam(currentTeam, teamIndex);
+    const names = team.members.map((member) => member.name);
+    if (!names.length) return normalizeDutyTeam(currentTeam, teamIndex);
+
+    const seedAssignment = findAssignmentForDateWithFallback(remoteDocument, seedDateKey);
+    const seedPerson = (seedAssignment.teams || []).find((item) => item.name === team.name)?.person;
+    const anchorPerson = names.includes(seedPerson) ? seedPerson : names[0];
+    const personName = getPersonFromAnchor({ date: seedDateKey, mode: "currentDay", person: anchorPerson }, dateKey, names);
+    const member = team.members.find((item) => item.name === personName) || team.members[0];
+    return {
+      name: team.name,
+      person: member.name,
+      feishuOpenId: member.feishuOpenId || findPublishedOpenId(remoteDocument, team.name, member.name),
+      ...(team.color ? { color: team.color } : {})
+    };
+  }
+
+  function mergeGeneratedMonthWithRemote(monthEntry, remoteDocument, options = {}) {
+    if (!monthEntry || !remoteDocument) return monthEntry;
+    let remoteMonth = null;
+    try {
+      remoteMonth = generateAssignmentsForMonth(remoteDocument, monthEntry.year, monthEntry.month);
+    } catch {
+      return monthEntry;
+    }
+
+    const publishDateKey = normalizeDateKey(options.publishDateKey) || todayDateKey();
+    const monthFirstDate = dateKeyForDay(monthEntry.year, monthEntry.month, 1);
+    const remoteByTeamName = remoteTeamsByName(remoteDocument);
+    const firstAffectedByTeam = new Map((monthEntry.teams || []).map((team) => {
+      const name = normalizeTeam(team).name;
+      return [name, firstAffectedDateForTeam(team, remoteByTeamName.get(name), monthFirstDate, publishDateKey)];
+    }));
+    const continueFromRemoteSeed = new Map((monthEntry.teams || []).map((team) => {
+      const name = normalizeTeam(team).name;
+      return [name, shouldContinueFromRemoteSeed(team, remoteByTeamName.get(name), monthFirstDate)];
+    }));
+    const currentConfigByName = new Map((monthEntry.teams || []).map((team) => [normalizeTeam(team).name, team]));
+    const remoteDayByDate = new Map(remoteMonth.dailyAssignments.map((day) => [normalizeDateKey(day.dateStr), day]));
+
+    monthEntry.dailyAssignments = (monthEntry.dailyAssignments || []).map((day) => {
+      const dateKey = normalizeDateKey(day.dateStr);
+      const remoteDay = remoteDayByDate.get(dateKey);
+      if (!remoteDay) return day;
+
+      const remoteTeamByName = new Map((remoteDay.teams || []).map((team, index) => {
+        const normalized = normalizeDutyTeam(team, index);
+        return [normalized.name, normalized];
+      }));
+      const used = new Set();
+      const teams = [];
+
+      (day.teams || []).forEach((team, index) => {
+        const normalized = normalizeDutyTeam(team, index);
+        const firstAffected = firstAffectedByTeam.get(normalized.name);
+        const remoteTeam = remoteTeamByName.get(normalized.name);
+        used.add(normalized.name);
+
+        if (!firstAffected) {
+          if (remoteTeam) teams.push(remoteTeam);
+          else teams.push(team);
+          return;
+        }
+        if (dateKey >= firstAffected) {
+          if (continueFromRemoteSeed.get(normalized.name)) {
+            teams.push(generateTeamFromRemoteSeed(
+              remoteDocument,
+              currentConfigByName.get(normalized.name) || team,
+              dateKey,
+              firstAffected,
+              index
+            ));
+          } else {
+            teams.push(team);
+          }
+          return;
+        }
+        if (remoteTeam) teams.push(remoteTeam);
+      });
+
+      (remoteDay.teams || []).map(normalizeDutyTeam).forEach((team) => {
+        if (!used.has(team.name) && dateKey < publishDateKey) teams.push(team);
+      });
+
+      return { ...day, teams };
+    });
+
+    return monthEntry;
+  }
+
   const api = {
     normalizeDateKey,
     dateKeyForDay,
@@ -254,7 +431,8 @@
     findLatestSnapshotBeforeDate,
     findAssignmentForDateWithFallback,
     collectUpcoming,
-    generateAssignmentsForMonth
+    generateAssignmentsForMonth,
+    mergeGeneratedMonthWithRemote
   };
 
   global.DutyRosterSchedule = api;

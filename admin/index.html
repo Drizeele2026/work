@@ -2425,6 +2425,37 @@
       return monthEntry;
     }
 
+    function buildSummaryFromAssignments(teams, dailyAssignments) {
+      const counts = {};
+      teams.forEach((team) => {
+        counts[team.name] = Object.fromEntries(memberUtils.memberNames(team.members).map((member) => [member, 0]));
+      });
+      dailyAssignments.forEach((day) => {
+        (day.teams || []).forEach((team) => {
+          if (!counts[team.name]) counts[team.name] = {};
+          if (!Object.prototype.hasOwnProperty.call(counts[team.name], team.person)) {
+            counts[team.name][team.person] = 0;
+          }
+          counts[team.name][team.person] += 1;
+        });
+      });
+
+      const lastDay = dailyAssignments[dailyAssignments.length - 1] || { teams: [] };
+      return teams.map((team) => ({
+        team: team.name,
+        members: memberUtils.memberNames(team.members).map((member) => ({
+          name: member,
+          count: counts[team.name]?.[member] || 0
+        })),
+        lastPerson: (lastDay.teams || []).find((item) => item.name === team.name)?.person || "-"
+      }));
+    }
+
+    function todayDateKey() {
+      const now = new Date();
+      return dateKeyForDay(now.getFullYear(), now.getMonth() + 1, now.getDate());
+    }
+
     function buildScheduleDocument(state, remoteDocument = null) {
       const now = new Date().toISOString();
       const teams = simplifyTeams(state.teams);
@@ -2437,7 +2468,12 @@
         dailyAssignments: simplifyAssignments(state.result.dailyAssignments),
         summary: state.summary
       };
-      mergePublishedAssignmentsBeforeAnchors(monthEntry, remoteDocument?.months?.[state.monthKey], teams, remoteDocument);
+      if (scheduleUtils?.mergeGeneratedMonthWithRemote) {
+        scheduleUtils.mergeGeneratedMonthWithRemote(monthEntry, remoteDocument, { publishDateKey: todayDateKey() });
+      } else {
+        mergePublishedAssignmentsBeforeAnchors(monthEntry, remoteDocument?.months?.[state.monthKey], teams, remoteDocument);
+      }
+      monthEntry.summary = buildSummaryFromAssignments(teams, monthEntry.dailyAssignments);
 
       return {
         version: 1,
