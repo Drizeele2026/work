@@ -72,13 +72,27 @@
     return (index.organizations || []).find((organization) => organization.slug === slug) || null;
   }
 
+  function canUseLegacyOrganization(requestedSlug) {
+    return !requestedSlug || requestedSlug === "default";
+  }
+
   function resolveOrganization(document, requestedSlug, options = {}) {
     const index = normalizeOrganizationIndex(document);
-    if (!index.organizations.length && options.allowLegacy) {
+    const requested = requestedSlug ? normalizeOrgSlug(requestedSlug) : "";
+
+    if (!index.organizations.length && options.allowLegacy && canUseLegacyOrganization(requested)) {
       return { organization: createLegacyOrganization(), index, reason: "legacy", error: "" };
     }
 
-    const requested = requestedSlug ? normalizeOrgSlug(requestedSlug) : "";
+    if (!index.organizations.length && requested) {
+      return {
+        organization: null,
+        index,
+        reason: "missing-index",
+        error: `组织索引缺失或损坏，无法打开组织 ${requested}。`
+      };
+    }
+
     const slug = requested || index.defaultOrg;
     const organization = findOrganization(index, slug);
     if (!organization) {

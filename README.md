@@ -145,6 +145,8 @@ FEISHU_WEBHOOK
 
 新增组织时，需要在 `data/organizations.json` 填 `reminder.webhookSecretName`，在 GitHub Secrets 创建同名 secret，并在 `.github/workflows/duty-reminder.yml` 的提醒步骤 env 中暴露它。
 
+如果一次 workflow 里有的组织发成功了、有的组织因为缺 secret 失败，成功发送的组织 `reminder-state.json` 还是会先提交，避免下次重复提醒。失败组织把 secret 修好后，直接重跑这个 workflow 就行。
+
 脚本位置：
 
 ```text

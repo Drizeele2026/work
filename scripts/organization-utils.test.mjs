@@ -69,6 +69,24 @@ test("resolveOrganization 没有索引时可回退旧 schedule 文件", () => {
   assert.equal(result.organization.reminder.webhookSecretName, "FEISHU_WEBHOOK");
 });
 
+test("resolveOrganization 显式 org=default 时仍可回退旧 schedule 文件", () => {
+  const result = orgUtils.resolveOrganization(null, "default", { allowLegacy: true });
+
+  assert.equal(result.error, "");
+  assert.equal(result.reason, "legacy");
+  assert.equal(result.organization.slug, "default");
+  assert.equal(result.organization.schedulePath, "data/schedule.json");
+});
+
+test("resolveOrganization 显式具名组织时不能回退到默认组织", () => {
+  const result = orgUtils.resolveOrganization(null, "takeaway", { allowLegacy: true });
+
+  assert.equal(result.organization, null);
+  assert.equal(result.reason, "missing-index");
+  assert.match(result.error, /takeaway/);
+  assert.match(result.error, /组织索引/);
+});
+
 test("relativeDataPath 管理页自动回到站点根目录", () => {
   assert.equal(orgUtils.relativeDataPath("data/orgs/default/schedule.json", false), "data/orgs/default/schedule.json");
   assert.equal(orgUtils.relativeDataPath("data/orgs/default/schedule.json", true), "../data/orgs/default/schedule.json");

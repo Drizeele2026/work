@@ -25,13 +25,20 @@ jobs:
           fetch-depth: 0
 
       - name: Send Feishu duty reminder
+        id: send_reminder
         env:
           FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
           FEISHU_WEBHOOK_TAKEAWAY: ${{ secrets.FEISHU_WEBHOOK_TAKEAWAY }}
           FORCE_SEND: ${{ (github.event_name == 'workflow_dispatch' && inputs.force) && '1' || '0' }}
-        run: node scripts/send-duty-reminder.mjs
+        run: |
+          set +e
+          node scripts/send-duty-reminder.mjs
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit 0
 
       - name: Commit reminder state
+        if: always()
         run: |
           if [ -n "$(git status --porcelain data/orgs)" ]; then
             git config user.name "github-actions[bot]"
@@ -43,3 +50,7 @@ jobs:
           else
             echo "状态文件无变化（今天已发过或本次未发送），跳过提交。"
           fi
+
+      - name: Fail workflow when reminder has errors
+        if: ${{ steps.send_reminder.outputs.exit_code != '0' }}
+        run: exit "${{ steps.send_reminder.outputs.exit_code }}"

@@ -2031,6 +2031,11 @@
       }));
     }
 
+    function getTeamConfigStorageKey() {
+      const slug = currentOrganization?.slug || "default";
+      return `${LS_TEAM_CONFIG}:${slug}`;
+    }
+
     function applyTeamFormState(teams) {
       [1, 2, 3].forEach((index) => {
         const team = teams?.[index - 1];
@@ -2044,7 +2049,7 @@
     }
 
     function persistTeamConfigToStorage() {
-      localStorage.setItem(LS_TEAM_CONFIG, JSON.stringify({
+      localStorage.setItem(getTeamConfigStorageKey(), JSON.stringify({
         version: 1,
         teams: readTeamFormState()
       }));
@@ -2056,7 +2061,7 @@
     }
 
     function loadTeamConfigFromStorage() {
-      const raw = localStorage.getItem(LS_TEAM_CONFIG);
+      const raw = localStorage.getItem(getTeamConfigStorageKey());
       if (!raw) return false;
       try {
         const parsed = JSON.parse(raw);
@@ -2064,18 +2069,20 @@
         applyTeamFormState(parsed.teams);
         return true;
       } catch (error) {
-        localStorage.removeItem(LS_TEAM_CONFIG);
+        localStorage.removeItem(getTeamConfigStorageKey());
         return false;
       }
     }
 
-    function loadLocalUiState() {
+    function loadGithubSettingsFromStorage() {
       const storedRepo = normalizeRepoSlug(localStorage.getItem(LS_REPO) || DEFAULT_REPO) || DEFAULT_REPO;
       const storedToken = String(localStorage.getItem(LS_TOKEN) || "").trim();
       applyGithubSettings({ repoSlug: storedRepo, token: storedToken });
-      const loadedTeamConfig = isAdminRoute() ? loadTeamConfigFromStorage() : false;
       $("manageDetails").open = false;
-      return loadedTeamConfig;
+    }
+
+    function loadLocalUiState() {
+      return isAdminRoute() ? loadTeamConfigFromStorage() : false;
     }
 
     function openGithubSettings(targetId) {
@@ -2938,7 +2945,7 @@
     async function boot() {
       setCurrentYearMonth();
       applyDefaultMembers();
-      const loadedTeamConfig = loadLocalUiState();
+      loadGithubSettingsFromStorage();
       syncTeamCards();
       renderTeamConfigStatus();
       populateMonthPicker(Number($("year").value), Number($("month").value));
@@ -2951,6 +2958,7 @@
         syncTopbar();
         return;
       }
+      const loadedTeamConfig = loadLocalUiState();
       const remotePreview = await loadRemoteSchedulePreview();
       remoteScheduleDocument = remotePreview;
       if (remotePreview) {
