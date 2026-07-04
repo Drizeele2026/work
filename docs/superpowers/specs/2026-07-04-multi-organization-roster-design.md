@@ -254,6 +254,19 @@ FEISHU_WEBHOOK_TAKEAWAY
 FEISHU_WEBHOOK_QA
 ```
 
+GitHub Actions 里还需要把这些 secret 显式映射到脚本环境变量。Node 脚本只能通过 `process.env[webhookSecretName]` 读取已经暴露到 `env` 的变量，不能在运行时直接枚举或动态读取 GitHub Secrets。
+
+示例：
+
+```yaml
+env:
+  FEISHU_WEBHOOK_DEFAULT: ${{ secrets.FEISHU_WEBHOOK_DEFAULT }}
+  FEISHU_WEBHOOK_TAKEAWAY: ${{ secrets.FEISHU_WEBHOOK_TAKEAWAY }}
+  FEISHU_WEBHOOK_QA: ${{ secrets.FEISHU_WEBHOOK_QA }}
+```
+
+所以第一版新增组织时，超级维护者需要同时做三件事：改 `organizations.json`、创建 GitHub Secret、把 secret 名加到 workflow 的 `env` 映射里。
+
 提醒脚本需要支持两个模式：
 
 - 不传组织：遍历所有启用提醒的组织。
@@ -330,8 +343,9 @@ data/orgs/default/reminder-state.json
 1. 超级维护者新增 `data/orgs/{slug}/schedule.json`。
 2. 在 `data/organizations.json` 加组织记录。
 3. 在 GitHub Secrets 配置该组织 webhook。
-4. 本地 dry-run 验证提醒。
-5. 把 `/work/?org={slug}` 和 `/work/admin/?org={slug}` 发给负责人。
+4. 在 `.github/workflows/duty-reminder.yml` 的提醒步骤里暴露该 webhook secret。
+5. 本地 dry-run 验证提醒。
+6. 把 `/work/?org={slug}` 和 `/work/admin/?org={slug}` 发给负责人。
 
 ## 错误处理
 
