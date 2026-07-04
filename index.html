@@ -1545,7 +1545,6 @@
       return teamColorMap[name] || teamColors[fallbackIndex % teamColors.length] || teamColors[0];
     }
 
-    // Anchor scheduling helpers start
     function normalizeDateKey(value) {
       const text = String(value || "").trim().replaceAll("/", "-");
       const match = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
@@ -1556,61 +1555,6 @@
     function dateKeyForDay(year, month, day) {
       return `${year}-${pad2(month)}-${pad2(day)}`;
     }
-
-    function daysBetweenDateKeys(fromKey, toKey) {
-      const [fromYear, fromMonth, fromDay] = fromKey.split("-").map(Number);
-      const [toYear, toMonth, toDay] = toKey.split("-").map(Number);
-      const from = Date.UTC(fromYear, fromMonth - 1, fromDay);
-      const to = Date.UTC(toYear, toMonth - 1, toDay);
-      return Math.round((to - from) / 86400000);
-    }
-
-    function normalizeAnchors(anchors, names) {
-      const seen = new Map();
-      (Array.isArray(anchors) ? anchors : []).forEach((anchor) => {
-        const date = normalizeDateKey(anchor?.date);
-        const person = String(anchor?.person || "").trim().replace(/@/g, "");
-        const mode = anchor?.mode === "previousDay" ? "previousDay" : "currentDay";
-        if (!date || !names.includes(person)) return;
-        seen.set(date, { date, mode, person });
-      });
-      return [...seen.values()].sort((a, b) => a.date.localeCompare(b.date));
-    }
-
-    function getAnchorForDate(dateKey, anchors) {
-      let active = null;
-      anchors.forEach((anchor) => {
-        if (anchor.date <= dateKey) active = anchor;
-      });
-      return active;
-    }
-
-    function getPersonFromAnchor(anchor, dateKey, names) {
-      if (!anchor || !names.length) return "";
-      const anchorIndex = names.indexOf(anchor.person);
-      if (anchorIndex < 0) return "";
-      const offset = daysBetweenDateKeys(anchor.date, dateKey);
-      const modeOffset = anchor.mode === "previousDay" ? 1 : 0;
-      return names[wrapIndex(anchorIndex + modeOffset + offset, names.length)];
-    }
-
-    function anchorSignature(anchor) {
-      return anchor ? `${anchor.date}|${anchor.mode}|${anchor.person}` : "";
-    }
-
-    function getFirstAffectedDate(anchors, monthFirstDate = "", remoteAnchors = []) {
-      const current = Array.isArray(anchors) ? anchors : [];
-      const remote = Array.isArray(remoteAnchors) ? remoteAnchors : [];
-      if (remote.length) {
-        const dates = [...new Set([...current.map((item) => item.date), ...remote.map((item) => item.date)])].sort();
-        return dates.find((date) =>
-          anchorSignature(current.find((item) => item.date === date)) !==
-          anchorSignature(remote.find((item) => item.date === date))
-        ) || (current[0]?.date || "");
-      }
-      return current.find((anchor) => monthFirstDate && anchor.date > monthFirstDate)?.date || current[0]?.date || "";
-    }
-    // Anchor scheduling helpers end
 
     function nowTime() {
       const now = new Date();
@@ -1759,12 +1703,8 @@
       [1, 2, 3].forEach((index) => {
         const name = $(`team${index}Name`).value.trim() || `团队 ${index}`;
         const members = parseMembers($(`team${index}Members`).value);
-        const currentLast = $(`team${index}Last`).value.trim().replace(/@/g, "");
-        const currentAnchors = readTeamAnchors(index);
-        setTeamLastOptions(index, members, currentLast);
         $(`team${index}Title`).textContent = name;
         $(`team${index}Count`).textContent = `${members.length} 人`;
-        renderAnchorEditor(index, members, currentAnchors);
         renderMemberPreview(index, members);
       });
     }
@@ -2206,36 +2146,6 @@
       }));
     }
 
-    function findRemoteConfigTeam(remoteDocument, teamName) {
-      return (remoteDocument?.config?.teams || []).find((team) => team.name === teamName) || null;
-    }
-
-    function mergePublishedAssignmentsBeforeAnchors(monthEntry, remoteMonth, teams, remoteDocument) {
-      if (!remoteMonth?.dailyAssignments?.length) return monthEntry;
-      const monthFirstDate = dateKeyForDay(monthEntry.year, monthEntry.month, 1);
-      const firstAffectedByTeam = Object.fromEntries(teams.map((team) => {
-        const anchors = normalizeTeamAnchors(team);
-        const remoteTeam = findRemoteConfigTeam(remoteDocument, team.name);
-        const remoteAnchors = remoteTeam ? normalizeTeamAnchors(remoteTeam) : [];
-        return [team.name, getFirstAffectedDate(anchors, monthFirstDate, remoteAnchors)];
-      }));
-
-      monthEntry.dailyAssignments = monthEntry.dailyAssignments.map((day) => {
-        const dateKey = normalizeDateKey(day.dateStr);
-        const remoteDay = remoteMonth.dailyAssignments.find((item) => normalizeDateKey(item.dateStr) === dateKey);
-        if (!remoteDay) return day;
-        return {
-          ...day,
-          teams: day.teams.map((team) => {
-            const firstAffected = firstAffectedByTeam[team.name];
-            if (!firstAffected || dateKey >= firstAffected) return team;
-            return remoteDay.teams?.find((item) => item.name === team.name) || team;
-          })
-        };
-      });
-      return monthEntry;
-    }
-
     function buildSummaryFromAssignments(teams, dailyAssignments) {
       const counts = {};
       teams.forEach((team) => {
@@ -2346,8 +2256,6 @@
         return {
           name,
           members: memberUtils.serializeMembers(members),
-          last: String(source.last || "").trim().replace(/@/g, ""),
-          anchors: Array.isArray(source.anchors) ? source.anchors : [],
           color: resolveTeamColor(assignmentTeam?.color || source.color, index)
         };
       });
