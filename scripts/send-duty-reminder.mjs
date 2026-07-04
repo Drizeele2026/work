@@ -306,6 +306,10 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
   const organizationsPath = env.ORGANIZATIONS_PATH || DEFAULT_ORGANIZATIONS_PATH;
   const indexDocument = await loadOrganizationIndex(organizationsPath);
   if (indexDocument === null) {
+    const requestedOrgSlug = organizationUtils.normalizeOrgSlug(orgSlug || "");
+    if (orgSlug && requestedOrgSlug !== "default") {
+      throw new Error(`组织 ${orgSlug} 不存在，无法在缺少组织索引时发送。`);
+    }
     return runSingleScheduleReminder({
       dryRun,
       force,

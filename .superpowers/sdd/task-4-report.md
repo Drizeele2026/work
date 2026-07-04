@@ -97,3 +97,31 @@
 - `scripts/send-duty-reminder.mjs`
 - `scripts/send-duty-reminder.test.mjs`
 - `.superpowers/sdd/task-4-report.md`
+
+## 本次 review finding 修复追加
+
+### 改了什么
+
+- `scripts/send-duty-reminder.mjs`
+  - 在 `data/organizations.json` 缺失时加了显式组织校验。
+  - 现在只有两种情况会走旧单文件 fallback：
+    - 没有显式指定组织
+    - 显式指定的是 `default`
+  - 只要用户传了其他组织名，比如 `--org qa` 或 `REMINDER_ORG=qa`，就直接抛中文错误：
+    - `组织 qa 不存在，无法在缺少组织索引时发送。`
+- `scripts/send-duty-reminder.test.mjs`
+  - 新增测试覆盖索引缺失 + 指定非 `default` 组织时会直接报错。
+  - 测试同时确认不会发送请求，也不会写入默认状态文件。
+
+### 测试命令和结果
+
+1. `node --test scripts/send-duty-reminder.test.mjs`
+   - 结果：通过，19/19 通过
+2. `node --test scripts/organization-utils.test.mjs scripts/schedule-utils.test.mjs`
+   - 结果：通过，17/17 通过
+
+### 文件列表
+
+- `scripts/send-duty-reminder.mjs`
+- `scripts/send-duty-reminder.test.mjs`
+- `.superpowers/sdd/task-4-report.md`
