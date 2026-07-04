@@ -18,6 +18,11 @@ for (const target of targets) {
   assert.doesNotMatch(html, /team1Last|team2Last|team3Last/, `${target.label} 不应有兜底起点控件`);
   assert.doesNotMatch(html, /team1Anchors|team2Anchors|team3Anchors/, `${target.label} 不应有节点控件`);
   assert.doesNotMatch(html, /applyRosterChangeAnchors/, `${target.label} 不应再自动补接龙节点`);
+  assert.match(
+    html,
+    /function renderPublishedScheduleMonth\(document, year, month\)\s*\{\s*if\s*\(document\?\.(?:version)\s*>=\s*2\s*\|\|\s*Array\.isArray\(document\?\.(?:ruleVersions)\)\)\s*return false;/,
+    `${target.label} 的 renderPublishedScheduleMonth 必须跳过 v2/ruleVersions 文档`
+  );
   assert.match(html, /buildPublishedDocument/, `${target.label} 发布应通过共享函数生成规则版本文档`);
   assert.match(html, /维护值班规则/, `${target.label} 标题应改成维护值班规则`);
 }

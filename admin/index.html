@@ -2519,6 +2519,7 @@
     }
 
     function renderPublishedScheduleMonth(document, year, month) {
+      if (document?.version >= 2 || Array.isArray(document?.ruleVersions)) return false;
       const monthKey = formatMonthKey(year, month);
       const monthEntry = document?.months?.[monthKey];
       if (!monthEntry?.dailyAssignments?.length) return false;

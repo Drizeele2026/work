@@ -178,3 +178,94 @@ rg -n "team1Last|team2Last|team3Last|team1Anchors|team2Anchors|team3Anchors|read
 ### 备注
 
 - 这次 `rg` 检查没有任何残留命中，所以没有“保留但可接受”的旧词需要解释。
+
+## 2026-07-04 Re-review Fix
+
+### 修复内容
+
+1. `index.html` 和 `admin/index.html` 的 `renderPublishedScheduleMonth(document, year, month)` 开头都加了 v2/ruleVersions guard：
+
+```js
+if (document?.version >= 2 || Array.isArray(document?.ruleVersions)) return false;
+```
+
+2. 保持原来的调用顺序不动，让旧的 `renderPublishedScheduleMonth(...)` 只给非 v2 旧文档兜底，v2/ruleVersions 文档直接走 `renderContinuousScheduleMonth(...)`。
+3. `scripts/verify-clean-roster-model.mjs` 新增校验，强制两张 HTML 都要带这条 guard。
+
+### RED 证据
+
+先只改校验脚本，再运行：
+
+```bash
+node scripts/verify-clean-roster-model.mjs
+```
+
+输出：
+
+```text
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: 管理页 的 renderPublishedScheduleMonth 必须跳过 v2/ruleVersions 文档
+```
+
+说明返修点在当前代码里确实还没修到。
+
+### GREEN 证据
+
+1. 校验脚本
+
+运行：
+
+```bash
+node scripts/verify-clean-roster-model.mjs
+```
+
+输出：
+
+```text
+干净排班模型 UI 检查通过
+```
+
+2. 内联脚本抽取检查
+
+运行：
+
+```bash
+node --input-type=module -e 'import fs from "node:fs"; for (const file of ["index.html", "admin/index.html"]) { const html = fs.readFileSync(file, "utf8"); const scripts = [...html.matchAll(new RegExp("<script>([\\s\\S]*?)</script>", "g"))].map((match) => match[1]).join("\n"); new Function(scripts); console.log(`${file} script ok`); }'
+```
+
+输出：
+
+```text
+index.html script ok
+admin/index.html script ok
+```
+
+3. 旧引用残留检查
+
+运行：
+
+```bash
+rg -n "team1Last|team2Last|team3Last|team1Anchors|team2Anchors|team3Anchors|readTeamAnchors|setTeamLastOptions|renderAnchorEditor|applyRosterChangeAnchors|normalizeAnchors|mergePublishedAssignmentsBeforeAnchors" index.html admin/index.html
+```
+
+结果：无输出。
+
+4. guard 命中检查
+
+运行：
+
+```bash
+rg -n "function renderPublishedScheduleMonth|document\?\.version >= 2 \|\| Array\.isArray\(document\?\.ruleVersions\)" index.html admin/index.html
+```
+
+输出：
+
+```text
+admin/index.html:2521:    function renderPublishedScheduleMonth(document, year, month) {
+admin/index.html:2522:      if (document?.version >= 2 || Array.isArray(document?.ruleVersions)) return false;
+index.html:2521:    function renderPublishedScheduleMonth(document, year, month) {
+index.html:2522:      if (document?.version >= 2 || Array.isArray(document?.ruleVersions)) return false;
+```
