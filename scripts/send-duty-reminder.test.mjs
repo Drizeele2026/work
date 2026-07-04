@@ -276,3 +276,172 @@ test("main：普通触发发送后写入去重状态", async () => {
   const saved = JSON.parse(await fs.readFile(statePath, "utf8"));
   assert.equal(saved.lastSentDate, "2026-06-20");
 });
+
+async function setupMultiOrgTmp() {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "duty-orgs-"));
+  const defaultDir = path.join(dir, "data/orgs/default");
+  const qaDir = path.join(dir, "data/orgs/qa");
+  await fs.mkdir(defaultDir, { recursive: true });
+  await fs.mkdir(qaDir, { recursive: true });
+
+  const makeSchedule = (name, person) => ({
+    version: 2,
+    organization: { slug: name, name },
+    current: {
+      teams: [
+        { name: "后端", color: "green", members: [person, "B"] }
+      ]
+    },
+    ruleVersions: [
+      {
+        effectiveDate: "2026-06-20",
+        teams: [
+          { name: "后端", color: "green", startPerson: person, members: [person, "B"] }
+        ]
+      }
+    ]
+  });
+
+  const defaultSchedulePath = path.join(defaultDir, "schedule.json");
+  const qaSchedulePath = path.join(qaDir, "schedule.json");
+  await fs.writeFile(defaultSchedulePath, JSON.stringify(makeSchedule("default", "张三")), "utf8");
+  await fs.writeFile(qaSchedulePath, JSON.stringify(makeSchedule("qa", "李四")), "utf8");
+
+  const organizationsPath = path.join(dir, "data/organizations.json");
+  await fs.mkdir(path.dirname(organizationsPath), { recursive: true });
+  await fs.writeFile(organizationsPath, JSON.stringify({
+    version: 1,
+    defaultOrg: "default",
+    organizations: [
+      {
+        slug: "default",
+        name: "默认组织",
+        schedulePath: defaultSchedulePath,
+        enabled: true,
+        reminder: {
+          enabled: true,
+          webhookSecretName: "FEISHU_WEBHOOK",
+          publicUrl: "https://example.com/default"
+        }
+      },
+      {
+        slug: "qa",
+        name: "测试中心",
+        schedulePath: qaSchedulePath,
+        enabled: true,
+        reminder: {
+          enabled: true,
+          webhookSecretName: "FEISHU_WEBHOOK_QA",
+          publicUrl: "https://example.com/qa"
+        }
+      }
+    ]
+  }), "utf8");
+
+  return { dir, organizationsPath, defaultDir, qaDir };
+}
+
+test("main：多组织普通触发分别发送并分别写状态", async () => {
+  const { organizationsPath, defaultDir, qaDir } = await setupMultiOrgTmp();
+  const calls = [];
+  const orig = globalThis.fetch;
+  globalThis.fetch = async (url, options) => {
+    calls.push({ url, body: JSON.parse(options.body) });
+    return { ok: true, text: async () => '{"code":0}' };
+  };
+  try {
+    const result = await main([], {
+      ORGANIZATIONS_PATH: organizationsPath,
+      REMINDER_DATE: "2026-06-20T02:00:00Z",
+      FEISHU_WEBHOOK: "https://example.com/default-hook",
+      FEISHU_WEBHOOK_QA: "https://example.com/qa-hook"
+    });
+
+    assert.equal(result.length, 2);
+    assert.deepEqual(calls.map((call) => call.url), [
+      "https://example.com/default-hook",
+      "https://example.com/qa-hook"
+    ]);
+    const defaultState = JSON.parse(await fs.readFile(path.join(defaultDir, "reminder-state.json"), "utf8"));
+    const qaState = JSON.parse(await fs.readFile(path.join(qaDir, "reminder-state.json"), "utf8"));
+    assert.equal(defaultState.lastSentDate, "2026-06-20");
+    assert.equal(qaState.lastSentDate, "2026-06-20");
+  } finally {
+    globalThis.fetch = orig;
+  }
+});
+
+test("main：--org 只发送指定组织", async () => {
+  const { organizationsPath, defaultDir, qaDir } = await setupMultiOrgTmp();
+  const calls = [];
+  const orig = globalThis.fetch;
+  globalThis.fetch = async (url, options) => {
+    calls.push({ url, body: JSON.parse(options.body) });
+    return { ok: true, text: async () => '{"code":0}' };
+  };
+  try {
+    const result = await main(["--org", "qa"], {
+      ORGANIZATIONS_PATH: organizationsPath,
+      REMINDER_DATE: "2026-06-20T02:00:00Z",
+      FEISHU_WEBHOOK: "https://example.com/default-hook",
+      FEISHU_WEBHOOK_QA: "https://example.com/qa-hook"
+    });
+
+    assert.equal(result.length, 1);
+    assert.equal(result[0].organization.slug, "qa");
+    assert.deepEqual(calls.map((call) => call.url), ["https://example.com/qa-hook"]);
+    await assert.rejects(() => fs.readFile(path.join(defaultDir, "reminder-state.json"), "utf8"));
+    const qaState = JSON.parse(await fs.readFile(path.join(qaDir, "reminder-state.json"), "utf8"));
+    assert.equal(qaState.lastSentDate, "2026-06-20");
+  } finally {
+    globalThis.fetch = orig;
+  }
+});
+
+test("main：多组织 dry-run 不发送也不写状态", async () => {
+  const { organizationsPath, defaultDir, qaDir } = await setupMultiOrgTmp();
+  const orig = globalThis.fetch;
+  globalThis.fetch = async () => {
+    throw new Error("dry-run 不应该发送请求");
+  };
+  try {
+    const result = await main(["--dry-run"], {
+      ORGANIZATIONS_PATH: organizationsPath,
+      REMINDER_DATE: "2026-06-20T02:00:00Z",
+      FEISHU_WEBHOOK: "https://example.com/default-hook",
+      FEISHU_WEBHOOK_QA: "https://example.com/qa-hook"
+    });
+
+    assert.equal(result.length, 2);
+    await assert.rejects(() => fs.readFile(path.join(defaultDir, "reminder-state.json"), "utf8"));
+    await assert.rejects(() => fs.readFile(path.join(qaDir, "reminder-state.json"), "utf8"));
+  } finally {
+    globalThis.fetch = orig;
+  }
+});
+
+test("main：某组织缺少 webhook secret 时，其他组织仍会发送，最终抛出汇总错误", async () => {
+  const { organizationsPath, defaultDir, qaDir } = await setupMultiOrgTmp();
+  const calls = [];
+  const orig = globalThis.fetch;
+  globalThis.fetch = async (url, options) => {
+    calls.push({ url, body: JSON.parse(options.body) });
+    return { ok: true, text: async () => '{"code":0}' };
+  };
+  try {
+    await assert.rejects(
+      () => main([], {
+        ORGANIZATIONS_PATH: organizationsPath,
+        REMINDER_DATE: "2026-06-20T02:00:00Z",
+        FEISHU_WEBHOOK: "https://example.com/default-hook"
+      }),
+      /测试中心.*FEISHU_WEBHOOK_QA/
+    );
+    assert.deepEqual(calls.map((call) => call.url), ["https://example.com/default-hook"]);
+    const defaultState = JSON.parse(await fs.readFile(path.join(defaultDir, "reminder-state.json"), "utf8"));
+    assert.equal(defaultState.lastSentDate, "2026-06-20");
+    await assert.rejects(() => fs.readFile(path.join(qaDir, "reminder-state.json"), "utf8"));
+  } finally {
+    globalThis.fetch = orig;
+  }
+});

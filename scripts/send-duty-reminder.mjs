@@ -1,8 +1,10 @@
 import fs from "node:fs/promises";
 import scheduleUtils from "../schedule-utils.js";
+import organizationUtils from "../organization-utils.js";
 
 const DEFAULT_SCHEDULE_PATH = "data/schedule.json";
 const DEFAULT_STATE_PATH = "data/reminder-state.json";
+const DEFAULT_ORGANIZATIONS_PATH = "data/organizations.json";
 const DEFAULT_PUBLIC_URL = "https://drizeele2026.github.io/work/";
 const TIME_ZONE = "Asia/Shanghai";
 
@@ -109,6 +111,56 @@ export async function loadSchedule(path = DEFAULT_SCHEDULE_PATH) {
   return JSON.parse(await fs.readFile(path, "utf8"));
 }
 
+export async function loadOrganizationIndex(path = DEFAULT_ORGANIZATIONS_PATH) {
+  try {
+    return JSON.parse(await fs.readFile(path, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function parseArgValue(argv, name) {
+  const prefix = `${name}=`;
+  const inline = argv.find((item) => item.startsWith(prefix));
+  if (inline) return inline.slice(prefix.length);
+  const index = argv.indexOf(name);
+  if (index >= 0) return argv[index + 1] || "";
+  return "";
+}
+
+export function resolveReminderOrganizations(indexDocument, orgSlug = "") {
+  const index = organizationUtils.normalizeOrganizationIndex(indexDocument);
+  const requested = organizationUtils.normalizeOrgSlug(orgSlug || "");
+  const enabledOrganizations = index.organizations.filter((organization) =>
+    organization.enabled && organization.reminder?.enabled !== false
+  );
+
+  if (orgSlug) {
+    const organization = enabledOrganizations.find((item) => item.slug === requested);
+    if (!organization) throw new Error(`组织 ${orgSlug} 不存在、已停用或未启用提醒。`);
+    return [organization];
+  }
+
+  return enabledOrganizations;
+}
+
+function statePathForOrganization(organization) {
+  return organizationUtils.organizationStatePath(organization);
+}
+
+function publicUrlForOrganization(organization) {
+  return organization.reminder?.publicUrl || DEFAULT_PUBLIC_URL;
+}
+
+function webhookForOrganization(organization, env) {
+  const secretName = organization.reminder?.webhookSecretName || "FEISHU_WEBHOOK";
+  const webhook = env[secretName];
+  if (!webhook) {
+    throw new Error(`组织【${organization.name}】缺少 webhook secret：${secretName}`);
+  }
+  return webhook;
+}
+
 export async function loadReminderState(path = DEFAULT_STATE_PATH) {
   try {
     return JSON.parse(await fs.readFile(path, "utf8"));
@@ -151,15 +203,52 @@ export async function postFeishuMessage(webhook, message, fetchImpl = globalThis
   return payload;
 }
 
-export async function main(argv = process.argv.slice(2), env = process.env) {
-  const dryRun = argv.includes("--dry-run");
-  const force = argv.includes("--force") || env.FORCE_SEND === "1";
-  const schedulePath = env.SCHEDULE_PATH || DEFAULT_SCHEDULE_PATH;
-  const statePath = env.REMINDER_STATE_PATH || DEFAULT_STATE_PATH;
-  const publicUrl = env.PUBLIC_ROSTER_URL || DEFAULT_PUBLIC_URL;
-  const dateInfo = formatBeijingDate(env.REMINDER_DATE ? new Date(env.REMINDER_DATE) : new Date());
+export async function sendOrganizationReminder(organization, options = {}) {
+  const {
+    dateInfo,
+    dryRun = false,
+    force = false,
+    env = process.env,
+    fetchImpl = globalThis.fetch
+  } = options;
 
-  // dry-run 只预览消息内容，不去重、不写状态、不真的发送
+  const schedule = await loadSchedule(organization.schedulePath);
+  const assignment = findAssignmentForDate(schedule, dateInfo.dateKey);
+  const upcoming = collectUpcoming(schedule, dateInfo.dateKey, 3);
+  const message = buildFeishuCardMessage({
+    dateInfo,
+    assignment,
+    upcoming,
+    publicUrl: publicUrlForOrganization(organization)
+  });
+
+  if (dryRun) {
+    console.log(JSON.stringify({
+      organization: organization.slug,
+      name: organization.name,
+      message
+    }, null, 2));
+    return { organization, dryRun: true, message };
+  }
+
+  const statePath = statePathForOrganization(organization);
+  const state = await loadReminderState(statePath);
+  if (!force && hasSentOn(state, dateInfo.dateKey)) {
+    console.log(`${organization.name} ${dateInfo.dateKey} 今天已发送过值班提醒，跳过。`);
+    return { organization, skipped: true, dateKey: dateInfo.dateKey };
+  }
+
+  await postFeishuMessage(webhookForOrganization(organization, env), message, fetchImpl);
+  if (!force) {
+    await writeReminderState(statePath, dateInfo.dateKey);
+  }
+  console.log(force
+    ? `已强制发送 ${organization.name} ${dateInfo.dateKey}（force：未写入去重状态）。`
+    : `已发送 ${organization.name} ${dateInfo.dateKey} 值班提醒。`);
+  return { organization, message };
+}
+
+async function runSingleScheduleReminder({ dryRun, force, schedulePath, statePath, publicUrl, dateInfo, env }) {
   if (dryRun) {
     const schedule = await loadSchedule(schedulePath);
     const assignment = findAssignmentForDate(schedule, dateInfo.dateKey);
@@ -169,7 +258,6 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
     return message;
   }
 
-  // 去重：当天已经发过且不是强制发送，直接跳过（正常退出，不报错）
   const state = await loadReminderState(statePath);
   if (!force && hasSentOn(state, dateInfo.dateKey)) {
     console.log(`${dateInfo.dateKey} 今天已发送过值班提醒，跳过。`);
@@ -182,7 +270,6 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
   const message = buildFeishuCardMessage({ dateInfo, assignment, upcoming, publicUrl });
 
   await postFeishuMessage(env.FEISHU_WEBHOOK, message);
-  // force（人工测试）不写去重状态：不占当天名额，也不影响自动触发那条
   if (!force) {
     await writeReminderState(statePath, dateInfo.dateKey);
   }
@@ -190,6 +277,51 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
     ? `已强制发送 ${dateInfo.dateKey}（force：未写入去重状态）。`
     : `已发送 ${dateInfo.dateKey} 值班提醒。`);
   return message;
+}
+
+export async function main(argv = process.argv.slice(2), env = process.env) {
+  const dryRun = argv.includes("--dry-run");
+  const force = argv.includes("--force") || env.FORCE_SEND === "1";
+  const orgSlug = parseArgValue(argv, "--org") || env.REMINDER_ORG || "";
+  const schedulePath = env.SCHEDULE_PATH || "";
+  const statePath = env.REMINDER_STATE_PATH || DEFAULT_STATE_PATH;
+  const publicUrl = env.PUBLIC_ROSTER_URL || DEFAULT_PUBLIC_URL;
+  const dateInfo = formatBeijingDate(env.REMINDER_DATE ? new Date(env.REMINDER_DATE) : new Date());
+
+  if (schedulePath) {
+    return runSingleScheduleReminder({
+      dryRun,
+      force,
+      schedulePath,
+      statePath,
+      publicUrl,
+      dateInfo,
+      env
+    });
+  }
+
+  const organizationsPath = env.ORGANIZATIONS_PATH || DEFAULT_ORGANIZATIONS_PATH;
+  const indexDocument = await loadOrganizationIndex(organizationsPath);
+  const organizations = resolveReminderOrganizations(indexDocument, orgSlug);
+  if (!organizations.length) {
+    console.log("没有启用提醒的组织，跳过。");
+    return [];
+  }
+
+  const results = [];
+  const errors = [];
+  for (const organization of organizations) {
+    try {
+      results.push(await sendOrganizationReminder(organization, { dateInfo, dryRun, force, env }));
+    } catch (error) {
+      errors.push(`${organization.name}：${error.message || error}`);
+    }
+  }
+
+  if (errors.length) {
+    throw new Error(errors.join("\n"));
+  }
+  return results;
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
