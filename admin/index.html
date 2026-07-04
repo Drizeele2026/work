@@ -441,41 +441,6 @@
       grid-template-columns: minmax(0, 1fr) minmax(128px, 0.7fr);
       gap: 10px;
     }
-    .anchor-editor {
-      display: grid;
-      gap: 8px;
-      margin: 0 0 1px;
-    }
-    .anchor-editor-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-    }
-    .anchor-editor-head label { margin: 0; }
-    .anchor-editor-head button { min-height: 28px; padding: 0 9px; font-size: 12px; }
-    .anchor-list {
-      display: grid;
-      gap: 8px;
-    }
-    .anchor-row {
-      display: grid;
-      grid-template-columns: minmax(128px, 0.95fr) minmax(116px, 0.9fr) minmax(106px, 1fr) auto;
-      gap: 8px;
-      align-items: center;
-    }
-    .anchor-row input,
-    .anchor-row select { height: 32px; font-size: 12px; }
-    .anchor-row button { min-height: 32px; padding: 0 9px; font-size: 12px; }
-    .anchor-empty {
-      padding: 9px 10px;
-      border: 1px dashed var(--line);
-      border-radius: 7px;
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.45;
-      background: #f8fafc;
-    }
     .member-field { display: grid; gap: 7px; }
     .member-field textarea { display: none; }  /* 隐藏，仅作数据载体；编辑走下面的结构化列表 */
     .member-preview { display: block; border: 1px solid #e2e8f1; border-radius: 10px; background: #fff; }
@@ -1195,7 +1160,6 @@
       .team-config-actions { justify-content: flex-start; }
       .confirm-head { display: grid; }
       .team-editor-grid, .team-form-grid { grid-template-columns: 1fr; }
-      .anchor-row { grid-template-columns: 1fr; }
       .layout, .main, .panel, .card, .calendar-scroll { max-width: 100%; min-width: 0; }
       .main-header { flex-direction: column; }
       .header-controls { justify-content: flex-start; }
@@ -1299,8 +1263,8 @@
           <div class="team-config">
             <div class="team-config-head">
               <div>
-                <h2>修改值班名单</h2>
-                <p>按真实值班顺序整理名单和接龙节点。改完直接发布，系统会自动生成本月排班并更新公开页。</p>
+                <h2>维护值班规则</h2>
+                <p>按真实值班顺序维护团队名单。发布后从今天开始使用新规则，今天之前的排班不主动改变。</p>
               </div>
               <div class="team-config-actions">
                 <button class="primary" id="teamNextActionBtn" type="button">发布到公开页</button>
@@ -1327,17 +1291,6 @@
                       <label for="team1Name">团队名称</label>
                       <input id="team1Name" />
                     </div>
-                    <div>
-                      <label for="team1Last">兜底起点</label>
-                      <select id="team1Last"></select>
-                    </div>
-                  </div>
-                  <div class="anchor-editor">
-                    <div class="anchor-editor-head">
-                      <label>接龙节点</label>
-                      <button type="button" data-act="add-anchor" data-team="1">添加节点</button>
-                    </div>
-                    <div class="anchor-list" id="team1Anchors"></div>
                   </div>
                   <div class="member-field">
                     <label for="team1Members">成员名单</label>
@@ -1362,17 +1315,6 @@
                       <label for="team2Name">团队名称</label>
                       <input id="team2Name" />
                     </div>
-                    <div>
-                      <label for="team2Last">兜底起点</label>
-                      <select id="team2Last"></select>
-                    </div>
-                  </div>
-                  <div class="anchor-editor">
-                    <div class="anchor-editor-head">
-                      <label>接龙节点</label>
-                      <button type="button" data-act="add-anchor" data-team="2">添加节点</button>
-                    </div>
-                    <div class="anchor-list" id="team2Anchors"></div>
                   </div>
                   <div class="member-field">
                     <label for="team2Members">成员名单</label>
@@ -1397,17 +1339,6 @@
                       <label for="team3Name">团队名称</label>
                       <input id="team3Name" />
                     </div>
-                    <div>
-                      <label for="team3Last">兜底起点</label>
-                      <select id="team3Last"></select>
-                    </div>
-                  </div>
-                  <div class="anchor-editor">
-                    <div class="anchor-editor-head">
-                      <label>接龙节点</label>
-                      <button type="button" data-act="add-anchor" data-team="3">添加节点</button>
-                    </div>
-                    <div class="anchor-list" id="team3Anchors"></div>
                   </div>
                   <div class="member-field">
                     <label for="team3Members">成员名单</label>
@@ -1448,8 +1379,8 @@
             <li>仓库地址是 <a href="https://github.com/Drizeele2026/work" target="_blank" rel="noopener noreferrer">Drizeele2026/work</a>。</li>
           </ul>
           <h3>排班规则</h3>
-          <p>每个团队独立排班，按成员名单顺序循环。管理页里的“接龙节点”表示从某一天接上真实排期，默认填的是基准日当天值班人。</p>
-          <p>排班按自然日连续推进，周一到周日都算一天，不跳过周六周日。查看后续月份时，会从每个团队自己的最近节点继续往后推，不会每个月重新从第一个人开始。</p>
+          <p>每个团队独立排班，按成员名单顺序循环。负责人只维护团队名称和成员名单，系统会按已发布规则继续顺排。</p>
+          <p>排班按自然日连续推进，周一到周日都算一天，不跳过周六周日。查看后续月份时，会沿用当前规则继续往后推，不会每个月重新从第一个人开始。</p>
           <h3>为什么这样排</h3>
           <p>核心目标是公平，而且规则要透明。顺序轮转让每个人都按同一条队列往前走，人数不能整除月份天数时，最多也只是相差 1 天。</p>
           <p>周六周日也放在同一条自然日队列里，周末值班会随着日期一起往后滚。这样大家都有份，不会固定压在几个人身上，也不会有人长期避开周末。</p>
@@ -1477,8 +1408,8 @@
     <div class="principles-dialog-body">
       <section>
         <h3>排班规则</h3>
-        <p>每个团队独立排班，按成员名单顺序循环。管理页里的“接龙节点”表示从某一天接上真实排期，默认填的是基准日当天值班人。</p>
-        <p>排班按自然日连续推进，周一到周日都算一天，不跳过周六周日。后续月份会从每个团队自己的最近节点继续往后推。</p>
+        <p>每个团队独立排班，按成员名单顺序循环。负责人只维护团队名称和成员名单，系统会按已发布规则继续顺排。</p>
+        <p>排班按自然日连续推进，周一到周日都算一天，不跳过周六周日。发布新规则后，只会影响当天和后面的日期。</p>
       </section>
       <section>
         <h3>为什么公平</h3>
@@ -1509,13 +1440,10 @@
     const DEFAULT_CONFIG = {
       team1Name: "前端",
       team1Members: ["郑刘利", "林颖", "林胜聪", "刘红辉", "方思琪"],
-      team1Last: "郑刘利",
       team2Name: "后端",
       team2Members: ["綦鹏", "陈琦", "张凯", "张家南", "李尚忠", "俞如滃", "杨朋举", "郭绍东"],
-      team2Last: "陈琦",
       team3Name: "测试",
-      team3Members: ["许绵绵", "郑成清", "谭贤", "钟右梅"],
-      team3Last: "钟右梅"
+      team3Members: ["许绵绵", "郑成清", "谭贤", "钟右梅"]
     };
 
     const $ = (id) => document.getElementById(id);
@@ -1530,7 +1458,6 @@
     const PUBLISH_LOADING_MIN_MS = 800;
     let pendingMonth = null;
     let persistedMonth = null;
-    let draftSeedState = null;
     let lastGeneratedMonthGridHTML = "";
     let lastGeneratedMonthGridPlain = "";
     let lastSummary = [];
@@ -1696,92 +1623,11 @@
       $("month").value = now.getMonth() + 1;
     }
 
-    function setTeamLastOptions(index, members, selectedLast) {
-      const select = $(`team${index}Last`);
-      const current = String(selectedLast || "").trim().replace(/@/g, "");
-      const names = memberUtils.memberNames(members);
-      select.innerHTML = "";
-
-      if (!names.length) {
-        const option = document.createElement("option");
-        option.value = "";
-        option.textContent = "先填写成员";
-        select.appendChild(option);
-        return;
-      }
-
-      names.forEach((member) => {
-        const option = document.createElement("option");
-        option.value = member;
-        option.textContent = member;
-        select.appendChild(option);
-      });
-
-      select.value = names.includes(current) ? current : names[0];
-    }
-
-    function currentMonthFirstDateKey() {
-      const now = new Date();
-      const year = Number($("year")?.value) || now.getFullYear();
-      const month = Number($("month")?.value) || now.getMonth() + 1;
-      return dateKeyForDay(year, month, 1);
-    }
-
-    function normalizeTeamAnchors(team) {
-      return normalizeAnchors(team?.anchors, memberUtils.memberNames(team?.members || []));
-    }
-
-    function inferDisplayAnchors(team, members) {
-      const names = memberUtils.memberNames(members);
-      const anchors = normalizeAnchors(team?.anchors, names);
-      if (anchors.length) return anchors;
-      const last = String(team?.last || "").trim().replace(/@/g, "");
-      return names.includes(last)
-        ? [{ date: currentMonthFirstDateKey(), mode: "previousDay", person: last }]
-        : [];
-    }
-
-    function readTeamAnchors(index) {
-      const box = $(`team${index}Anchors`);
-      if (!box) return [];
-      return [...box.querySelectorAll(".anchor-row")].map((row) => ({
-        date: row.querySelector('[data-field="date"]')?.value || "",
-        mode: row.querySelector('[data-field="mode"]')?.value || "currentDay",
-        person: row.querySelector('[data-field="person"]')?.value || ""
-      }));
-    }
-
-    function renderAnchorEditor(index, members, anchors = []) {
-      const box = $(`team${index}Anchors`);
-      if (!box) return;
-      const names = memberUtils.memberNames(members);
-      const normalized = normalizeAnchors(anchors, names);
-      if (!names.length) {
-        box.innerHTML = `<div class="anchor-empty">先添加成员，再设置接龙节点。</div>`;
-        return;
-      }
-      const rows = normalized.map((anchor, anchorIndex) => `
-        <div class="anchor-row" data-anchor-index="${anchorIndex}">
-          <input type="date" value="${escapeHtml(anchor.date)}" data-field="date" aria-label="节点日期">
-          <select data-field="mode" aria-label="节点模式">
-            <option value="currentDay"${anchor.mode === "currentDay" ? " selected" : ""}>当天值班人</option>
-            <option value="previousDay"${anchor.mode === "previousDay" ? " selected" : ""}>前一天值班人</option>
-          </select>
-          <select data-field="person" aria-label="节点人员">
-            ${names.map((name) => `<option value="${escapeHtml(name)}"${name === anchor.person ? " selected" : ""}>${escapeHtml(name)}</option>`).join("")}
-          </select>
-          <button type="button" data-act="delete-anchor" title="删除节点">删除</button>
-        </div>
-      `).join("");
-      box.innerHTML = rows || `<div class="anchor-empty">还没有节点。添加一个日期，系统会从那天接着排。</div>`;
-    }
-
     function setTeamForm(index, team) {
       const members = Array.isArray(team.members) ? team.members : [];
       $(`team${index}Name`).value = team.name || "";
       $(`team${index}Members`).value = memberUtils.formatMembers(members);
-      setTeamLastOptions(index, members, team.last || "");
-      renderAnchorEditor(index, members, inferDisplayAnchors(team, members));
+      renderMemberPreview(index, members);
     }
 
     function renderMemberPreview(index, members) {
@@ -1950,13 +1796,13 @@
       if (!status) return;
       if (messageType === "error") {
         status.className = "status-strip danger";
-        status.innerHTML = `<span><strong>下一步：修正名单</strong> · 请检查团队名称、成员名单和接龙节点。</span><span>修正后再保存</span>`;
+        status.innerHTML = `<span><strong>下一步：修正名单</strong> · 请检查团队名称和成员名单。</span><span>修正后再发布</span>`;
         setTeamNextAction("修正后发布");
         return;
       }
       if (teamConfigDirty) {
         status.className = "status-strip";
-        status.innerHTML = `<span><strong>下一步：发布到公开页</strong> · 点击右上按钮会保存名单、生成本月排班并发布。</span><span>失败会直接提示原因</span>`;
+        status.innerHTML = `<span><strong>下一步：发布到公开页</strong> · 点击右上按钮会保存规则并更新公开页。</span><span>失败会直接提示原因</span>`;
         setTeamNextAction("发布到公开页");
         return;
       }
@@ -1968,7 +1814,7 @@
       }
       status.className = "status-strip success";
       const savedText = teamConfigSavedAt ? `已保存 ${teamConfigSavedAt}` : "已保存到本机";
-      status.innerHTML = `<span><strong>下一步：发布到公开页</strong> · 名单${savedText}，点击后会更新公开页。</span><span>自动生成本月排班</span>`;
+      status.innerHTML = `<span><strong>下一步：发布到公开页</strong> · 名单${savedText}，点击后会更新公开页。</span><span>按已发布规则预览</span>`;
       setTeamNextAction("发布到公开页");
     }
 
@@ -1996,18 +1842,15 @@
     function applyDefaultMembers() {
       setTeamForm(1, {
         name: DEFAULT_CONFIG.team1Name,
-        members: DEFAULT_CONFIG.team1Members,
-        last: DEFAULT_CONFIG.team1Last
+        members: DEFAULT_CONFIG.team1Members
       });
       setTeamForm(2, {
         name: DEFAULT_CONFIG.team2Name,
-        members: DEFAULT_CONFIG.team2Members,
-        last: DEFAULT_CONFIG.team2Last
+        members: DEFAULT_CONFIG.team2Members
       });
       setTeamForm(3, {
         name: DEFAULT_CONFIG.team3Name,
-        members: DEFAULT_CONFIG.team3Members,
-        last: DEFAULT_CONFIG.team3Last
+        members: DEFAULT_CONFIG.team3Members
       });
       syncTeamCards();
     }
@@ -2226,8 +2069,7 @@
       return [1, 2, 3].map((index) => ({
         name: $(`team${index}Name`).value.trim(),
         members: parseMembers($(`team${index}Members`).value),
-        last: $(`team${index}Last`).value.trim().replace(/@/g, ""),
-        anchors: readTeamAnchors(index)
+        color: teamColors[index - 1]
       }));
     }
 
@@ -2237,9 +2079,7 @@
         if (!team) return;
         setTeamForm(index, {
           name: team.name || "",
-          members: Array.isArray(team.members) ? team.members : [],
-          last: team.last || "",
-          anchors: Array.isArray(team.anchors) ? team.anchors : []
+          members: Array.isArray(team.members) ? team.members : []
         });
       });
       syncTeamCards();
@@ -2337,48 +2177,19 @@
     }
 
     function simplifyTeams(teams) {
-      return teams.map((team) => ({
+      return teams.map((team, index) => ({
         name: team.name,
         members: memberUtils.serializeMembers(team.members),
-        last: team.last,
-        anchors: normalizeTeamAnchors(team),
-        color: team.color?.name || team.color || ""
+        color: team.color?.name || team.color || teamColors[index]?.name || ""
       }));
     }
 
     function cloneTeamsForDraft(teams) {
       return teams.map((team) => ({
-        ...team,
+        name: team.name,
         members: memberUtils.serializeMembers(team.members),
-        anchors: normalizeTeamAnchors(team),
         color: team.color
       }));
-    }
-
-    function createDraftSeed(year, month, teams) {
-      draftSeedState = {
-        year,
-        month,
-        monthKey: formatMonthKey(year, month),
-        teams: cloneTeamsForDraft(teams)
-      };
-    }
-
-    function deriveTeamsForMonth(year, month) {
-      if (!draftSeedState) return null;
-      const dayOffset = monthStartDayOffset(draftSeedState.year, draftSeedState.month, year, month);
-      return draftSeedState.teams.map((team) => {
-        const names = memberUtils.memberNames(team.members);
-        const anchors = normalizeTeamAnchors(team);
-        const lastIndex = names.indexOf(team.last);
-        const shiftedIndex = wrapIndex(lastIndex + dayOffset, names.length);
-        return {
-          ...team,
-          members: memberUtils.serializeMembers(team.members),
-          anchors,
-          last: anchors.length ? team.last : names[shiftedIndex]
-        };
-      });
     }
 
     function simplifyAssignments(dailyAssignments) {
@@ -2458,31 +2269,10 @@
 
     function buildScheduleDocument(state, remoteDocument = null) {
       const now = new Date().toISOString();
-      const teams = simplifyTeams(state.teams);
-      const configTeams = simplifyTeams(state.configTeams || state.teams);
-      const monthEntry = {
-        year: state.year,
-        month: state.month,
-        generatedAt: now,
-        teams,
-        dailyAssignments: simplifyAssignments(state.result.dailyAssignments),
-        summary: state.summary
-      };
-      if (scheduleUtils?.mergeGeneratedMonthWithRemote) {
-        scheduleUtils.mergeGeneratedMonthWithRemote(monthEntry, remoteDocument, { publishDateKey: todayDateKey() });
-      } else {
-        mergePublishedAssignmentsBeforeAnchors(monthEntry, remoteDocument?.months?.[state.monthKey], teams, remoteDocument);
-      }
-      monthEntry.summary = buildSummaryFromAssignments(teams, monthEntry.dailyAssignments);
-
-      return {
-        version: 1,
-        updatedAt: now,
-        config: { teams: configTeams },
-        months: {
-          [state.monthKey]: monthEntry
-        }
-      };
+      return scheduleUtils.buildPublishedDocument(remoteDocument, simplifyTeams(state.configTeams || state.teams), {
+        publishDateKey: todayDateKey(),
+        updatedAt: now
+      });
     }
 
     async function loadRemoteSchedulePreview() {
@@ -2662,7 +2452,7 @@
     async function saveScheduleToGithub(preloadedRemote = null) {
       clearGithubMessage();
       if (!lastGeneratedState) {
-        throw new Error("请先生成本月排班，再发布到公开页。");
+        throw new Error("请先维护团队名单，再发布到公开页。");
       }
       const settings = readGithubSettings();
       const repoApiBase = getRepoApiBase();
@@ -2670,15 +2460,8 @@
       const remote = preloadedRemote || await loadGithubScheduleDocument();
 
       const document = buildScheduleDocument(lastGeneratedState, remote.document);
-      if (remote.document?.months) {
-        document.months = {
-          ...remote.document.months,
-          ...document.months
-        };
-      }
-
       const body = {
-        message: `chore: update schedule ${lastGeneratedState.monthKey}`,
+        message: `chore: update roster rules ${todayDateKey()}`,
         content: encodeBase64Utf8(`${JSON.stringify(document, null, 2)}\n`)
       };
       if (remote.sha) body.sha = remote.sha;
@@ -2698,7 +2481,7 @@
       persistGithubSettings(settings);
       persistTeamConfigToStorage();
       if ($("notePersistence")) {
-        $("notePersistence").textContent = `${lastGeneratedState.monthKey} 已发布到公开页；未来月份会接着这个结果推算。`;
+        $("notePersistence").textContent = `已发布值班规则；今天之前不主动改变，今天及以后按新规则顺排。`;
       }
       syncTopbar();
       setGithubMessage("ok", `已发布到公开页，同时提交到 ${settings.repoSlug}/${SCHEDULE_FILE}。`);
@@ -2709,10 +2492,8 @@
       const teams = [1, 2, 3].map((index) => {
         const name = $(`team${index}Name`).value.trim();
         const members = parseMembers($(`team${index}Members`).value);
-        const last = $(`team${index}Last`).value.trim().replace(/@/g, "");
-        const anchors = readTeamAnchors(index);
-        return { name, members, last, anchors, color: teamColors[index - 1] };
-      }).filter((team) => team.name || team.members.length || team.last || team.anchors.length);
+        return { name, members, color: teamColors[index - 1] };
+      }).filter((team) => team.name || team.members.length);
 
       if (!teams.length) throw new Error("至少要配置一个团队和成员名单。");
 
@@ -2720,100 +2501,17 @@
         const names = memberUtils.memberNames(team.members);
         if (!team.name) throw new Error("团队名称不能为空。");
         if (!names.length) throw new Error(`团队【${team.name}】至少要有一个成员。`);
-        if (!team.last) throw new Error(`团队【${team.name}】请填写兜底起点。`);
-        if (!names.includes(team.last)) {
-          throw new Error(`团队【${team.name}】中找不到“${team.last}”，请确认成员名单和兜底起点一致。`);
-        }
-        team.anchors = normalizeTeamAnchors(team);
-        team.anchors.forEach((anchor) => {
-          if (!names.includes(anchor.person)) {
-            throw new Error(`团队【${team.name}】的节点人员“${anchor.person}”不在成员名单里。`);
-          }
-        });
       });
 
-      return teams;
-    }
-
-    function applyRosterChangeAnchorsToForm(remoteDocument = remoteScheduleDocument) {
-      const teams = buildTeamData();
-      if (!remoteDocument || !scheduleUtils?.applyRosterChangeAnchors) return teams;
-
-      const anchoredTeams = scheduleUtils.applyRosterChangeAnchors(teams, remoteDocument, { publishDateKey: todayDateKey() });
-      if (JSON.stringify(simplifyTeams(anchoredTeams)) !== JSON.stringify(simplifyTeams(teams))) {
-        applyTeamFormState(anchoredTeams);
-        return buildTeamData();
-      }
       return teams;
     }
 
     function generateAssignments(year, month, teams) {
-      const firstDay = new Date(year, month - 1, 1);
-      const daysInMonth = new Date(year, month, 0).getDate();
-      const startWeekday = (firstDay.getDay() + 6) % 7;
-      const counts = {};
-      const dailyAssignments = [];
-
-      teams.forEach((team) => {
-        counts[team.name] = Object.fromEntries(memberUtils.memberNames(team.members).map((member) => [member, 0]));
+      const schedule = scheduleUtils.buildPublishedDocument(null, simplifyTeams(teams), {
+        publishDateKey: dateKeyForDay(year, month, 1),
+        updatedAt: new Date().toISOString()
       });
-
-      for (let day = 1; day <= daysInMonth; day++) {
-        const currentDate = new Date(year, month - 1, day);
-        const item = {
-          day,
-          dateStr: `${year}/${pad2(month)}/${pad2(day)}`,
-          weekdayStr: weekdayNamesByDate[currentDate.getDay()],
-          teams: []
-        };
-
-        teams.forEach((team) => {
-          const names = memberUtils.memberNames(team.members);
-          const dateKey = dateKeyForDay(year, month, day);
-          const anchors = normalizeTeamAnchors(team);
-          const anchor = getAnchorForDate(dateKey, anchors);
-          let personName = "";
-          if (anchor) {
-            personName = getPersonFromAnchor(anchor, dateKey, names);
-          } else {
-            const lastIndex = names.indexOf(team.last);
-            personName = names[wrapIndex(lastIndex + day, names.length)];
-          }
-          const member = team.members.find((item) => memberUtils.memberName(item) === personName) || team.members[0];
-          const person = memberUtils.memberName(member);
-          const feishuOpenId = memberUtils.memberOpenId(member);
-          item.teams.push({ name: team.name, person, feishuOpenId, color: team.color });
-          counts[team.name][person] += 1;
-        });
-
-        dailyAssignments.push(item);
-      }
-
-      return { startWeekday, daysInMonth, counts, dailyAssignments };
-    }
-
-    function getDutyPersonFromTeamsForDate(teams, teamIndex, dateKey) {
-      const [year, month, day] = dateKey.split("-").map(Number);
-      const targetTeam = teams[teamIndex - 1];
-      if (!targetTeam || !year || !month || !day) return "";
-      const result = generateAssignments(year, month, teams);
-      return result.dailyAssignments[day - 1]?.teams.find((team) => team.name === targetTeam.name)?.person || "";
-    }
-
-    function getCurrentTeamDutyPerson(index, fallback = "") {
-      const now = new Date();
-      const dateKey = dateKeyForDay(now.getFullYear(), now.getMonth() + 1, now.getDate());
-      try {
-        const teams = buildTeamData();
-        const person = getDutyPersonFromTeamsForDate(teams, index, dateKey);
-        if (person) return person;
-      } catch (error) {
-        // 表单编辑到一半时先不打断添加节点，后面用已发布排班或兜底人员。
-      }
-
-      const teamName = $(`team${index}Name`)?.value.trim();
-      const published = teamName ? findPublishedDutyTeam(remoteScheduleDocument, dateKey, teamName) : null;
-      return published?.person || fallback;
+      return scheduleUtils.generateAssignmentsForMonth(schedule, year, month);
     }
 
     function renderCalendar(year, month, startWeekday, daysInMonth, dailyAssignments) {
@@ -2874,7 +2572,6 @@
     function renderSummary(year, month, teams, counts, dailyAssignments) {
       const lastDay = dailyAssignments[dailyAssignments.length - 1];
       const monthKey = formatMonthKey(year, month);
-      const seedKey = draftSeedState?.monthKey || monthKey;
       lastSummary = teams.map((team) => {
         const lastPerson = lastDay.teams.find((item) => item.name === team.name)?.person || "-";
         return {
@@ -2907,10 +2604,10 @@
         </tbody>
       `;
 
-      if ($("noteMonth")) $("noteMonth").textContent = `从 ${seedKey} 起连续推算，当前展示 ${monthKey}，共 ${dailyAssignments.length} 天、${teams.length} 个团队。`;
+      if ($("noteMonth")) $("noteMonth").textContent = `当前展示 ${monthKey}，共 ${dailyAssignments.length} 天、${teams.length} 个团队。`;
       if ($("noteRoster")) $("noteRoster").textContent = `当前花名册：${teams.map((team) => `${team.name}${team.members.length}人`).join("，")}。`;
-      if ($("draftRange")) $("draftRange").textContent = `${seedKey} 起，无上限向后`;
-      $("calendarSubtitle").textContent = `从 ${seedKey} 起按节点接龙`;
+      if ($("draftRange")) $("draftRange").textContent = "按规则版本顺排";
+      $("calendarSubtitle").textContent = "按规则版本顺排";
     }
 
     function renderPublishedScheduleMonth(document, year, month) {
@@ -2936,7 +2633,6 @@
         monthKey,
         teams,
         configTeams: normalizePublishedTeams({ config: document?.config }, { teams: document?.config?.teams || [] }, dailyAssignments),
-        draftSeed: null,
         result: { startWeekday, daysInMonth, counts, dailyAssignments },
         summary: lastSummary,
         remotePreview: document
@@ -2968,8 +2664,6 @@
       const teams = generated.teams.map((team, index) => ({
         name: team.name,
         members: memberUtils.serializeMembers(team.members),
-        last: team.last,
-        anchors: Array.isArray(team.anchors) ? team.anchors : [],
         color: resolveTeamColor(team.color, index)
       }));
       const dailyAssignments = generated.dailyAssignments.map((day) => ({
@@ -2991,7 +2685,6 @@
         monthKey,
         teams,
         configTeams: normalizePublishedTeams({ config: document?.config }, { teams: document?.config?.teams || [] }, dailyAssignments),
-        draftSeed: null,
         result: { startWeekday: generated.startWeekday, daysInMonth: generated.daysInMonth, counts: generated.counts, dailyAssignments },
         summary: lastSummary,
         remotePreview: document
@@ -3095,10 +2788,7 @@
         }
 
         const formTeams = buildTeamData();
-        if (options.resetSeed || !draftSeedState) {
-          createDraftSeed(year, month, formTeams);
-        }
-        const teams = deriveTeamsForMonth(year, month);
+        const teams = cloneTeamsForDraft(formTeams);
         const result = generateAssignments(year, month, teams);
         renderCalendar(year, month, result.startWeekday, result.daysInMonth, result.dailyAssignments);
         renderSummary(year, month, teams, result.counts, result.dailyAssignments);
@@ -3111,7 +2801,6 @@
           monthKey: formatMonthKey(year, month),
           teams,
           configTeams: cloneTeamsForDraft(formTeams),
-          draftSeed: draftSeedState,
           result,
           summary: lastSummary,
           remotePreview: null
@@ -3125,14 +2814,14 @@
         if ($("syncTime")) $("syncTime").textContent = nowTime();
         if ($("notePersistence")) {
           $("notePersistence").textContent = options.passive
-            ? "当前只是查看排班。要发布变更，请进入“修改名单”。"
-            : "本月排班已生成，正在准备发布到公开页。";
+            ? "当前只是查看排班。要发布变更，请进入“维护值班规则”。"
+            : "已按当前名单预览排班，发布后从今天开始生效。";
         }
         renderConfirmView();
         syncTopbar();
 
         if (!options.silent) {
-          showOk("本月排班已生成。");
+          showOk("已按当前名单预览排班。");
         }
         return true;
       } catch (error) {
@@ -3242,14 +2931,13 @@
         const remote = settings.token
           ? await loadGithubScheduleDocument()
           : { sha: null, document: remoteScheduleDocument };
-        applyRosterChangeAnchorsToForm(remote.document);
         persistTeamConfigToStorage();
         setCurrentYearMonth();
         populateMonthPicker(Number($("year").value), Number($("month").value));
         updateMonthLabels(Number($("year").value), Number($("month").value));
         const ok = generateSchedule({ resetSeed: true, silent: true });
         if (!ok) {
-          throw new Error("本月排班生成失败，请检查名单和接龙节点。");
+          throw new Error("本月排班生成失败，请检查团队名称和成员名单。");
         }
         if (!settings.token) {
           openGithubSettings("githubToken");
@@ -3283,34 +2971,6 @@
       [1, 2, 3].forEach((index) => {
         $(`team${index}Name`).addEventListener("input", () => {
           syncTeamCards();
-          setTeamConfigDirty(true);
-        });
-        $(`team${index}Last`).addEventListener("change", () => {
-          syncTeamCards();
-          setTeamConfigDirty(true);
-        });
-        $(`team${index}Anchors`)?.addEventListener("change", () => {
-          syncTeamCards();
-          setTeamConfigDirty(true);
-        });
-        $(`team${index}Anchors`)?.addEventListener("click", (event) => {
-          if (event.target.dataset?.act !== "delete-anchor") return;
-          event.target.closest(".anchor-row")?.remove();
-          syncTeamCards();
-          setTeamConfigDirty(true);
-        });
-        document.querySelector(`[data-act="add-anchor"][data-team="${index}"]`)?.addEventListener("click", () => {
-          const members = parseMembers($(`team${index}Members`).value);
-          const names = memberUtils.memberNames(members);
-          if (!names.length) return;
-          const now = new Date();
-          const anchors = readTeamAnchors(index);
-          anchors.push({
-            date: dateKeyForDay(now.getFullYear(), now.getMonth() + 1, now.getDate()),
-            mode: "currentDay",
-            person: getCurrentTeamDutyPerson(index, names[0])
-          });
-          renderAnchorEditor(index, members, anchors);
           setTeamConfigDirty(true);
         });
         bindMemberEditor(index);
