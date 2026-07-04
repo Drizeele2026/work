@@ -20,7 +20,9 @@ verifyPage(publicHtml, "公开页", "./organization-utils.js");
 verifyPage(adminHtml, "管理页", "../organization-utils.js");
 
 assert.equal(organizations.defaultOrg, "default");
-assert.equal(organizations.organizations[0].schedulePath, "data/orgs/default/schedule.json");
+const defaultOrganization = organizations.organizations.find((org) => org.slug === organizations.defaultOrg);
+assert.ok(defaultOrganization, "默认组织必须存在");
+assert.equal(defaultOrganization.schedulePath, "data/orgs/default/schedule.json");
 assert.match(workflow, /FEISHU_WEBHOOK:/, "workflow 需要继续暴露默认组织使用的 FEISHU_WEBHOOK");
 
 console.log("多组织静态检查通过");

@@ -1374,7 +1374,7 @@
           <h3>数据放在哪里</h3>
           <ul>
             <li>页面文件是 <code>index.html</code>。</li>
-            <li>排班数据建议放在 <code>data/schedule.json</code>。</li>
+            <li>组织索引放在 <code>data/organizations.json</code>，当前组织排班放在 <code>data/orgs/{slug}/schedule.json</code>。</li>
             <li>介绍内容可以放在 <code>data/about.md</code>，后续再接页面渲染。</li>
             <li>仓库地址是 <a href="https://github.com/Drizeele2026/work" target="_blank" rel="noopener noreferrer">Drizeele2026/work</a>。</li>
           </ul>
@@ -1387,7 +1387,7 @@
           <p>跨月继续接龙也是同一个原因。如果每个月都从第一个人重新开始，月初、月末和周末容易反复落到同一批人身上。连续推算可以把这种偏差摊开。</p>
           <h3>系统实现原理</h3>
           <p>这个工具不需要服务器。公开页直接读取仓库里的排班文件，团队成员打开链接就能看，不需要登录，也不需要配置 token。</p>
-          <p>需要改排班时，只有负责人进入管理地址，在可信电脑上配置一次 GitHub PAT。点击发布到公开页时，本质上就是把新的 <code>data/schedule.json</code> 提交到 GitHub。</p>
+          <p>需要改排班时，只有负责人进入管理地址，在可信电脑上配置一次 GitHub PAT。点击发布时，本质上就是把当前组织的排班文件写回 <code>data/orgs/{slug}/schedule.json</code>。</p>
           <p>GitHub Pages 负责托管公开页和管理页；GitHub Actions 负责跑自动提醒；提醒规则写在 <code>.github/workflows/duty-reminder.yml</code> 这个 workflow 里。</p>
           <p>所以仓库就是持久化存储，commit 就是保存记录。每次修改都有提交历史，出了问题可以对比、追溯，也可以回滚。</p>
           <h3>当前版本</h3>
@@ -1418,7 +1418,7 @@
       </section>
       <section>
         <h3>系统实现原理</h3>
-        <p>这个工具没有服务器。公开页读取仓库里的 <code>data/schedule.json</code> 展示排班，团队成员打开链接就能看，不需要登录。</p>
+        <p>这个工具没有服务器。公开页读取组织索引 <code>data/organizations.json</code>，再展示当前组织对应的 <code>data/orgs/{slug}/schedule.json</code>，团队成员打开链接就能看，不需要登录。</p>
         <p>负责人在管理页配置 GitHub PAT 后，点击发布会把新的排班文件提交到 GitHub。GitHub Pages 负责托管页面，GitHub Actions 按 <code>.github/workflows/duty-reminder.yml</code> 这个 workflow 跑每日提醒，commit 负责留下历史记录。</p>
       </section>
     </div>
