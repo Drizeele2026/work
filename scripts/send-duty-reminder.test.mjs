@@ -15,22 +15,24 @@ import {
 } from "./send-duty-reminder.mjs";
 
 const schedule = {
-  months: {
-    "2026-06": {
-      dailyAssignments: [
-        {
-          day: 19,
-          dateStr: "2026/06/19",
-          weekdayStr: "周五",
-          teams: [
-            { name: "前端", person: "方思琪", feishuOpenId: "ou_frontend", color: "blue" },
-            { name: "后端", person: "李尚忠", color: "green" },
-            { name: "测试", person: "谭贤", feishuOpenId: "ou_test", color: "violet" }
-          ]
-        }
+  version: 2,
+  current: {
+    teams: [
+      { name: "前端", color: "blue", members: [{ name: "方思琪", feishuOpenId: "ou_frontend" }, "郑刘利"] },
+      { name: "后端", color: "green", members: ["李尚忠", "张家南"] },
+      { name: "测试", color: "violet", members: [{ name: "谭贤", feishuOpenId: "ou_test" }, "郑成清"] }
+    ]
+  },
+  ruleVersions: [
+    {
+      effectiveDate: "2026-06-19",
+      teams: [
+        { name: "前端", color: "blue", startPerson: "方思琪", members: [{ name: "方思琪", feishuOpenId: "ou_frontend" }, "郑刘利"] },
+        { name: "后端", color: "green", startPerson: "李尚忠", members: ["李尚忠", "张家南"] },
+        { name: "测试", color: "violet", startPerson: "谭贤", members: [{ name: "谭贤", feishuOpenId: "ou_test" }, "郑成清"] }
       ]
     }
-  }
+  ]
 };
 
 test("formatBeijingDate returns Beijing calendar fields", () => {
@@ -54,17 +56,25 @@ test("findAssignmentForDate reads today's duty from schedule.json", () => {
   );
 });
 
-test("findAssignmentForDate 没有快照但有配置时顺排生成", () => {
+test("findAssignmentForDate 按规则版本顺排生成", () => {
   const result = findAssignmentForDate({
-    config: {
+    version: 2,
+    current: {
       teams: [
-        { name: "前端", members: ["A", "B"], last: "A", color: "blue" }
+        { name: "前端", color: "blue", members: ["A", "B"] }
       ]
     },
-    months: {}
-  }, "2026-07-01");
+    ruleVersions: [
+      {
+        effectiveDate: "2026-07-01",
+        teams: [
+          { name: "前端", color: "blue", startPerson: "A", members: ["A", "B"] }
+        ]
+      }
+    ]
+  }, "2026-07-02");
 
-  assert.equal(result.dateStr, "2026/07/01");
+  assert.equal(result.dateStr, "2026/07/02");
   assert.equal(result.teams[0].person, "B");
 });
 
@@ -94,20 +104,20 @@ test("buildFeishuCardMessage 用色点标记团队、@ 配了 openId 的人、�
 
 test("collectUpcoming 顺排取未来几天、缺的天跳过", () => {
   const multiDay = {
-    config: {
+    version: 2,
+    current: {
       teams: [
-        { name: "前端", members: ["郑刘利", "林颖", "林胜聪"], last: "郑刘利", color: "blue" }
+        { name: "前端", color: "blue", members: ["郑刘利", "林颖", "林胜聪"] }
       ]
     },
-    months: {
-      "2026-06": {
-        dailyAssignments: [
-          { dateStr: "2026/06/20", teams: [{ name: "前端", person: "郑刘利", color: "blue" }] },
-          { dateStr: "2026/06/21", teams: [{ name: "前端", person: "林颖", color: "blue" }] },
-          { dateStr: "2026/06/22", teams: [{ name: "前端", person: "林胜聪", color: "blue" }] }
+    ruleVersions: [
+      {
+        effectiveDate: "2026-06-20",
+        teams: [
+          { name: "前端", color: "blue", startPerson: "郑刘利", members: ["郑刘利", "林颖", "林胜聪"] }
         ]
       }
-    }
+    ]
   };
   const days = collectUpcoming(multiDay, "2026-06-20", 3);
   assert.equal(days.length, 3);
@@ -117,27 +127,24 @@ test("collectUpcoming 顺排取未来几天、缺的天跳过", () => {
   assert.equal(days[2].label, "6/23 周二");
 });
 
-test("collectUpcoming 在只有 6 月快照时也能预告 7 月前三天", () => {
+test("collectUpcoming 按规则版本跨月预告", () => {
   const endOfMonth = {
-    config: {
+    version: 2,
+    current: {
       teams: [
-        { name: "前端", members: ["A", "B", "C"], last: "A", color: "blue" },
-        { name: "后端", members: ["D", "E"], last: "D", color: "green" }
+        { name: "前端", color: "blue", members: ["A", "B", "C"] },
+        { name: "后端", color: "green", members: ["D", "E"] }
       ]
     },
-    months: {
-      "2026-06": {
-        dailyAssignments: [
-          {
-            dateStr: "2026/06/30",
-            teams: [
-              { name: "前端", person: "C", color: "blue" },
-              { name: "后端", person: "E", color: "green" }
-            ]
-          }
+    ruleVersions: [
+      {
+        effectiveDate: "2026-06-30",
+        teams: [
+          { name: "前端", color: "blue", startPerson: "C", members: ["A", "B", "C"] },
+          { name: "后端", color: "green", startPerson: "E", members: ["D", "E"] }
         ]
       }
-    }
+    ]
   };
 
   const days = collectUpcoming(endOfMonth, "2026-06-30", 3);
@@ -168,21 +175,29 @@ test("buildFeishuCardMessage 预告段只显示姓名、不 @", () => {
 
 test("findAssignmentForDate can read published object-member schedules", () => {
   const objectMemberSchedule = {
-    months: {
-      "2026-06": {
-        dailyAssignments: [
+    version: 2,
+    current: {
+      teams: [
+        {
+          name: "前端",
+          color: "blue",
+          members: [{ name: "方思琪", feishuOpenId: "ou_frontend" }]
+        }
+      ]
+    },
+    ruleVersions: [
+      {
+        effectiveDate: "2026-06-19",
+        teams: [
           {
-            dateStr: "2026/06/19",
-            teams: [
-              {
-                name: "前端",
-                person: { name: "方思琪", feishuOpenId: "ou_frontend" }
-              }
-            ]
+            name: "前端",
+            color: "blue",
+            startPerson: "方思琪",
+            members: [{ name: "方思琪", feishuOpenId: "ou_frontend" }]
           }
         ]
       }
-    }
+    ]
   };
 
   const result = findAssignmentForDate(objectMemberSchedule, "2026-06-19");
@@ -190,7 +205,8 @@ test("findAssignmentForDate can read published object-member schedules", () => {
   assert.deepEqual(result.teams[0], {
     name: "前端",
     person: "方思琪",
-    feishuOpenId: "ou_frontend"
+    feishuOpenId: "ou_frontend",
+    color: "blue"
   });
 });
 
@@ -211,18 +227,20 @@ async function setupTmp() {
   const schedulePath = path.join(dir, "schedule.json");
   const statePath = path.join(dir, "state.json");
   await fs.writeFile(schedulePath, JSON.stringify({
-    config: {
+    version: 2,
+    current: {
       teams: [
-        { name: "前端", members: [{ name: "郑刘利", feishuOpenId: "ou_x" }, "林颖"], last: "林颖", color: "blue" }
+        { name: "前端", color: "blue", members: [{ name: "郑刘利", feishuOpenId: "ou_x" }, "林颖"] }
       ]
     },
-    months: {
-      "2026-06": {
-        dailyAssignments: [
-          { dateStr: "2026/06/20", teams: [{ name: "前端", person: "郑刘利", feishuOpenId: "ou_x", color: "blue" }] }
+    ruleVersions: [
+      {
+        effectiveDate: "2026-06-20",
+        teams: [
+          { name: "前端", color: "blue", startPerson: "郑刘利", members: [{ name: "郑刘利", feishuOpenId: "ou_x" }, "林颖"] }
         ]
       }
-    }
+    ]
   }));
   return { schedulePath, statePath };
 }
