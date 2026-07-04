@@ -2367,9 +2367,9 @@
       }
     }
 
-    async function loadGithubScheduleDocument() {
+    async function loadGithubScheduleDocument(schedulePath = getCurrentSchedulePath()) {
       const repoApiBase = getRepoApiBase();
-      const contentsUrl = `${repoApiBase}/contents/${getCurrentSchedulePath()}`;
+      const contentsUrl = `${repoApiBase}/contents/${schedulePath}`;
       const response = await githubRequest(contentsUrl);
       if (response.status === 404) {
         return { sha: null, document: null };
@@ -2405,13 +2405,18 @@
         throw new Error("请先维护团队名单，再发布到公开页。");
       }
       const settings = readGithubSettings();
+      const schedulePath = getCurrentSchedulePath();
       const repoApiBase = getRepoApiBase();
-      const contentsUrl = `${repoApiBase}/contents/${getCurrentSchedulePath()}`;
-      const remote = preloadedRemote || await loadGithubScheduleDocument();
+      const contentsUrl = `${repoApiBase}/contents/${schedulePath}`;
+      const remote = preloadedRemote || await loadGithubScheduleDocument(schedulePath);
 
       const document = buildScheduleDocument(lastGeneratedState, remote.document);
+      document.organization = {
+        slug: currentOrganization?.slug || "default",
+        name: currentOrganization?.name || "默认组织"
+      };
       const body = {
-        message: `chore: update roster rules ${todayDateKey()}`,
+        message: `chore: update ${document.organization.slug} roster rules ${todayDateKey()}`,
         content: encodeBase64Utf8(`${JSON.stringify(document, null, 2)}\n`)
       };
       if (remote.sha) body.sha = remote.sha;
@@ -2434,7 +2439,7 @@
         $("notePersistence").textContent = `已发布值班规则；今天之前不主动改变，今天及以后按新规则顺排。`;
       }
       syncTopbar();
-      setGithubMessage("ok", `已发布到公开页，同时提交到 ${settings.repoSlug}/${getCurrentSchedulePath()}。`);
+      setGithubMessage("ok", `已发布到公开页，同时提交到 ${settings.repoSlug}/${schedulePath}。`);
       return result;
     }
 

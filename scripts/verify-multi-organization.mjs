@@ -12,6 +12,10 @@ function verifyPage(html, label, scriptPath) {
   assert.match(html, /let currentOrganization = null;/, `${label} 需要保存当前组织`);
   assert.match(html, /async function loadCurrentOrganization\(\)/, `${label} 需要加载当前组织`);
   assert.match(html, /function getCurrentSchedulePath\(\)/, `${label} 需要按组织返回 schedule 路径`);
+  assert.match(html, /async function loadGithubScheduleDocument\(schedulePath = getCurrentSchedulePath\(\)\)/, `${label} GitHub 读取需要按当前组织路径`);
+  assert.match(html, /async function saveScheduleToGithub\(preloadedRemote = null\)/, `${label} GitHub 保存需要接受预加载远端文档`);
+  assert.match(html, /const contentsUrl = `\$\{repoApiBase\}\/contents\/\$\{schedulePath\}`;/, `${label} GitHub Contents API 需要使用组织 schedule 路径`);
+  assert.match(html, /同时提交到 \$\{settings\.repoSlug\}\/\$\{schedulePath\}/, `${label} 发布成功文案需要显示当前组织路径`);
   assert.match(html, /orgUtils\.relativeDataPath\(getCurrentSchedulePath\(\), isAdminRoute\(\)\)/, `${label} 读取排班时不能写死 data\/schedule.json`);
   assert.doesNotMatch(html, /const SCHEDULE_FILE = "data\/schedule\.json";/, `${label} 不应再用固定 SCHEDULE_FILE`);
 }
