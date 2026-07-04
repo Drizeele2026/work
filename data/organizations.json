@@ -1,17 +1,41 @@
 {
   "version": 1,
-  "defaultOrg": "default",
+  "defaultOrg": "intelligence",
   "organizations": [
     {
-      "slug": "default",
-      "name": "默认组织",
+      "slug": "intelligence",
+      "name": "智慧门店",
       "owners": [],
-      "schedulePath": "data/orgs/default/schedule.json",
+      "schedulePath": "data/orgs/intelligence/schedule.json",
       "enabled": true,
       "reminder": {
         "enabled": true,
         "webhookSecretName": "FEISHU_WEBHOOK",
+        "publicUrl": "https://drizeele2026.github.io/work/?org=intelligence"
+      }
+    },
+    {
+      "slug": "default",
+      "name": "智慧门店",
+      "owners": [],
+      "schedulePath": "data/orgs/intelligence/schedule.json",
+      "enabled": true,
+      "reminder": {
+        "enabled": false,
+        "webhookSecretName": "FEISHU_WEBHOOK",
         "publicUrl": "https://drizeele2026.github.io/work/"
+      }
+    },
+    {
+      "slug": "shm",
+      "name": "营运通",
+      "owners": [],
+      "schedulePath": "data/orgs/shm/schedule.json",
+      "enabled": true,
+      "reminder": {
+        "enabled": false,
+        "webhookSecretName": "FEISHU_WEBHOOK_SHM",
+        "publicUrl": "https://drizeele2026.github.io/work/?org=shm"
       }
     }
   ]

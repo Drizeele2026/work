@@ -31,11 +31,22 @@ function verifyPage(html, label, scriptPath) {
 verifyPage(publicHtml, "公开页", "./organization-utils.js");
 verifyPage(adminHtml, "管理页", "../organization-utils.js");
 
-assert.equal(organizations.defaultOrg, "default");
+assert.equal(organizations.defaultOrg, "intelligence");
 const defaultOrganization = organizations.organizations.find((org) => org.slug === organizations.defaultOrg);
 assert.ok(defaultOrganization, "默认组织必须存在");
-assert.equal(defaultOrganization.schedulePath, "data/orgs/default/schedule.json");
+assert.equal(defaultOrganization.name, "智慧门店");
+assert.equal(defaultOrganization.schedulePath, "data/orgs/intelligence/schedule.json");
+const legacyDefaultOrganization = organizations.organizations.find((org) => org.slug === "default");
+assert.ok(legacyDefaultOrganization, "需要保留 default 旧入口");
+assert.equal(legacyDefaultOrganization.schedulePath, "data/orgs/intelligence/schedule.json");
+assert.equal(legacyDefaultOrganization.reminder?.enabled, false, "default 旧入口不能重复发送提醒");
+const shmOrganization = organizations.organizations.find((org) => org.slug === "shm");
+assert.ok(shmOrganization, "需要配置营运通组织");
+assert.equal(shmOrganization.name, "营运通");
+assert.equal(shmOrganization.schedulePath, "data/orgs/shm/schedule.json");
+assert.equal(shmOrganization.reminder?.enabled, false, "营运通未配置 webhook 前不能启用提醒");
 assert.match(workflow, /FEISHU_WEBHOOK:/, "workflow 需要继续暴露默认组织使用的 FEISHU_WEBHOOK");
+assert.match(workflow, /FEISHU_WEBHOOK_SHM:\s*\$\{\{ secrets\.FEISHU_WEBHOOK_SHM \}\}/, "workflow 需要预留营运通 webhook secret");
 const readme = await readFile(new URL("../README.md", import.meta.url), "utf8");
 assert.match(workflow, /FEISHU_WEBHOOK:\s*\$\{\{ secrets\.FEISHU_WEBHOOK \}\}/, "workflow 需要暴露默认组织 webhook");
 assert.match(workflow, /echo "exit_code=\$status" >> "\$GITHUB_OUTPUT"/, "workflow 需要记录提醒脚本退出码");

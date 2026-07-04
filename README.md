@@ -70,6 +70,15 @@
 /work/admin/?org=takeaway
 ```
 
+当前已配置组织：
+
+```text
+智慧门店：/work/?org=intelligence
+营运通：/work/?org=shm
+```
+
+旧的 `?org=default` 仍然可以打开智慧门店，用来兼容旧链接。
+
 组织列表保存在：
 
 ```text
