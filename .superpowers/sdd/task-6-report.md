@@ -163,3 +163,97 @@ f951bf7 fix: block legacy fallback for named orgs
 cf64794 fix: keep legacy reminder fallback
 d73f48c feat: send reminders by organization
 ```
+
+## 6. Reviewer 阻塞项修复补充
+
+### 6.1 修复内容
+
+这次只做了 reviewer 指定的最小修复：
+
+- `index.html`
+  - 把公开态 `body:not(.admin-mode) .schedule-shell` 从 `min-height: 100dvh` 改成 `min-height: calc(100dvh - 104px)`。
+  - 把公开态 `calendar-grid` 和 `day-cell` 的高度计算同步收口到扣掉顶栏后的剩余视口，避免页面总高变成“顶栏 + 100dvh”。
+- `admin/index.html`
+  - 同步和公开页完全一致的公开态高度规则，避免两个入口再漂移。
+- `scripts/verify-readonly-layout.mjs`
+  - 新增“公开态不能隐藏 topbar”的静态断言。
+  - 新增公开态 `schedule-shell`、`calendar-grid`、`day-cell` 必须按“视口减 topbar”收口的静态断言，防止回归。
+
+### 6.2 这次额外跑的验证
+
+```bash
+node scripts/verify-readonly-layout.mjs
+git diff --check
+```
+
+结果：
+
+- `只读排班布局检查通过`
+- `git diff --check` 无输出，退出码 `0`
+
+### 6.3 Playwright 真实浏览器检查
+
+本次继续使用 `4173` 端口，端口未被占用。
+
+本地服务：
+
+```bash
+python3 -m http.server 4173 --bind 127.0.0.1
+```
+
+浏览器检查页面：
+
+- `http://127.0.0.1:4173/`
+- `http://127.0.0.1:4173/?org=default`
+- `http://127.0.0.1:4173/admin/`
+
+检查结果：
+
+- `/`：
+  - `brandSub` = `公开查看 · 默认组织`
+  - `console error` = `0`
+  - `document.documentElement.scrollHeight - window.innerHeight = 0`
+- `/?org=default`：
+  - `brandSub` = `公开查看 · 默认组织`
+  - `console error` = `0`
+  - `document.documentElement.scrollHeight - window.innerHeight = 0`
+- `/admin/`：
+  - `brandSub` = `管理排班 · 默认组织`
+  - `console error` = `0`
+  - 直接 `await handleTeamNextAction()` 后：
+    - `teamPublishMessage` = `先填写 GitHub Token。`
+    - `toast` = `先填写 GitHub Token。`
+
+结论：公开页顶栏副标题恢复正常，公开页总高度没有明显超过视口高度，管理页无 token 发布提示也还正常。
+
+### 6.4 补充 git log 证据
+
+之前 Step 5 只截了 `-6`，看不全任务链。这次补充更长的历史：
+
+```bash
+git log --oneline --decorate -20
+```
+
+结果摘录：
+
+```text
+92e7ce9 (HEAD -> multi-organization-roster) fix: stabilize multi-organization roster
+a2fe425 docs: document multi-organization usage
+2a5d0b3 fix: skip sent org before loading schedule
+f951bf7 fix: block legacy fallback for named orgs
+cf64794 fix: keep legacy reminder fallback
+d73f48c feat: send reminders by organization
+d757956 fix: preserve publish validation order
+a27601b feat: publish roster by organization
+2fa2f84 fix: align organization page copy
+560f90f feat: load roster by organization
+56ec53f feat: add organization roster data
+```
+
+现在已经能直接看到 brief 要求的 5 个任务提交：
+
+- `feat: add organization roster data`
+- `feat: load roster by organization`
+- `feat: publish roster by organization`
+- `feat: send reminders by organization`
+- `docs: document multi-organization usage`

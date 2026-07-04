@@ -28,7 +28,10 @@ function verify(htmlText, label) {
   assert.match(htmlText, /head\.className = "week-head" \+ \(index >= 5 \? " weekend" : ""\);/, `${label} 周末表头需要在渲染时加 weekend 类名`);
   assert.match(htmlText, /id="brandSub"/, `${label} 顶栏需要保留组织副标题位置`);
   assert.match(htmlText, /\$\("brandSub"\)\.textContent = admin \? `管理排班 · \$\{orgName\}` : `公开查看 · \$\{orgName\}`;/, `${label} 顶栏副标题需要显示当前组织名称`);
-  assert.match(htmlText, /body:not\(\.admin-mode\) \.schedule-shell\s*\{[^}]*min-height:\s*100dvh/s, `${label} 展示页排班区域需要接近全屏高度`);
+  assert.doesNotMatch(htmlText, /body:not\(\.admin-mode\) \.topbar\s*\{[^}]*display:\s*none/s, `${label} 展示页不应隐藏顶栏`);
+  assert.match(htmlText, /body:not\(\.admin-mode\) \.schedule-shell\s*\{[^}]*min-height:\s*calc\(100dvh - 104px\)/s, `${label} 展示页排班区域高度需要扣掉顶栏后的剩余视口`);
+  assert.match(htmlText, /body:not\(\.admin-mode\) \.calendar-grid\s*\{[^}]*min-height:\s*calc\(100dvh - 206px\)/s, `${label} 展示页日历网格高度需要和顶栏联动收口`);
+  assert.match(htmlText, /body:not\(\.admin-mode\) \.day-cell\s*\{[^}]*min-height:\s*max\(110px,\s*calc\(\(100dvh - 252px\) \/ var\(--calendar-weeks\)\)\)/s, `${label} 展示页日期格高度不能再按顶栏外额外叠一层 100dvh`);
   assert.match(htmlText, /<div class="header-controls">[\s\S]*id="principlesBtn"[\s\S]*>说明<\/button>/, `${label} 需要在顶部控制区提供排班说明入口`);
   assert.match(htmlText, /<dialog class="principles-dialog" id="principlesDialog" aria-labelledby="principlesDialogTitle">/, `${label} 系统原理说明需要放在弹窗里`);
   assert.match(htmlText, /id="principlesDialogTitle"[\s\S]*排班说明/, `${label} 弹窗标题需要叫排班说明`);

@@ -225,16 +225,16 @@
     body:not(.admin-mode) .wrap { padding: 0; }
     body:not(.admin-mode) .main { gap: 0; }
     body:not(.admin-mode) .schedule-shell {
-      min-height: 100dvh;
+      min-height: calc(100dvh - 104px);
       border: 0;
       border-radius: 0;
       box-shadow: none;
     }
     body:not(.admin-mode) .calendar-grid {
-      min-height: calc(100dvh - 94px);
+      min-height: calc(100dvh - 206px);
     }
     body:not(.admin-mode) .day-cell {
-      min-height: max(118px, calc((100dvh - 142px) / var(--calendar-weeks)));
+      min-height: max(110px, calc((100dvh - 252px) / var(--calendar-weeks)));
     }
 
     .section {
