@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "defaultOrg": "default",
+  "organizations": [
+    {
+      "slug": "default",
+      "name": "默认组织",
+      "owners": [],
+      "schedulePath": "data/orgs/default/schedule.json",
+      "enabled": true,
+      "reminder": {
+        "enabled": true,
+        "webhookSecretName": "FEISHU_WEBHOOK",
+        "publicUrl": "https://drizeele2026.github.io/work/"
+      }
+    }
+  ]
+}
