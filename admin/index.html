@@ -2237,10 +2237,16 @@
       return Array.from(seen);
     }
 
+    function getCurrentRosterTeams(document) {
+      if (Array.isArray(document?.current?.teams)) return document.current.teams;
+      if (Array.isArray(document?.config?.teams)) return document.config.teams;
+      return [];
+    }
+
     function normalizePublishedTeams(document, monthEntry, dailyAssignments) {
       const sourceTeams = Array.isArray(monthEntry?.teams) && monthEntry.teams.length
         ? monthEntry.teams
-        : (document?.config?.teams || []);
+        : getCurrentRosterTeams(document);
       const sourceByName = new Map(sourceTeams.map((team) => [String(team?.name || "").trim(), team]));
       const firstDayTeams = dailyAssignments.find((day) => day.teams?.length)?.teams || [];
       const names = firstDayTeams.length
@@ -2294,7 +2300,7 @@
         const memberName = memberUtils.memberName(name);
         if (memberName && oid) map[memberName] = String(oid).trim();
       };
-      (remote.config?.teams || []).forEach((team) =>
+      getCurrentRosterTeams(remote).forEach((team) =>
         (Array.isArray(team.members) ? team.members : []).forEach((member) =>
           remember(member, memberUtils.memberOpenId(member))
         )
@@ -2541,7 +2547,7 @@
         month,
         monthKey,
         teams,
-        configTeams: normalizePublishedTeams({ config: document?.config }, { teams: document?.config?.teams || [] }, dailyAssignments),
+        configTeams: normalizePublishedTeams(document, { teams: getCurrentRosterTeams(document) }, dailyAssignments),
         result: { startWeekday, daysInMonth, counts, dailyAssignments },
         summary: lastSummary,
         remotePreview: document
@@ -2562,7 +2568,9 @@
     }
 
     function renderContinuousScheduleMonth(document, year, month) {
-      if (!scheduleUtils?.generateAssignmentsForMonth || !Array.isArray(document?.config?.teams)) return false;
+      const hasContinuousSource = Array.isArray(document?.ruleVersions)
+        || Array.isArray(document?.current?.teams);
+      if (!scheduleUtils?.generateAssignmentsForMonth || !hasContinuousSource) return false;
       let generated = null;
       try {
         generated = scheduleUtils.generateAssignmentsForMonth(document, year, month);
@@ -2593,7 +2601,7 @@
         month,
         monthKey,
         teams,
-        configTeams: normalizePublishedTeams({ config: document?.config }, { teams: document?.config?.teams || [] }, dailyAssignments),
+        configTeams: normalizePublishedTeams(document, { teams: getCurrentRosterTeams(document) }, dailyAssignments),
         result: { startWeekday: generated.startWeekday, daysInMonth: generated.daysInMonth, counts: generated.counts, dailyAssignments },
         summary: lastSummary,
         remotePreview: document
@@ -2897,7 +2905,10 @@
       const remotePreview = await loadRemoteSchedulePreview();
       remoteScheduleDocument = remotePreview;
       if (remotePreview) {
-        if (isAdminRoute() && !loadedTeamConfig && Array.isArray(remotePreview.config?.teams)) {
+        if (isAdminRoute() && !loadedTeamConfig && Array.isArray(remotePreview.current?.teams)) {
+          applyTeamFormState(remotePreview.current.teams);
+          setTeamConfigDirty(false);
+        } else if (isAdminRoute() && !loadedTeamConfig && Array.isArray(remotePreview.config?.teams)) {
           applyTeamFormState(remotePreview.config.teams);
           setTeamConfigDirty(false);
         }

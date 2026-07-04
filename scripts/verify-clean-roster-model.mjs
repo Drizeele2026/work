@@ -23,6 +23,26 @@ for (const target of targets) {
     /function renderPublishedScheduleMonth\(document, year, month\)\s*\{\s*if\s*\(document\?\.(?:version)\s*>=\s*2\s*\|\|\s*Array\.isArray\(document\?\.(?:ruleVersions)\)\)\s*return false;/,
     `${target.label} 的 renderPublishedScheduleMonth 必须跳过 v2/ruleVersions 文档`
   );
+  assert.match(
+    html,
+    /current\??\.teams/,
+    `${target.label} 必须读取 current.teams 作为 v2 当前名单来源`
+  );
+  assert.match(
+    html,
+    /function renderContinuousScheduleMonth\(document, year, month\)\s*\{[\s\S]*?generateAssignmentsForMonth\(document, year, month\)/,
+    `${target.label} 的 renderContinuousScheduleMonth 必须调用共享排班函数`
+  );
+  assert.doesNotMatch(
+    html,
+    /function renderContinuousScheduleMonth\(document, year, month\)\s*\{[\s\S]*?document\?\.(?:config)\?\.teams[\s\S]*?return false;/,
+    `${target.label} 的 renderContinuousScheduleMonth 不应再要求 document.config.teams`
+  );
+  assert.match(
+    html,
+    /applyTeamFormState\(remotePreview\.current\??\.teams\)/,
+    `${target.label} 启动回填必须优先使用 remotePreview.current.teams`
+  );
   assert.match(html, /buildPublishedDocument/, `${target.label} 发布应通过共享函数生成规则版本文档`);
   assert.match(html, /维护值班规则/, `${target.label} 标题应改成维护值班规则`);
 }

@@ -269,3 +269,190 @@ admin/index.html:2522:      if (document?.version >= 2 || Array.isArray(document
 index.html:2521:    function renderPublishedScheduleMonth(document, year, month) {
 index.html:2522:      if (document?.version >= 2 || Array.isArray(document?.ruleVersions)) return false;
 ```
+
+## 2026-07-04 Re-review Fix 2
+
+### 修复内容
+
+1. `index.html` 和 `admin/index.html` 新增 `getCurrentRosterTeams(document)`，让 v2 文档优先走 `document.current.teams`，只有没有 `current` 时才回退 `document.config.teams`。
+2. `normalizePublishedTeams(...)` 改成优先吃 `current.teams`，不再把 `config.teams` 当成 v2 当前名单来源。
+3. `renderContinuousScheduleMonth(document, year, month)` 改成只要求 `ruleVersions` 或 `current.teams`，然后直接调用 `scheduleUtils.generateAssignmentsForMonth(document, year, month)`。
+4. 启动回填改成优先 `remotePreview.current.teams`，仅对旧文档保留 `remotePreview.config.teams` fallback。
+5. `scripts/verify-clean-roster-model.mjs` 收紧回归断言，强制检查两张 HTML 都有 `current.teams` 读取，且 `renderContinuousScheduleMonth(...)` 不再用 `document.config.teams` 当门槛。
+
+### RED 证据
+
+先只改校验脚本，再运行：
+
+```bash
+node scripts/verify-clean-roster-model.mjs
+```
+
+输出：
+
+```text
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: 管理页 必须读取 current.teams 作为 v2 当前名单来源
+```
+
+说明返修点在旧实现里确实还没补上。
+
+### GREEN 证据
+
+1. 回归脚本
+
+运行：
+
+```bash
+node scripts/verify-clean-roster-model.mjs
+```
+
+输出：
+
+```text
+干净排班模型 UI 检查通过
+```
+
+2. 内联脚本抽取检查
+
+按 brief 里的检查意图执行了等价命令。原始单行命令在当前 shell/转义层里会把正则字面量打坏，所以改成 `new RegExp(...)` 版本做同样的抽取和 `new Function(...)` 校验。
+
+运行：
+
+```bash
+node --input-type=module -e 'import fs from "node:fs"; const re = new RegExp("<script>([\\s\\S]*?)</script>", "g"); for (const file of ["index.html", "admin/index.html"]) { const html = fs.readFileSync(file, "utf8"); const scripts = [...html.matchAll(re)].map((match) => match[1]).join("\n"); new Function(scripts); console.log(`${file} script ok`); }'
+```
+
+输出：
+
+```text
+index.html script ok
+admin/index.html script ok
+```
+
+3. 定点 grep
+
+运行：
+
+```bash
+rg -n -C 2 "function getCurrentRosterTeams|function normalizePublishedTeams|function renderContinuousScheduleMonth|applyTeamFormState\\(remotePreview\\.(current|config)\\.teams\\)" index.html admin/index.html
+```
+
+输出：
+
+```text
+index.html-2238-    }
+index.html-2239-
+index.html:2240:    function getCurrentRosterTeams(document) {
+index.html-2241-      if (Array.isArray(document?.current?.teams)) return document.current.teams;
+index.html-2242-      if (Array.isArray(document?.config?.teams)) return document.config.teams;
+--
+index.html-2244-    }
+index.html-2245-
+index.html:2246:    function normalizePublishedTeams(document, monthEntry, dailyAssignments) {
+index.html-2247-      const sourceTeams = Array.isArray(monthEntry?.teams) && monthEntry.teams.length
+index.html-2248-        ? monthEntry.teams
+--
+index.html-2568-    }
+index.html-2569-
+index.html:2570:    function renderContinuousScheduleMonth(document, year, month) {
+index.html-2571-      const hasContinuousSource = Array.isArray(document?.ruleVersions)
+index.html-2572-        || Array.isArray(document?.current?.teams);
+--
+index.html-2904-      if (remotePreview) {
+index.html-2905-        if (isAdminRoute() && !loadedTeamConfig && Array.isArray(remotePreview.current?.teams)) {
+index.html:2906:          applyTeamFormState(remotePreview.current.teams);
+index.html-2907-          setTeamConfigDirty(false);
+index.html-2908-        } else if (isAdminRoute() && !loadedTeamConfig && Array.isArray(remotePreview.config?.teams)) {
+index.html:2909:          applyTeamFormState(remotePreview.config.teams);
+index.html-2910-          setTeamConfigDirty(false);
+index.html-2911-        }
+--
+admin/index.html-2238-    }
+admin/index.html-2239-
+admin/index.html:2240:    function getCurrentRosterTeams(document) {
+admin/index.html-2241-      if (Array.isArray(document?.current?.teams)) return document.current.teams;
+admin/index.html-2242-      if (Array.isArray(document?.config?.teams)) return document.config.teams;
+--
+admin/index.html-2244-    }
+admin/index.html-2245-
+admin/index.html:2246:    function normalizePublishedTeams(document, monthEntry, dailyAssignments) {
+admin/index.html-2247-      const sourceTeams = Array.isArray(monthEntry?.teams) && monthEntry.teams.length
+admin/index.html-2248-        ? monthEntry.teams
+--
+admin/index.html-2568-    }
+admin/index.html-2569-
+admin/index.html:2570:    function renderContinuousScheduleMonth(document, year, month) {
+admin/index.html-2571-      const hasContinuousSource = Array.isArray(document?.ruleVersions)
+admin/index.html-2572-        || Array.isArray(document?.current?.teams);
+--
+admin/index.html-2907-      if (remotePreview) {
+admin/index.html-2908-        if (isAdminRoute() && !loadedTeamConfig && Array.isArray(remotePreview.current?.teams)) {
+admin/index.html:2909:          applyTeamFormState(remotePreview.current.teams);
+admin/index.html-2910-          setTeamConfigDirty(false);
+admin/index.html-2911-        } else if (isAdminRoute() && !loadedTeamConfig && Array.isArray(remotePreview.config?.teams)) {
+admin/index.html:2912:          applyTeamFormState(remotePreview.config.teams);
+admin/index.html-2913-          setTeamConfigDirty(false);
+admin/index.html-2914-        }
+```
+
+4. 关键片段展开
+
+运行：
+
+```bash
+sed -n '2570,2582p' index.html
+sed -n '2570,2582p' admin/index.html
+sed -n '2904,2911p' index.html
+sed -n '2908,2914p' admin/index.html
+```
+
+输出：
+
+```text
+    function renderContinuousScheduleMonth(document, year, month) {
+      const hasContinuousSource = Array.isArray(document?.ruleVersions)
+        || Array.isArray(document?.current?.teams);
+      if (!scheduleUtils?.generateAssignmentsForMonth || !hasContinuousSource) return false;
+      let generated = null;
+      try {
+        generated = scheduleUtils.generateAssignmentsForMonth(document, year, month);
+      } catch (error) {
+        return false;
+      }
+      const monthKey = formatMonthKey(year, month);
+      const teams = generated.teams.map((team, index) => ({
+
+    function renderContinuousScheduleMonth(document, year, month) {
+      const hasContinuousSource = Array.isArray(document?.ruleVersions)
+        || Array.isArray(document?.current?.teams);
+      if (!scheduleUtils?.generateAssignmentsForMonth || !hasContinuousSource) return false;
+      let generated = null;
+      try {
+        generated = scheduleUtils.generateAssignmentsForMonth(document, year, month);
+      } catch (error) {
+        return false;
+      }
+      const monthKey = formatMonthKey(year, month);
+      const teams = generated.teams.map((team, index) => ({
+
+      if (remotePreview) {
+        if (isAdminRoute() && !loadedTeamConfig && Array.isArray(remotePreview.current?.teams)) {
+          applyTeamFormState(remotePreview.current.teams);
+          setTeamConfigDirty(false);
+        } else if (isAdminRoute() && !loadedTeamConfig && Array.isArray(remotePreview.config?.teams)) {
+          applyTeamFormState(remotePreview.config.teams);
+          setTeamConfigDirty(false);
+        }
+
+        if (isAdminRoute() && !loadedTeamConfig && Array.isArray(remotePreview.current?.teams)) {
+          applyTeamFormState(remotePreview.current.teams);
+          setTeamConfigDirty(false);
+        } else if (isAdminRoute() && !loadedTeamConfig && Array.isArray(remotePreview.config?.teams)) {
+          applyTeamFormState(remotePreview.config.teams);
+          setTeamConfigDirty(false);
+        }
+```
