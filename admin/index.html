@@ -2885,6 +2885,7 @@
         button.textContent = "发布中...";
       }
       try {
+        buildTeamData();
         const settings = readGithubSettings();
         const remote = settings.token
           ? await loadGithubScheduleDocument()
