@@ -15,10 +15,14 @@ function verifyPage(html, label, scriptPath) {
   assert.match(html, /function getTeamConfigStorageKey\(\)/, `${label} 团队草稿需要按组织生成 storage key`);
   assert.match(html, /localStorage\.setItem\(getTeamConfigStorageKey\(\), JSON\.stringify\(/, `${label} 保存团队草稿时需要使用组织隔离 key`);
   assert.match(html, /localStorage\.getItem\(getTeamConfigStorageKey\(\)\)/, `${label} 读取团队草稿时需要使用组织隔离 key`);
+  assert.match(html, /organizationSlug:\s*currentOrganization\?\.slug \|\| "default"/, `${label} 团队草稿需要记录所属组织`);
+  assert.match(html, /savedAtIso:\s*new Date\(\)\.toISOString\(\)/, `${label} 团队草稿需要记录保存时间`);
+  assert.match(html, /remoteUpdatedAt:\s*remoteScheduleDocument\?\.updatedAt \|\| ""/, `${label} 团队草稿需要记录保存时的远端版本`);
+  assert.match(html, /function isRemoteNewerThanDraft\(remote,\s*draft\)/, `${label} 需要识别远端数据是否比本机草稿新`);
   assert.match(
     html,
-    /async function boot\(\) \{[\s\S]*await loadCurrentOrganization\(\);[\s\S]*const loadedTeamConfig = loadLocalUiState\(\);/,
-    `${label} 必须先确定当前组织，再读取本地团队草稿`
+    /async function boot\(\) \{[\s\S]*await loadCurrentOrganization\(\);[\s\S]*const remotePreview = await loadRemoteSchedulePreview\(\);[\s\S]*const loadedTeamConfig = loadLocalUiState\(remotePreview\);/,
+    `${label} 必须先读取远端排班，再决定是否使用本地团队草稿`
   );
   assert.match(html, /async function loadGithubScheduleDocument\(schedulePath = getCurrentSchedulePath\(\)\)/, `${label} GitHub 读取需要按当前组织路径`);
   assert.match(html, /async function saveScheduleToGithub\(preloadedRemote = null\)/, `${label} GitHub 保存需要接受预加载远端文档`);

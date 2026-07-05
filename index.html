@@ -2050,7 +2050,10 @@
 
     function persistTeamConfigToStorage() {
       localStorage.setItem(getTeamConfigStorageKey(), JSON.stringify({
-        version: 1,
+        version: 2,
+        organizationSlug: currentOrganization?.slug || "default",
+        savedAtIso: new Date().toISOString(),
+        remoteUpdatedAt: remoteScheduleDocument?.updatedAt || "",
         teams: readTeamFormState()
       }));
       teamConfigSavedAt = nowTime();
@@ -2060,12 +2063,33 @@
       syncTopbar();
     }
 
-    function loadTeamConfigFromStorage() {
+    function isRemoteNewerThanDraft(remote, draft) {
+      const remoteTime = Date.parse(remote?.updatedAt || "");
+      const draftTime = Date.parse(draft?.savedAtIso || "");
+      return Number.isFinite(remoteTime) && Number.isFinite(draftTime) && remoteTime > draftTime;
+    }
+
+    function loadTeamConfigFromStorage(remotePreview = null) {
       const raw = localStorage.getItem(getTeamConfigStorageKey());
       if (!raw) return false;
       try {
         const parsed = JSON.parse(raw);
         if (!Array.isArray(parsed?.teams) || !parsed.teams.length) return false;
+        const organizationSlug = currentOrganization?.slug || "default";
+        if (parsed.organizationSlug && parsed.organizationSlug !== organizationSlug) {
+          localStorage.removeItem(getTeamConfigStorageKey());
+          return false;
+        }
+        if ((parsed.version || 1) < 2 || !parsed.savedAtIso) {
+          if (remotePreview) {
+            localStorage.removeItem(getTeamConfigStorageKey());
+            return false;
+          }
+        }
+        if (isRemoteNewerThanDraft(remotePreview, parsed)) {
+          localStorage.removeItem(getTeamConfigStorageKey());
+          return false;
+        }
         applyTeamFormState(parsed.teams);
         return true;
       } catch (error) {
@@ -2081,8 +2105,8 @@
       $("manageDetails").open = false;
     }
 
-    function loadLocalUiState() {
-      return isAdminRoute() ? loadTeamConfigFromStorage() : false;
+    function loadLocalUiState(remotePreview = null) {
+      return isAdminRoute() ? loadTeamConfigFromStorage(remotePreview) : false;
     }
 
     function openGithubSettings(targetId) {
@@ -2958,9 +2982,9 @@
         syncTopbar();
         return;
       }
-      const loadedTeamConfig = loadLocalUiState();
       const remotePreview = await loadRemoteSchedulePreview();
       remoteScheduleDocument = remotePreview;
+      const loadedTeamConfig = loadLocalUiState(remotePreview);
       if (remotePreview) {
         if (isAdminRoute() && !loadedTeamConfig && Array.isArray(remotePreview.current?.teams)) {
           applyTeamFormState(remotePreview.current.teams);
