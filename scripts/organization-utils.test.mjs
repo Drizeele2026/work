@@ -9,10 +9,15 @@ vm.createContext(context);
 vm.runInContext(source, context);
 const orgUtils = context.module.exports;
 
-test("normalizeOrgSlug 只保留 URL 和路径安全字符", () => {
-  assert.equal(orgUtils.normalizeOrgSlug(" 外卖_业务组 "), "org");
-  assert.equal(orgUtils.normalizeOrgSlug("TakeAway-Team_01"), "takeaway-team-01");
-  assert.equal(orgUtils.normalizeOrgSlug("qa"), "qa");
+test("resolveOrganization 在 interface 内归一化请求 slug", () => {
+  const result = orgUtils.resolveOrganization({
+    organizations: [
+      { slug: "TakeAway-Team_01", name: "外卖业务组", enabled: true }
+    ]
+  }, " TakeAway-Team_01 ");
+
+  assert.equal(result.error, "");
+  assert.equal(result.organization.slug, "takeaway-team-01");
 });
 
 test("resolveOrganization 没有 org 时使用 defaultOrg", () => {
@@ -92,9 +97,64 @@ test("relativeDataPath 管理页自动回到站点根目录", () => {
   assert.equal(orgUtils.relativeDataPath("data/orgs/default/schedule.json", true), "../data/orgs/default/schedule.json");
 });
 
-test("organizationStatePath 和 schedule 文件同目录", () => {
-  assert.equal(
-    orgUtils.organizationStatePath({ schedulePath: "data/orgs/takeaway/schedule.json" }),
-    "data/orgs/takeaway/reminder-state.json"
+test("resolveReminderTargets 集中提醒资格和资源语义", () => {
+  const result = orgUtils.resolveReminderTargets({
+    organizations: [
+      {
+        slug: "takeaway",
+        name: "外卖业务组",
+        schedulePath: "data/orgs/takeaway/schedule.json",
+        enabled: true,
+        reminder: {
+          enabled: true,
+          webhookSecretName: "FEISHU_WEBHOOK_TAKEAWAY",
+          publicUrl: "https://example.com/?org=takeaway"
+        }
+      },
+      { slug: "disabled", name: "停用组织", enabled: false },
+      { slug: "silent", name: "不提醒组织", enabled: true, reminder: { enabled: false } }
+    ]
+  }, "");
+
+  assert.equal(result.legacyResult, false);
+  assert.deepEqual(JSON.parse(JSON.stringify(result.targets)), [{
+    organization: { slug: "takeaway", name: "外卖业务组" },
+    schedulePath: "data/orgs/takeaway/schedule.json",
+    statePath: "data/orgs/takeaway/reminder-state.json",
+    publicUrl: "https://example.com/?org=takeaway",
+    webhookSecretName: "FEISHU_WEBHOOK_TAKEAWAY",
+    legacy: false
+  }]);
+});
+
+test("resolveReminderTargets 索引缺失时只允许旧 default 入口", () => {
+  const result = orgUtils.resolveReminderTargets(null, "default", {
+    statePath: "tmp/reminder-state.json",
+    publicUrl: "https://example.com/legacy"
+  });
+
+  assert.equal(result.legacyResult, true);
+  assert.deepEqual(JSON.parse(JSON.stringify(result.targets[0])), {
+    organization: { slug: "default", name: "默认组织" },
+    schedulePath: "data/schedule.json",
+    statePath: "tmp/reminder-state.json",
+    publicUrl: "https://example.com/legacy",
+    webhookSecretName: "FEISHU_WEBHOOK",
+    legacy: true
+  });
+  assert.throws(
+    () => orgUtils.resolveReminderTargets(null, "takeaway"),
+    /组织 takeaway 不存在，无法在缺少组织索引时发送/
+  );
+});
+
+test("resolveReminderTargets 具名组织必须有提醒资格", () => {
+  assert.throws(
+    () => orgUtils.resolveReminderTargets({
+      organizations: [
+        { slug: "qa", name: "测试中心", enabled: true, reminder: { enabled: false } }
+      ]
+    }, "qa"),
+    /不存在、已停用或未启用提醒/
   );
 });

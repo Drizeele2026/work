@@ -1,5 +1,10 @@
 (function (global) {
   const WEEKDAYS = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+  const memberUtils = global.DutyRosterMembers || (
+    typeof require === "function" ? require("./member-utils.js") : null
+  );
+  if (!memberUtils) throw new Error("请先加载 member-utils.js。");
+  const { normalizeMembers, findMemberIndex } = memberUtils;
 
   function pad2(value) {
     return String(value).padStart(2, "0");
@@ -26,23 +31,6 @@
 
   function wrapIndex(index, length) {
     return ((index % length) + length) % length;
-  }
-
-  function normalizeMember(member) {
-    if (typeof member === "string") {
-      return { name: member.trim().replace(/@/g, ""), feishuOpenId: "" };
-    }
-
-    return {
-      name: String(member?.name || "").trim().replace(/@/g, ""),
-      feishuOpenId: String(member?.feishuOpenId || "").trim()
-    };
-  }
-
-  function normalizeMembers(members) {
-    return (Array.isArray(members) ? members : [])
-      .map(normalizeMember)
-      .filter((member) => member.name);
   }
 
   function normalizeTeam(team, index = 0) {
@@ -110,23 +98,6 @@
 
   function getCurrentTeams(schedule) {
     return normalizeTeams(schedule?.current?.teams);
-  }
-
-  function memberKey(member) {
-    return member.feishuOpenId || member.name;
-  }
-
-  function findMemberIndex(members, personOrMember) {
-    const target = normalizeMember(personOrMember);
-    if (!target.name && !target.feishuOpenId) return -1;
-    if (target.feishuOpenId) {
-      const openIdIndex = members.findIndex((member) => member.feishuOpenId === target.feishuOpenId);
-      if (openIdIndex >= 0) return openIdIndex;
-    }
-    if (target.name) {
-      return members.findIndex((member) => member.name === target.name);
-    }
-    return -1;
   }
 
   function teamSignature(team) {

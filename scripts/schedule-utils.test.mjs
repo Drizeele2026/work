@@ -2,12 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import vm from "node:vm";
-
-const source = await readFile(new URL("../schedule-utils.js", import.meta.url), "utf8");
-const context = { window: {}, console, module: { exports: {} } };
-vm.createContext(context);
-vm.runInContext(source, context);
-const utils = context.module.exports;
+import utils from "../schedule-utils.js";
 
 const schedule = {
   version: 2,
@@ -53,6 +48,19 @@ const schedule = {
     }
   ]
 };
+
+test("浏览器按 member-utils 到 schedule-utils 的顺序加载", async () => {
+  const memberSource = await readFile(new URL("../member-utils.js", import.meta.url), "utf8");
+  const scheduleSource = await readFile(new URL("../schedule-utils.js", import.meta.url), "utf8");
+  const context = { window: {}, console };
+  vm.createContext(context);
+
+  vm.runInContext(memberSource, context);
+  vm.runInContext(scheduleSource, context);
+
+  const result = context.window.DutyRosterSchedule.findAssignmentForDateWithFallback(schedule, "2026-07-01");
+  assert.deepEqual(Array.from(result.teams, (team) => `${team.name}:${team.person}`), ["前端:A", "后端:D"]);
+});
 
 test("findAssignmentForDateWithFallback 按规则版本计算当天值班", () => {
   const result = utils.findAssignmentForDateWithFallback(schedule, "2026-07-01");
@@ -216,6 +224,58 @@ test("只修改发布当天值班人的 OpenID 时，当天值班人不变且结
   assert.equal(todayDuty.person, "郑成清");
   assert.equal(todayDuty.feishuOpenId, "ou_zheng_new");
   assert.equal(document.ruleVersions.at(-1).teams[0].startPerson, "郑成清");
+});
+
+test("成员改名但 OpenID 不变时，发布当天沿用同一成员身份", () => {
+  const remote = {
+    version: 2,
+    current: {
+      teams: [
+        {
+          name: "测试",
+          color: "violet",
+          members: [
+            { name: "旧名字", feishuOpenId: "ou_same" },
+            { name: "下一位", feishuOpenId: "ou_next" }
+          ]
+        }
+      ]
+    },
+    ruleVersions: [
+      {
+        effectiveDate: "2026-07-01",
+        teams: [
+          {
+            name: "测试",
+            color: "violet",
+            startPerson: "旧名字",
+            members: [
+              { name: "旧名字", feishuOpenId: "ou_same" },
+              { name: "下一位", feishuOpenId: "ou_next" }
+            ]
+          }
+        ]
+      }
+    ]
+  };
+  const document = utils.buildPublishedDocument(remote, [
+    {
+      name: "测试",
+      color: "violet",
+      members: [
+        { name: "新名字", feishuOpenId: "ou_same" },
+        { name: "下一位", feishuOpenId: "ou_next" }
+      ]
+    }
+  ], {
+    publishDateKey: "2026-07-01",
+    updatedAt: "2026-07-01T00:00:00.000Z"
+  });
+  const todayDuty = utils.findAssignmentForDateWithFallback(document, "2026-07-01").teams[0];
+
+  assert.equal(todayDuty.person, "新名字");
+  assert.equal(todayDuty.feishuOpenId, "ou_same");
+  assert.equal(document.ruleVersions.at(-1).teams[0].startPerson, "新名字");
 });
 
 test("发布当天原值班人被移除，从新名单第一个人开始", () => {

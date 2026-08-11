@@ -9,8 +9,6 @@ import {
   collectUpcoming,
   findAssignmentForDate,
   formatBeijingDate,
-  hasSentOn,
-  loadReminderState,
   main
 } from "./send-duty-reminder.mjs";
 
@@ -210,18 +208,6 @@ test("findAssignmentForDate can read published object-member schedules", () => {
   });
 });
 
-test("hasSentOn 只在记录日期等于今天时为真", () => {
-  assert.equal(hasSentOn({ lastSentDate: "2026-06-20" }, "2026-06-20"), true);
-  assert.equal(hasSentOn({ lastSentDate: "2026-06-19" }, "2026-06-20"), false);
-  assert.equal(hasSentOn({}, "2026-06-20"), false);
-  assert.equal(hasSentOn(null, "2026-06-20"), false);
-});
-
-test("loadReminderState 在状态文件不存在时返回空对象", async () => {
-  const result = await loadReminderState("scripts/__no_such_reminder_state__.json");
-  assert.deepEqual(result, {});
-});
-
 async function setupTmp() {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "duty-"));
   const schedulePath = path.join(dir, "schedule.json");
@@ -245,21 +231,17 @@ async function setupTmp() {
   return { schedulePath, statePath };
 }
 
-async function withMockFetch(fn) {
-  const orig = globalThis.fetch;
-  globalThis.fetch = async () => ({ ok: true, text: async () => '{"code":0}' });
-  try { return await fn(); } finally { globalThis.fetch = orig; }
-}
+const successfulFetch = async () => ({ ok: true, text: async () => '{"code":0}' });
 
 test("main：force 发送后不写去重状态（不占当天名额）", async () => {
   const { schedulePath, statePath } = await setupTmp();
-  await withMockFetch(() => main([], {
+  await main([], {
     FORCE_SEND: "1",
     REMINDER_DATE: "2026-06-20T02:00:00Z",
     SCHEDULE_PATH: schedulePath,
     REMINDER_STATE_PATH: statePath,
     FEISHU_WEBHOOK: "https://example.com/hook"
-  }));
+  }, { fetch: successfulFetch });
   let exists = true;
   try { await fs.access(statePath); } catch { exists = false; }
   assert.equal(exists, false, "force 模式不应写状态文件");
@@ -267,14 +249,43 @@ test("main：force 发送后不写去重状态（不占当天名额）", async (
 
 test("main：普通触发发送后写入去重状态", async () => {
   const { schedulePath, statePath } = await setupTmp();
-  await withMockFetch(() => main([], {
+  await main([], {
     REMINDER_DATE: "2026-06-20T02:00:00Z",
     SCHEDULE_PATH: schedulePath,
     REMINDER_STATE_PATH: statePath,
     FEISHU_WEBHOOK: "https://example.com/hook"
-  }));
+  }, { fetch: successfulFetch });
   const saved = JSON.parse(await fs.readFile(statePath, "utf8"));
   assert.equal(saved.lastSentDate, "2026-06-20");
+});
+
+test("main：发送失败的错误和日志不会泄露 webhook secret", async () => {
+  const { schedulePath, statePath } = await setupTmp();
+  const secret = "https://example.com/private-webhook-token";
+  const logs = [];
+
+  await assert.rejects(
+    () => main([], {
+      REMINDER_DATE: "2026-06-20T02:00:00Z",
+      SCHEDULE_PATH: schedulePath,
+      REMINDER_STATE_PATH: statePath,
+      FEISHU_WEBHOOK: secret
+    }, {
+      fetch: async () => ({
+        ok: false,
+        status: 500,
+        text: async () => JSON.stringify({ msg: `请求 ${secret} 失败` })
+      }),
+      log: (message) => logs.push(String(message))
+    }),
+    (error) => {
+      assert.match(error.message, /飞书机器人发送失败/);
+      assert.ok(!error.message.includes(secret));
+      return true;
+    }
+  );
+  assert.ok(logs.every((message) => !message.includes(secret)));
+  await assert.rejects(() => fs.readFile(statePath, "utf8"));
 });
 
 async function setupMultiOrgTmp() {
@@ -409,139 +420,114 @@ async function setupMultiOrgSkipTmp() {
 test("main：多组织普通触发分别发送并分别写状态", async () => {
   const { organizationsPath, defaultDir, qaDir } = await setupMultiOrgTmp();
   const calls = [];
-  const orig = globalThis.fetch;
-  globalThis.fetch = async (url, options) => {
+  const fetch = async (url, options) => {
     calls.push({ url, body: JSON.parse(options.body) });
     return { ok: true, text: async () => '{"code":0}' };
   };
-  try {
-    const result = await main([], {
-      ORGANIZATIONS_PATH: organizationsPath,
-      REMINDER_DATE: "2026-06-20T02:00:00Z",
-      FEISHU_WEBHOOK: "https://example.com/default-hook",
-      FEISHU_WEBHOOK_QA: "https://example.com/qa-hook"
-    });
+  const result = await main([], {
+    ORGANIZATIONS_PATH: organizationsPath,
+    REMINDER_DATE: "2026-06-20T02:00:00Z",
+    FEISHU_WEBHOOK: "https://example.com/default-hook",
+    FEISHU_WEBHOOK_QA: "https://example.com/qa-hook"
+  }, { fetch });
 
-    assert.equal(result.length, 2);
-    assert.deepEqual(calls.map((call) => call.url), [
-      "https://example.com/default-hook",
-      "https://example.com/qa-hook"
-    ]);
-    const defaultState = JSON.parse(await fs.readFile(path.join(defaultDir, "reminder-state.json"), "utf8"));
-    const qaState = JSON.parse(await fs.readFile(path.join(qaDir, "reminder-state.json"), "utf8"));
-    assert.equal(defaultState.lastSentDate, "2026-06-20");
-    assert.equal(qaState.lastSentDate, "2026-06-20");
-  } finally {
-    globalThis.fetch = orig;
-  }
+  assert.equal(result.length, 2);
+  assert.deepEqual(calls.map((call) => call.url), [
+    "https://example.com/default-hook",
+    "https://example.com/qa-hook"
+  ]);
+  const defaultState = JSON.parse(await fs.readFile(path.join(defaultDir, "reminder-state.json"), "utf8"));
+  const qaState = JSON.parse(await fs.readFile(path.join(qaDir, "reminder-state.json"), "utf8"));
+  assert.equal(defaultState.lastSentDate, "2026-06-20");
+  assert.equal(qaState.lastSentDate, "2026-06-20");
 });
 
 test("main：已发送组织遇到坏 schedule 也会直接跳过，其他组织正常发送", async () => {
   const { organizationsPath, defaultDir, qaDir, defaultStatePath } = await setupMultiOrgSkipTmp();
   const before = await fs.stat(defaultStatePath);
   const calls = [];
-  const orig = globalThis.fetch;
-  globalThis.fetch = async (url, options) => {
+  const fetch = async (url, options) => {
     calls.push({ url, body: JSON.parse(options.body) });
     return { ok: true, text: async () => '{"code":0}' };
   };
-  try {
-    const result = await main([], {
-      ORGANIZATIONS_PATH: organizationsPath,
-      REMINDER_DATE: "2026-06-20T02:00:00Z",
-      FEISHU_WEBHOOK: "https://example.com/default-hook",
-      FEISHU_WEBHOOK_QA: "https://example.com/qa-hook"
-    });
+  const result = await main([], {
+    ORGANIZATIONS_PATH: organizationsPath,
+    REMINDER_DATE: "2026-06-20T02:00:00Z",
+    FEISHU_WEBHOOK: "https://example.com/default-hook",
+    FEISHU_WEBHOOK_QA: "https://example.com/qa-hook"
+  }, { fetch });
 
-    assert.equal(result.length, 2);
-    assert.equal(result.find((item) => item.organization.slug === "default")?.skipped, true);
-    assert.equal(result.find((item) => item.organization.slug === "qa")?.skipped, undefined);
-    assert.deepEqual(calls.map((call) => call.url), ["https://example.com/qa-hook"]);
+  assert.equal(result.length, 2);
+  assert.equal(result.find((item) => item.organization.slug === "default")?.skipped, true);
+  assert.equal(result.find((item) => item.organization.slug === "qa")?.skipped, undefined);
+  assert.deepEqual(calls.map((call) => call.url), ["https://example.com/qa-hook"]);
 
-    const after = await fs.stat(defaultStatePath);
-    assert.equal(after.mtimeMs, before.mtimeMs, "已发送组织的状态文件不应被重新写入");
-    const defaultState = JSON.parse(await fs.readFile(defaultStatePath, "utf8"));
-    assert.equal(defaultState.lastSentDate, "2026-06-20");
-    const qaState = JSON.parse(await fs.readFile(path.join(qaDir, "reminder-state.json"), "utf8"));
-    assert.equal(qaState.lastSentDate, "2026-06-20");
-  } finally {
-    globalThis.fetch = orig;
-  }
+  const after = await fs.stat(defaultStatePath);
+  assert.equal(after.mtimeMs, before.mtimeMs, "已发送组织的状态文件不应被重新写入");
+  const defaultState = JSON.parse(await fs.readFile(defaultStatePath, "utf8"));
+  assert.equal(defaultState.lastSentDate, "2026-06-20");
+  const qaState = JSON.parse(await fs.readFile(path.join(qaDir, "reminder-state.json"), "utf8"));
+  assert.equal(qaState.lastSentDate, "2026-06-20");
 });
 
 test("main：--org 只发送指定组织", async () => {
   const { organizationsPath, defaultDir, qaDir } = await setupMultiOrgTmp();
   const calls = [];
-  const orig = globalThis.fetch;
-  globalThis.fetch = async (url, options) => {
+  const fetch = async (url, options) => {
     calls.push({ url, body: JSON.parse(options.body) });
     return { ok: true, text: async () => '{"code":0}' };
   };
-  try {
-    const result = await main(["--org", "qa"], {
-      ORGANIZATIONS_PATH: organizationsPath,
-      REMINDER_DATE: "2026-06-20T02:00:00Z",
-      FEISHU_WEBHOOK: "https://example.com/default-hook",
-      FEISHU_WEBHOOK_QA: "https://example.com/qa-hook"
-    });
+  const result = await main(["--org", "qa"], {
+    ORGANIZATIONS_PATH: organizationsPath,
+    REMINDER_DATE: "2026-06-20T02:00:00Z",
+    FEISHU_WEBHOOK: "https://example.com/default-hook",
+    FEISHU_WEBHOOK_QA: "https://example.com/qa-hook"
+  }, { fetch });
 
-    assert.equal(result.length, 1);
-    assert.equal(result[0].organization.slug, "qa");
-    assert.deepEqual(calls.map((call) => call.url), ["https://example.com/qa-hook"]);
-    await assert.rejects(() => fs.readFile(path.join(defaultDir, "reminder-state.json"), "utf8"));
-    const qaState = JSON.parse(await fs.readFile(path.join(qaDir, "reminder-state.json"), "utf8"));
-    assert.equal(qaState.lastSentDate, "2026-06-20");
-  } finally {
-    globalThis.fetch = orig;
-  }
+  assert.equal(result.length, 1);
+  assert.equal(result[0].organization.slug, "qa");
+  assert.deepEqual(calls.map((call) => call.url), ["https://example.com/qa-hook"]);
+  await assert.rejects(() => fs.readFile(path.join(defaultDir, "reminder-state.json"), "utf8"));
+  const qaState = JSON.parse(await fs.readFile(path.join(qaDir, "reminder-state.json"), "utf8"));
+  assert.equal(qaState.lastSentDate, "2026-06-20");
 });
 
 test("main：多组织 dry-run 不发送也不写状态", async () => {
   const { organizationsPath, defaultDir, qaDir } = await setupMultiOrgTmp();
-  const orig = globalThis.fetch;
-  globalThis.fetch = async () => {
+  const fetch = async () => {
     throw new Error("dry-run 不应该发送请求");
   };
-  try {
-    const result = await main(["--dry-run"], {
-      ORGANIZATIONS_PATH: organizationsPath,
-      REMINDER_DATE: "2026-06-20T02:00:00Z",
-      FEISHU_WEBHOOK: "https://example.com/default-hook",
-      FEISHU_WEBHOOK_QA: "https://example.com/qa-hook"
-    });
+  const result = await main(["--dry-run"], {
+    ORGANIZATIONS_PATH: organizationsPath,
+    REMINDER_DATE: "2026-06-20T02:00:00Z",
+    FEISHU_WEBHOOK: "https://example.com/default-hook",
+    FEISHU_WEBHOOK_QA: "https://example.com/qa-hook"
+  }, { fetch, log: () => {} });
 
-    assert.equal(result.length, 2);
-    await assert.rejects(() => fs.readFile(path.join(defaultDir, "reminder-state.json"), "utf8"));
-    await assert.rejects(() => fs.readFile(path.join(qaDir, "reminder-state.json"), "utf8"));
-  } finally {
-    globalThis.fetch = orig;
-  }
+  assert.equal(result.length, 2);
+  await assert.rejects(() => fs.readFile(path.join(defaultDir, "reminder-state.json"), "utf8"));
+  await assert.rejects(() => fs.readFile(path.join(qaDir, "reminder-state.json"), "utf8"));
 });
 
 test("main：某组织缺少 webhook secret 时，其他组织仍会发送，最终抛出汇总错误", async () => {
   const { organizationsPath, defaultDir, qaDir } = await setupMultiOrgTmp();
   const calls = [];
-  const orig = globalThis.fetch;
-  globalThis.fetch = async (url, options) => {
+  const fetch = async (url, options) => {
     calls.push({ url, body: JSON.parse(options.body) });
     return { ok: true, text: async () => '{"code":0}' };
   };
-  try {
-    await assert.rejects(
-      () => main([], {
-        ORGANIZATIONS_PATH: organizationsPath,
-        REMINDER_DATE: "2026-06-20T02:00:00Z",
-        FEISHU_WEBHOOK: "https://example.com/default-hook"
-      }),
-      /测试中心.*FEISHU_WEBHOOK_QA/
-    );
-    assert.deepEqual(calls.map((call) => call.url), ["https://example.com/default-hook"]);
-    const defaultState = JSON.parse(await fs.readFile(path.join(defaultDir, "reminder-state.json"), "utf8"));
-    assert.equal(defaultState.lastSentDate, "2026-06-20");
-    await assert.rejects(() => fs.readFile(path.join(qaDir, "reminder-state.json"), "utf8"));
-  } finally {
-    globalThis.fetch = orig;
-  }
+  await assert.rejects(
+    () => main([], {
+      ORGANIZATIONS_PATH: organizationsPath,
+      REMINDER_DATE: "2026-06-20T02:00:00Z",
+      FEISHU_WEBHOOK: "https://example.com/default-hook"
+    }, { fetch }),
+    /测试中心.*FEISHU_WEBHOOK_QA/
+  );
+  assert.deepEqual(calls.map((call) => call.url), ["https://example.com/default-hook"]);
+  const defaultState = JSON.parse(await fs.readFile(path.join(defaultDir, "reminder-state.json"), "utf8"));
+  assert.equal(defaultState.lastSentDate, "2026-06-20");
+  await assert.rejects(() => fs.readFile(path.join(qaDir, "reminder-state.json"), "utf8"));
 });
 
 test("main：未显式传 SCHEDULE_PATH 且组织索引缺失时回退到旧单文件默认", async () => {
@@ -568,28 +554,20 @@ test("main：未显式传 SCHEDULE_PATH 且组织索引缺失时回退到旧单�
   }), "utf8");
 
   const calls = [];
-  const origFetch = globalThis.fetch;
-  const origCwd = process.cwd();
-  globalThis.fetch = async (url, options) => {
+  const fetch = async (url, options) => {
     calls.push({ url, body: JSON.parse(options.body) });
     return { ok: true, text: async () => '{"code":0}' };
   };
 
-  try {
-    process.chdir(dir);
-    const result = await main([], {
-      REMINDER_DATE: "2026-06-20T02:00:00Z",
-      FEISHU_WEBHOOK: "https://example.com/legacy-hook"
-    });
+  const result = await main([], {
+    REMINDER_DATE: "2026-06-20T02:00:00Z",
+    FEISHU_WEBHOOK: "https://example.com/legacy-hook"
+  }, { fetch, baseDir: dir });
 
-    assert.equal(result.msg_type, "interactive");
-    assert.deepEqual(calls.map((call) => call.url), ["https://example.com/legacy-hook"]);
-    const saved = JSON.parse(await fs.readFile(statePath, "utf8"));
-    assert.equal(saved.lastSentDate, "2026-06-20");
-  } finally {
-    process.chdir(origCwd);
-    globalThis.fetch = origFetch;
-  }
+  assert.equal(result.msg_type, "interactive");
+  assert.deepEqual(calls.map((call) => call.url), ["https://example.com/legacy-hook"]);
+  const saved = JSON.parse(await fs.readFile(statePath, "utf8"));
+  assert.equal(saved.lastSentDate, "2026-06-20");
 });
 
 test("main：索引缺失且指定非 default 组织时直接报错", async () => {
@@ -616,28 +594,20 @@ test("main：索引缺失且指定非 default 组织时直接报错", async () =
   }), "utf8");
 
   let called = false;
-  const origFetch = globalThis.fetch;
-  const origCwd = process.cwd();
-  globalThis.fetch = async () => {
+  const fetch = async () => {
     called = true;
     throw new Error("不应该发送请求");
   };
 
-  try {
-    process.chdir(dir);
-    await assert.rejects(
-      () => main(["--org", "qa"], {
-        REMINDER_DATE: "2026-06-20T02:00:00Z",
-        FEISHU_WEBHOOK: "https://example.com/legacy-hook"
-      }),
-      /组织 qa 不存在，无法在缺少组织索引时发送。/
-    );
-    assert.equal(called, false);
-    await assert.rejects(() => fs.readFile(statePath, "utf8"));
-  } finally {
-    process.chdir(origCwd);
-    globalThis.fetch = origFetch;
-  }
+  await assert.rejects(
+    () => main(["--org", "qa"], {
+      REMINDER_DATE: "2026-06-20T02:00:00Z",
+      FEISHU_WEBHOOK: "https://example.com/legacy-hook"
+    }, { fetch, baseDir: dir }),
+    /组织 qa 不存在，无法在缺少组织索引时发送。/
+  );
+  assert.equal(called, false);
+  await assert.rejects(() => fs.readFile(statePath, "utf8"));
 });
 
 test("main：组织索引 JSON 损坏时直接抛错", async () => {

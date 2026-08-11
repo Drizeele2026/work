@@ -190,8 +190,15 @@ data/orgs/{slug}/reminder-state.json
 页面文件：
 
 ```text
-index.html
-admin/index.html
+index.html                    # 公开 route adapter
+admin/index.html              # 管理 route adapter
+workbench-fragment.html       # 共享工作台结构
+workbench.css                 # 共享工作台样式
+workbench.js                  # 共享工作台行为
+publication-module.js         # 规则发布 module
+organization-utils.js         # 组织选择 module
+member-utils.js               # 成员 identity module
+schedule-utils.js             # 排班规则 module
 ```
 
-`index.html` 是公开页，`admin/index.html` 是管理页。
+两个 HTML 入口只声明 route 和加载依赖；公开页不加载规则发布 module，管理页才加载。工作台通过这些 module 的 interface 读取组织、识别成员、推导排班并发布规则。

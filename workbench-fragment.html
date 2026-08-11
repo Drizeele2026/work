@@ -1,0 +1,239 @@
+  <div class="wrap">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">值</div>
+        <div class="brand-text">
+          <div class="title">值班排班工作台</div>
+          <div class="sub" id="brandSub">公开查看 · 排班数据来自仓库</div>
+        </div>
+      </div>
+      <div class="topbar-status">
+        <button class="chip chip-button primary admin-only" id="repoChip" type="button" title="打开 GitHub 设置"><strong>仓库</strong> · 待读取</button>
+        <button class="chip chip-button success admin-only" id="tokenChip" type="button" title="打开 GitHub 设置"><strong>token</strong> · 未配置</button>
+        <button class="chip chip-button warn admin-only" id="saveChip" type="button" title="打开发布操作"><strong>待发布</strong> · 本机已生成</button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="panel side">
+        <div class="section">
+          <div class="section-title">视图</div>
+          <div class="nav">
+            <button class="nav-link active" type="button" data-view="schedule"><span>排班表</span><strong>当前月</strong></button>
+            <button class="nav-link" type="button" data-view="about"><span>系统介绍</span><strong>README</strong></button>
+            <button class="nav-link admin-nav" type="button" data-view="manage"><span>修改名单</span><strong>编辑</strong></button>
+          </div>
+        </div>
+
+        <input id="year" type="hidden" />
+        <input id="month" type="hidden" />
+        <div class="message error" id="errorBox"></div>
+        <div class="message ok" id="okBox"></div>
+
+        <details class="config" id="manageDetails">
+          <summary>GitHub 设置</summary>
+          <p class="config-tip">团队成员只看公开页，不需要 token。负责人在可信电脑配置一次 token；发布排班时会提交到 GitHub，自动留下历史记录。</p>
+          <div class="team-box" id="githubBox">
+            <h3>GitHub 设置</h3>
+            <label for="repoSlug">仓库</label>
+            <input id="repoSlug" placeholder="Drizeele2026/work" />
+            <label for="githubToken">GitHub Token</label>
+            <input id="githubToken" type="password" placeholder="Fine-grained PAT，只存本机" />
+            <p class="hint">发布到公开页时会用到。权限只勾这个仓库的 <code>Contents: Read and write</code>。</p>
+            <div class="button-row">
+              <button class="primary" id="saveGithubBtn" type="button">保存到本机</button>
+              <button id="clearGithubBtn" type="button">清除 token</button>
+            </div>
+            <div class="message info" id="githubMessage"></div>
+          </div>
+        </details>
+      </aside>
+
+      <main class="main">
+        <section class="card schedule-shell" id="scheduleView">
+          <div class="main-header">
+            <div>
+              <h1 id="calendarTitle">排班表</h1>
+              <p id="calendarSubtitle">当前月 · 公开视图</p>
+            </div>
+            <div class="header-controls">
+              <div class="month-jump">
+                <span>跳转</span>
+                <select id="monthPicker" title="切换月份"></select>
+              </div>
+              <button id="prevMonthBtn" type="button">上一月</button>
+              <button class="primary" id="todayMonthBtn" type="button">今天</button>
+              <button id="nextMonthBtn" type="button">下一月</button>
+              <button class="principles-button" id="principlesBtn" type="button" title="查看排班说明">说明</button>
+            </div>
+          </div>
+          <div class="calendar-scroll">
+            <div class="calendar-grid" id="calendarGrid"></div>
+          </div>
+        </section>
+
+        <section class="card manage-workbench" id="manageView">
+          <div class="team-config">
+            <div class="team-config-head">
+              <div>
+                <h2>维护值班规则</h2>
+                <p>按真实值班顺序维护团队名单。发布后从今天开始使用新规则，今天之前的排班不主动改变。</p>
+              </div>
+              <div class="team-config-actions">
+                <button class="primary" id="teamNextActionBtn" type="button">发布到公开页</button>
+              </div>
+            </div>
+            <div class="status-strip" id="teamConfigStatus">
+              <span><strong>名单还没发布</strong> · 改动只保存在本机，公开页不会变化。</span>
+              <span>下一步：发布到公开页</span>
+            </div>
+            <div class="message info" id="teamPublishMessage"></div>
+
+            <div class="team-editor-grid">
+              <section class="team-editor">
+                <div class="team-editor-head">
+                  <div class="team-title-wrap">
+                    <span class="team-index">1</span>
+                    <strong class="team-title" id="team1Title">前端</strong>
+                  </div>
+                  <span class="team-count" id="team1Count">0 人</span>
+                </div>
+                <div class="team-editor-body">
+                  <div class="team-form-grid">
+                    <div>
+                      <label for="team1Name">团队名称</label>
+                      <input id="team1Name" />
+                    </div>
+                  </div>
+                  <div class="member-field">
+                    <label for="team1Members">成员名单</label>
+                    <textarea id="team1Members" spellcheck="false"></textarea>
+                    <p class="inline-help">每行一个成员；需要飞书 @ 时写成：姓名 | 飞书OpenID。没写 ID 也会正常提醒。</p>
+                  </div>
+                  <div class="member-preview" id="team1Preview"></div>
+                </div>
+              </section>
+
+              <section class="team-editor">
+                <div class="team-editor-head">
+                  <div class="team-title-wrap">
+                    <span class="team-index">2</span>
+                    <strong class="team-title" id="team2Title">后端</strong>
+                  </div>
+                  <span class="team-count" id="team2Count">0 人</span>
+                </div>
+                <div class="team-editor-body">
+                  <div class="team-form-grid">
+                    <div>
+                      <label for="team2Name">团队名称</label>
+                      <input id="team2Name" />
+                    </div>
+                  </div>
+                  <div class="member-field">
+                    <label for="team2Members">成员名单</label>
+                    <textarea id="team2Members" spellcheck="false"></textarea>
+                    <p class="inline-help">成员顺序会影响后续日期分配；要换顺序，直接调整文本行。</p>
+                  </div>
+                  <div class="member-preview" id="team2Preview"></div>
+                </div>
+              </section>
+
+              <section class="team-editor">
+                <div class="team-editor-head">
+                  <div class="team-title-wrap">
+                    <span class="team-index">3</span>
+                    <strong class="team-title" id="team3Title">测试</strong>
+                  </div>
+                  <span class="team-count" id="team3Count">0 人</span>
+                </div>
+                <div class="team-editor-body">
+                  <div class="team-form-grid">
+                    <div>
+                      <label for="team3Name">团队名称</label>
+                      <input id="team3Name" />
+                    </div>
+                  </div>
+                  <div class="member-field">
+                    <label for="team3Members">成员名单</label>
+                    <textarea id="team3Members" spellcheck="false"></textarea>
+                    <p class="inline-help">下面的标签用来核对顺序；带“已配ID”的人会在飞书里被真正 @。</p>
+                  </div>
+                  <div class="member-preview" id="team3Preview"></div>
+                </div>
+              </section>
+            </div>
+          </div>
+        </section>
+
+        <section class="card admin-summary" id="adminSummaryView">
+          <div class="summary-panel">
+            <div>
+              <h2>当前展示月汇总</h2>
+              <table class="summary-table" id="summaryTable"></table>
+            </div>
+            <div class="copy-actions">
+              <h2>复制 / 打印</h2>
+              <div class="action-grid">
+                <button class="primary" id="copyMonthGridBtn" type="button">复制月历网格</button>
+                <button id="printBtn" type="button">打印 / 导出 PDF</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card about" id="aboutView">
+          <h2>这个工具怎么工作</h2>
+          <p>它是一个零后端的值班排班页面。公开成员打开页面直接看排班，负责人本地配置好 token 后，再把排班数据写回 GitHub 仓库里的文件。</p>
+          <h3>数据放在哪里</h3>
+          <ul>
+            <li>页面文件是 <code>index.html</code>。</li>
+            <li>组织索引放在 <code>data/organizations.json</code>，当前组织排班放在 <code>data/orgs/{slug}/schedule.json</code>。</li>
+            <li>介绍内容可以放在 <code>data/about.md</code>，后续再接页面渲染。</li>
+            <li>仓库地址是 <a href="https://github.com/Drizeele2026/work" target="_blank" rel="noopener noreferrer">Drizeele2026/work</a>。</li>
+          </ul>
+          <h3>排班规则</h3>
+          <p>每个团队独立排班，按成员名单顺序循环。负责人只维护团队名称和成员名单，系统会按已发布规则继续顺排。</p>
+          <p>排班按自然日连续推进，周一到周日都算一天，不跳过周六周日。查看后续月份时，会沿用当前规则继续往后推，不会每个月重新从第一个人开始。</p>
+          <h3>为什么这样排</h3>
+          <p>核心目标是公平，而且规则要透明。顺序轮转让每个人都按同一条队列往前走，人数不能整除月份天数时，最多也只是相差 1 天。</p>
+          <p>周六周日也放在同一条自然日队列里，周末值班会随着日期一起往后滚。这样大家都有份，不会固定压在几个人身上，也不会有人长期避开周末。</p>
+          <p>跨月继续接龙也是同一个原因。如果每个月都从第一个人重新开始，月初、月末和周末容易反复落到同一批人身上。连续推算可以把这种偏差摊开。</p>
+          <h3>系统实现原理</h3>
+          <p>这个工具不需要服务器。公开页直接读取仓库里的排班文件，团队成员打开链接就能看，不需要登录，也不需要配置 token。</p>
+          <p>需要改排班时，只有负责人进入管理地址，在可信电脑上配置一次 GitHub PAT。点击发布时，本质上就是把当前组织的排班文件写回 <code>data/orgs/{slug}/schedule.json</code>。</p>
+          <p>GitHub Pages 负责托管公开页和管理页；GitHub Actions 负责跑自动提醒；提醒规则写在 <code>.github/workflows/duty-reminder.yml</code> 这个 workflow 里。</p>
+          <p>所以仓库就是持久化存储，commit 就是保存记录。每次修改都有提交历史，出了问题可以对比、追溯，也可以回滚。</p>
+          <h3>当前版本</h3>
+          <p>这版把普通查看和管理页面分开。团队成员看排班和复制内容，负责人使用单独管理地址改成员、重排后续月份和保存。</p>
+        </section>
+      </main>
+
+    </div>
+  </div>
+  <dialog class="principles-dialog" id="principlesDialog" aria-labelledby="principlesDialogTitle">
+    <div class="principles-dialog-head">
+      <div>
+        <span class="principles-kicker">排班系统</span>
+        <h2 id="principlesDialogTitle">排班说明</h2>
+      </div>
+      <button class="principles-dialog-close" id="principlesCloseBtn" type="button" aria-label="关闭排班说明">&times;</button>
+    </div>
+    <div class="principles-dialog-body">
+      <section>
+        <h3>排班规则</h3>
+        <p>每个团队独立排班，按成员名单顺序循环。负责人只维护团队名称和成员名单，系统会按已发布规则继续顺排。</p>
+        <p>排班按自然日连续推进，周一到周日都算一天，不跳过周六周日。发布新规则后，只会影响当天和后面的日期。</p>
+      </section>
+      <section>
+        <h3>为什么公平</h3>
+        <p>顺序轮转让每个人都按同一条队列往前走，人数不能整除月份天数时，最多也只是相差 1 天。</p>
+        <p>周六周日也放在同一条自然日队列里，周末值班会随着日期一起滚动，大家都有份，不会固定压在几个人身上。</p>
+      </section>
+      <section>
+        <h3>系统实现原理</h3>
+        <p>这个工具没有服务器。公开页读取组织索引 <code>data/organizations.json</code>，再展示当前组织对应的 <code>data/orgs/{slug}/schedule.json</code>，团队成员打开链接就能看，不需要登录。</p>
+        <p>负责人在管理页配置 GitHub PAT 后，点击发布会把新的排班文件提交到 GitHub。GitHub Pages 负责托管页面，GitHub Actions 按 <code>.github/workflows/duty-reminder.yml</code> 这个 workflow 跑每日提醒，commit 负责留下历史记录。</p>
+      </section>
+    </div>
+  </dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>

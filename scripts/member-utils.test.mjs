@@ -1,10 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import fs from "node:fs/promises";
+import { createRequire } from "node:module";
+import { readFile } from "node:fs/promises";
 import vm from "node:vm";
+import memberUtils from "../member-utils.js";
 
-async function loadUtils() {
-  const source = await fs.readFile("admin/member-utils.js", "utf8");
+async function loadBrowserUtils() {
+  const source = await readFile(new URL("../member-utils.js", import.meta.url), "utf8");
   const context = { window: {}, console };
   vm.createContext(context);
   vm.runInContext(source, context);
@@ -16,9 +18,7 @@ function plain(value) {
 }
 
 test("parseMembers reads names with optional Feishu OpenID", async () => {
-  const utils = await loadUtils();
-
-  assert.deepEqual(plain(utils.parseMembers("方思琪 | ou_frontend\n唐宇宏\n@谭贤 | ou_test")), [
+  assert.deepEqual(plain(memberUtils.parseMembers("方思琪 | ou_frontend\n唐宇宏\n@谭贤 | ou_test")), [
     { name: "方思琪", feishuOpenId: "ou_frontend" },
     { name: "唐宇宏", feishuOpenId: "" },
     { name: "谭贤", feishuOpenId: "ou_test" }
@@ -26,10 +26,8 @@ test("parseMembers reads names with optional Feishu OpenID", async () => {
 });
 
 test("formatMembers keeps configured OpenIDs editable", async () => {
-  const utils = await loadUtils();
-
   assert.equal(
-    utils.formatMembers([
+    memberUtils.formatMembers([
       { name: "方思琪", feishuOpenId: "ou_frontend" },
       { name: "唐宇宏", feishuOpenId: "" },
       "谭贤"
@@ -39,10 +37,8 @@ test("formatMembers keeps configured OpenIDs editable", async () => {
 });
 
 test("serializeMembers stores configured OpenIDs and keeps unconfigured names clean", async () => {
-  const utils = await loadUtils();
-
   assert.deepEqual(
-    plain(utils.serializeMembers([
+    plain(memberUtils.serializeMembers([
       { name: "方思琪", feishuOpenId: "ou_frontend" },
       { name: "唐宇宏", feishuOpenId: "" }
     ])),
@@ -54,9 +50,43 @@ test("serializeMembers stores configured OpenIDs and keeps unconfigured names cl
 });
 
 test("member helpers support old string members", async () => {
-  const utils = await loadUtils();
+  assert.equal(memberUtils.memberName("方思琪"), "方思琪");
+  assert.equal(memberUtils.memberOpenId("方思琪"), "");
+  assert.deepEqual(plain(memberUtils.memberNames([{ name: "方思琪" }, "唐宇宏"])), ["方思琪", "唐宇宏"]);
+});
 
-  assert.equal(utils.memberName("方思琪"), "方思琪");
-  assert.equal(utils.memberOpenId("方思琪"), "");
-  assert.deepEqual(plain(utils.memberNames([{ name: "方思琪" }, "唐宇宏"])), ["方思琪", "唐宇宏"]);
+test("findMemberIndex matches stable OpenID before display name", () => {
+  const members = [
+    { name: "新名字", feishuOpenId: "ou_same" },
+    { name: "同名成员", feishuOpenId: "ou_new" }
+  ];
+
+  assert.equal(memberUtils.findMemberIndex(members, { name: "旧名字", feishuOpenId: "ou_same" }), 0);
+  assert.equal(memberUtils.findMemberIndex(members, { name: "同名成员", feishuOpenId: "ou_old" }), 1);
+});
+
+test("mergeKnownIdentities fills missing OpenIDs without overwriting edits", () => {
+  const merged = memberUtils.mergeKnownIdentities([
+    "方思琪",
+    { name: "唐宇宏", feishuOpenId: "ou_explicit" },
+    "谭贤"
+  ], [
+    { name: "方思琪", feishuOpenId: "ou_frontend" },
+    { name: "唐宇宏", feishuOpenId: "ou_remote" }
+  ]);
+
+  assert.deepEqual(plain(merged), [
+    { name: "方思琪", feishuOpenId: "ou_frontend" },
+    { name: "唐宇宏", feishuOpenId: "ou_explicit" },
+    { name: "谭贤", feishuOpenId: "" }
+  ]);
+});
+
+test("root member module supports browser global and CommonJS loading", async () => {
+  const browserUtils = await loadBrowserUtils();
+  const require = createRequire(import.meta.url);
+  const commonJsUtils = require("../member-utils.js");
+
+  assert.equal(browserUtils.memberName("@方思琪"), "方思琪");
+  assert.equal(commonJsUtils, memberUtils);
 });

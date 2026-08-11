@@ -1,10 +1,8 @@
 import fs from "node:fs/promises";
+import path from "node:path";
 import scheduleUtils from "../schedule-utils.js";
 import organizationUtils from "../organization-utils.js";
 
-const DEFAULT_SCHEDULE_PATH = "data/schedule.json";
-const DEFAULT_STATE_PATH = "data/reminder-state.json";
-const DEFAULT_ORGANIZATIONS_PATH = "data/organizations.json";
 const DEFAULT_PUBLIC_URL = "https://drizeele2026.github.io/work/";
 const TIME_ZONE = "Asia/Shanghai";
 
@@ -107,13 +105,27 @@ export function buildFeishuCardMessage({ dateInfo, assignment, upcoming = [], pu
   };
 }
 
-export async function loadSchedule(path = DEFAULT_SCHEDULE_PATH) {
-  return JSON.parse(await fs.readFile(path, "utf8"));
+function createRuntimeAdapter(adapter = {}) {
+  const baseDir = adapter.baseDir || process.cwd();
+  return {
+    readFile: adapter.readFile || fs.readFile,
+    writeFile: adapter.writeFile || fs.writeFile,
+    fetch: adapter.fetch !== undefined ? adapter.fetch : globalThis.fetch,
+    log: adapter.log || ((...args) => console.log(...args)),
+    resolvePath: adapter.resolvePath || ((filePath) =>
+      path.isAbsolute(filePath) ? filePath : path.resolve(baseDir, filePath))
+  };
 }
 
-export async function loadOrganizationIndex(path = DEFAULT_ORGANIZATIONS_PATH) {
+async function loadSchedule(filePath, adapter = {}) {
+  const runtime = createRuntimeAdapter(adapter);
+  return JSON.parse(await runtime.readFile(runtime.resolvePath(filePath), "utf8"));
+}
+
+async function loadOrganizationIndex(filePath, adapter = {}) {
+  const runtime = createRuntimeAdapter(adapter);
   try {
-    return JSON.parse(await fs.readFile(path, "utf8"));
+    return JSON.parse(await runtime.readFile(runtime.resolvePath(filePath), "utf8"));
   } catch (error) {
     if (error?.code === "ENOENT") {
       return null;
@@ -131,65 +143,54 @@ function parseArgValue(argv, name) {
   return "";
 }
 
-export function resolveReminderOrganizations(indexDocument, orgSlug = "") {
-  const index = organizationUtils.normalizeOrganizationIndex(indexDocument);
-  const requested = organizationUtils.normalizeOrgSlug(orgSlug || "");
-  const enabledOrganizations = index.organizations.filter((organization) =>
-    organization.enabled && organization.reminder?.enabled !== false
-  );
-
-  if (orgSlug) {
-    const organization = enabledOrganizations.find((item) => item.slug === requested);
-    if (!organization) throw new Error(`组织 ${orgSlug} 不存在、已停用或未启用提醒。`);
-    return [organization];
-  }
-
-  return enabledOrganizations;
-}
-
-function statePathForOrganization(organization) {
-  return organizationUtils.organizationStatePath(organization);
-}
-
-function publicUrlForOrganization(organization) {
-  return organization.reminder?.publicUrl || DEFAULT_PUBLIC_URL;
-}
-
-function webhookForOrganization(organization, env) {
-  const secretName = organization.reminder?.webhookSecretName || "FEISHU_WEBHOOK";
-  const webhook = env[secretName];
+function webhookForTarget(target, env) {
+  const webhook = env[target.webhookSecretName];
   if (!webhook) {
-    throw new Error(`组织【${organization.name}】缺少 webhook secret：${secretName}`);
+    if (target.legacy) {
+      throw new Error("缺少 FEISHU_WEBHOOK。请在 GitHub Secrets 里配置飞书机器人 webhook。");
+    }
+    throw new Error(`组织【${target.organization.name}】缺少 webhook secret：${target.webhookSecretName}`);
   }
   return webhook;
 }
 
-export async function loadReminderState(path = DEFAULT_STATE_PATH) {
+async function loadReminderState(filePath, adapter = {}) {
+  const runtime = createRuntimeAdapter(adapter);
   try {
-    return JSON.parse(await fs.readFile(path, "utf8"));
+    return JSON.parse(await runtime.readFile(runtime.resolvePath(filePath), "utf8"));
   } catch {
     // 文件不存在或内容损坏时，当作“从未发送过”处理
     return {};
   }
 }
 
-export function hasSentOn(state, dateKey) {
+function hasSentOn(state, dateKey) {
   return Boolean(state) && state.lastSentDate === dateKey;
 }
 
-export async function writeReminderState(path, dateKey) {
-  await fs.writeFile(path, `${JSON.stringify({ lastSentDate: dateKey }, null, 2)}\n`, "utf8");
+async function writeReminderState(filePath, dateKey, adapter = {}) {
+  const runtime = createRuntimeAdapter(adapter);
+  await runtime.writeFile(
+    runtime.resolvePath(filePath),
+    `${JSON.stringify({ lastSentDate: dateKey }, null, 2)}\n`,
+    "utf8"
+  );
 }
 
-export async function postFeishuMessage(webhook, message, fetchImpl = globalThis.fetch) {
+async function postFeishuMessage(webhook, message, fetchImpl = globalThis.fetch) {
   if (!webhook) throw new Error("缺少 FEISHU_WEBHOOK。请在 GitHub Secrets 里配置飞书机器人 webhook。");
   if (!fetchImpl) throw new Error("当前 Node 环境缺少 fetch。");
 
-  const response = await fetchImpl(webhook, {
-    method: "POST",
-    headers: { "content-type": "application/json; charset=utf-8" },
-    body: JSON.stringify(message)
-  });
+  let response;
+  try {
+    response = await fetchImpl(webhook, {
+      method: "POST",
+      headers: { "content-type": "application/json; charset=utf-8" },
+      body: JSON.stringify(message)
+    });
+  } catch {
+    throw new Error("飞书机器人发送失败：网络请求异常。");
+  }
   const text = await response.text();
   let payload = null;
   try {
@@ -200,155 +201,114 @@ export async function postFeishuMessage(webhook, message, fetchImpl = globalThis
 
   if (!response.ok || (payload && payload.code !== undefined && payload.code !== 0)) {
     const detail = payload?.msg || payload?.message || payload?.raw || `HTTP ${response.status}`;
-    throw new Error(`飞书机器人发送失败：${detail}`);
+    const safeDetail = String(detail).split(webhook).join("[REDACTED]");
+    throw new Error(`飞书机器人发送失败：${safeDetail}`);
   }
 
   return payload;
 }
 
-export async function sendOrganizationReminder(organization, options = {}) {
+// 单组织值班提醒的执行 interface；target 来自 organization-utils，I/O 只经过 adapter seam。
+export async function sendOrganizationReminder(target, options = {}, adapter = {}) {
   const {
     dateInfo,
     dryRun = false,
     force = false,
-    env = process.env,
-    fetchImpl = globalThis.fetch
+    env = process.env
   } = options;
+  const runtime = createRuntimeAdapter(adapter);
+  const { organization } = target;
 
   if (dryRun) {
-    const schedule = await loadSchedule(organization.schedulePath);
+    const schedule = await loadSchedule(target.schedulePath, runtime);
     const assignment = findAssignmentForDate(schedule, dateInfo.dateKey);
     const upcoming = collectUpcoming(schedule, dateInfo.dateKey, 3);
     const message = buildFeishuCardMessage({
       dateInfo,
       assignment,
       upcoming,
-      publicUrl: publicUrlForOrganization(organization)
+      publicUrl: target.publicUrl
     });
-    console.log(JSON.stringify({
+    runtime.log(JSON.stringify(target.legacy ? message : {
       organization: organization.slug,
       name: organization.name,
       message
     }, null, 2));
-    return { organization, dryRun: true, message };
+    return target.legacy ? message : { organization, dryRun: true, message };
   }
 
-  const statePath = statePathForOrganization(organization);
-  const state = await loadReminderState(statePath);
+  const state = await loadReminderState(target.statePath, runtime);
   if (!force && hasSentOn(state, dateInfo.dateKey)) {
-    console.log(`${organization.name} ${dateInfo.dateKey} 今天已发送过值班提醒，跳过。`);
-    return { organization, skipped: true, dateKey: dateInfo.dateKey };
+    runtime.log(target.legacy
+      ? `${dateInfo.dateKey} 今天已发送过值班提醒，跳过。`
+      : `${organization.name} ${dateInfo.dateKey} 今天已发送过值班提醒，跳过。`);
+    return target.legacy
+      ? { skipped: true, dateKey: dateInfo.dateKey }
+      : { organization, skipped: true, dateKey: dateInfo.dateKey };
   }
 
-  const schedule = await loadSchedule(organization.schedulePath);
+  const schedule = await loadSchedule(target.schedulePath, runtime);
   const assignment = findAssignmentForDate(schedule, dateInfo.dateKey);
   const upcoming = collectUpcoming(schedule, dateInfo.dateKey, 3);
   const message = buildFeishuCardMessage({
     dateInfo,
     assignment,
     upcoming,
-    publicUrl: publicUrlForOrganization(organization)
+    publicUrl: target.publicUrl
   });
 
-  await postFeishuMessage(webhookForOrganization(organization, env), message, fetchImpl);
+  await postFeishuMessage(webhookForTarget(target, env), message, runtime.fetch);
   if (!force) {
-    await writeReminderState(statePath, dateInfo.dateKey);
+    await writeReminderState(target.statePath, dateInfo.dateKey, runtime);
   }
-  console.log(force
-    ? `已强制发送 ${organization.name} ${dateInfo.dateKey}（force：未写入去重状态）。`
-    : `已发送 ${organization.name} ${dateInfo.dateKey} 值班提醒。`);
-  return { organization, message };
+  runtime.log(target.legacy
+    ? (force
+      ? `已强制发送 ${dateInfo.dateKey}（force：未写入去重状态）。`
+      : `已发送 ${dateInfo.dateKey} 值班提醒。`)
+    : (force
+      ? `已强制发送 ${organization.name} ${dateInfo.dateKey}（force：未写入去重状态）。`
+      : `已发送 ${organization.name} ${dateInfo.dateKey} 值班提醒。`));
+  return target.legacy ? message : { organization, message };
 }
 
-async function runSingleScheduleReminder({ dryRun, force, schedulePath, statePath, publicUrl, dateInfo, env }) {
-  if (dryRun) {
-    const schedule = await loadSchedule(schedulePath);
-    const assignment = findAssignmentForDate(schedule, dateInfo.dateKey);
-    const upcoming = collectUpcoming(schedule, dateInfo.dateKey, 3);
-    const message = buildFeishuCardMessage({ dateInfo, assignment, upcoming, publicUrl });
-    console.log(JSON.stringify(message, null, 2));
-    return message;
-  }
-
-  const state = await loadReminderState(statePath);
-  if (!force && hasSentOn(state, dateInfo.dateKey)) {
-    console.log(`${dateInfo.dateKey} 今天已发送过值班提醒，跳过。`);
-    return { skipped: true, dateKey: dateInfo.dateKey };
-  }
-
-  const schedule = await loadSchedule(schedulePath);
-  const assignment = findAssignmentForDate(schedule, dateInfo.dateKey);
-  const upcoming = collectUpcoming(schedule, dateInfo.dateKey, 3);
-  const message = buildFeishuCardMessage({ dateInfo, assignment, upcoming, publicUrl });
-
-  await postFeishuMessage(env.FEISHU_WEBHOOK, message);
-  if (!force) {
-    await writeReminderState(statePath, dateInfo.dateKey);
-  }
-  console.log(force
-    ? `已强制发送 ${dateInfo.dateKey}（force：未写入去重状态）。`
-    : `已发送 ${dateInfo.dateKey} 值班提醒。`);
-  return message;
-}
-
-export async function main(argv = process.argv.slice(2), env = process.env) {
+export async function main(argv = process.argv.slice(2), env = process.env, adapter = {}) {
+  const runtime = createRuntimeAdapter(adapter);
   const dryRun = argv.includes("--dry-run");
   const force = argv.includes("--force") || env.FORCE_SEND === "1";
   const orgSlug = parseArgValue(argv, "--org") || env.REMINDER_ORG || "";
   const schedulePath = env.SCHEDULE_PATH || "";
-  const statePath = env.REMINDER_STATE_PATH || DEFAULT_STATE_PATH;
-  const publicUrl = env.PUBLIC_ROSTER_URL || DEFAULT_PUBLIC_URL;
+  const statePath = env.REMINDER_STATE_PATH || "";
+  const publicUrl = env.PUBLIC_ROSTER_URL || "";
   const dateInfo = formatBeijingDate(env.REMINDER_DATE ? new Date(env.REMINDER_DATE) : new Date());
 
-  if (schedulePath) {
-    return runSingleScheduleReminder({
-      dryRun,
-      force,
-      schedulePath,
-      statePath,
-      publicUrl,
-      dateInfo,
-      env
-    });
-  }
-
-  const organizationsPath = env.ORGANIZATIONS_PATH || DEFAULT_ORGANIZATIONS_PATH;
-  const indexDocument = await loadOrganizationIndex(organizationsPath);
-  if (indexDocument === null) {
-    const requestedOrgSlug = organizationUtils.normalizeOrgSlug(orgSlug || "");
-    if (orgSlug && requestedOrgSlug !== "default") {
-      throw new Error(`组织 ${orgSlug} 不存在，无法在缺少组织索引时发送。`);
-    }
-    return runSingleScheduleReminder({
-      dryRun,
-      force,
-      schedulePath: DEFAULT_SCHEDULE_PATH,
-      statePath,
-      publicUrl,
-      dateInfo,
-      env
-    });
-  }
-  const organizations = resolveReminderOrganizations(indexDocument, orgSlug);
-  if (!organizations.length) {
-    console.log("没有启用提醒的组织，跳过。");
+  const indexDocument = schedulePath
+    ? null
+    : await loadOrganizationIndex(env.ORGANIZATIONS_PATH || organizationUtils.ORGANIZATIONS_PATH, runtime);
+  const selection = organizationUtils.resolveReminderTargets(indexDocument, orgSlug, {
+    schedulePath,
+    statePath,
+    publicUrl
+  });
+  if (!selection.targets.length) {
+    runtime.log("没有启用提醒的组织，跳过。");
     return [];
   }
 
   const results = [];
   const errors = [];
-  for (const organization of organizations) {
+  for (const target of selection.targets) {
     try {
-      results.push(await sendOrganizationReminder(organization, { dateInfo, dryRun, force, env }));
+      results.push(await sendOrganizationReminder(target, { dateInfo, dryRun, force, env }, runtime));
     } catch (error) {
-      errors.push(`${organization.name}：${error.message || error}`);
+      if (selection.legacyResult) throw error;
+      errors.push(`${target.organization.name}：${error.message || error}`);
     }
   }
 
   if (errors.length) {
     throw new Error(errors.join("\n"));
   }
-  return results;
+  return selection.legacyResult ? results[0] : results;
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

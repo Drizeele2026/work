@@ -121,15 +121,76 @@
     return `${directory}/reminder-state.json`;
   }
 
+  function createReminderTarget(organization, options = {}) {
+    return {
+      organization: {
+        slug: organization.slug,
+        name: organization.name
+      },
+      schedulePath: String(options.schedulePath || organization.schedulePath).trim(),
+      statePath: String(options.statePath || organizationStatePath(organization)).trim(),
+      publicUrl: String(options.publicUrl || organization.reminder?.publicUrl || "https://drizeele2026.github.io/work/").trim(),
+      webhookSecretName: String(organization.reminder?.webhookSecretName || LEGACY_WEBHOOK_SECRET).trim(),
+      legacy: options.legacy === true
+    };
+  }
+
+  // 值班提醒选择的唯一 interface：调用方只拿可执行 target，不再理解组织配置的资源细节。
+  function resolveReminderTargets(document, requestedSlug, options = {}) {
+    if (options.schedulePath) {
+      return {
+        targets: [createReminderTarget(createLegacyOrganization(), {
+          schedulePath: options.schedulePath,
+          statePath: options.statePath,
+          publicUrl: options.publicUrl,
+          legacy: true
+        })],
+        legacyResult: true
+      };
+    }
+
+    const requested = requestedSlug ? normalizeOrgSlug(requestedSlug) : "";
+    if (document === null || document === undefined) {
+      if (requested && !canUseLegacyOrganization(requested)) {
+        throw new Error(`组织 ${requestedSlug} 不存在，无法在缺少组织索引时发送。`);
+      }
+      return {
+        targets: [createReminderTarget(createLegacyOrganization(), {
+          statePath: options.statePath,
+          publicUrl: options.publicUrl,
+          legacy: true
+        })],
+        legacyResult: true
+      };
+    }
+
+    const index = normalizeOrganizationIndex(document);
+    const eligible = index.organizations.filter((organization) =>
+      organization.enabled && organization.reminder.enabled
+    );
+    if (requested) {
+      const organization = eligible.find((item) => item.slug === requested);
+      if (!organization) {
+        throw new Error(`组织 ${requestedSlug} 不存在、已停用或未启用提醒。`);
+      }
+      return {
+        targets: [createReminderTarget(organization)],
+        legacyResult: false
+      };
+    }
+
+    return {
+      targets: eligible.map((organization) => createReminderTarget(organization)),
+      legacyResult: false
+    };
+  }
+
   const api = {
     ORGANIZATIONS_PATH,
     LEGACY_SCHEDULE_PATH,
-    normalizeOrgSlug,
-    normalizeOrganization,
-    normalizeOrganizationIndex,
     resolveOrganization,
-    relativeDataPath,
-    organizationStatePath
+    resolveReminderTargets,
+    relativeDataPath
   };
 
   global.DutyRosterOrganizations = api;
