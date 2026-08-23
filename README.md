@@ -77,13 +77,15 @@
 营运通：/work/?org=shm
 ```
 
-旧的 `?org=default` 仍然可以打开智慧门店，用来兼容旧链接。
+旧的 `?org=default` 仍然可以打开智慧门店。`default` 只作为 `intelligence` 的组织别名保留，不拥有独立的排班、发布记录或值班提醒。
 
 组织列表保存在：
 
 ```text
 data/organizations.json
 ```
+
+兼容名称写在对应组织的 `aliases` 字段中，访问组织别名时会统一使用该组织的正式 `slug`。
 
 每个组织有自己的排班和提醒状态：
 

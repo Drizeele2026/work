@@ -18,6 +18,14 @@
       .filter(Boolean);
   }
 
+  function normalizeAliases(aliases, slug) {
+    return [...new Set((Array.isArray(aliases) ? aliases : [])
+      .map((alias) => String(alias || "").trim())
+      .filter(Boolean)
+      .map(normalizeOrgSlug)
+      .filter((alias) => alias !== slug))];
+  }
+
   function normalizeReminder(reminder, slug) {
     const source = reminder && typeof reminder === "object" ? reminder : {};
     return {
@@ -34,6 +42,7 @@
     return {
       slug,
       name,
+      aliases: normalizeAliases(organization?.aliases, slug),
       owners: normalizeOwners(organization?.owners),
       schedulePath: String(organization?.schedulePath || `data/orgs/${slug}/schedule.json`).trim(),
       enabled: organization?.enabled !== false,
@@ -45,7 +54,8 @@
     const organizations = (Array.isArray(document?.organizations) ? document.organizations : [])
       .map(normalizeOrganization)
       .filter((organization) => organization.slug && organization.schedulePath);
-    const defaultOrg = normalizeOrgSlug(document?.defaultOrg || organizations[0]?.slug || "default");
+    const requestedDefault = normalizeOrgSlug(document?.defaultOrg || organizations[0]?.slug || "default");
+    const defaultOrg = findOrganization({ organizations }, requestedDefault)?.slug || requestedDefault;
     return {
       version: Number(document?.version) || 1,
       defaultOrg,
@@ -69,7 +79,9 @@
   }
 
   function findOrganization(index, slug) {
-    return (index.organizations || []).find((organization) => organization.slug === slug) || null;
+    return (index.organizations || []).find((organization) =>
+      organization.slug === slug || organization.aliases?.includes(slug)
+    ) || null;
   }
 
   function canUseLegacyOrganization(requestedSlug) {
@@ -104,7 +116,7 @@
     return {
       organization,
       index,
-      reason: requested ? "requested" : "default",
+      reason: requested ? (organization.slug === requested ? "requested" : "alias") : "default",
       error: ""
     };
   }
@@ -169,7 +181,7 @@
       organization.enabled && organization.reminder.enabled
     );
     if (requested) {
-      const organization = eligible.find((item) => item.slug === requested);
+      const organization = findOrganization({ organizations: eligible }, requested);
       if (!organization) {
         throw new Error(`组织 ${requestedSlug} 不存在、已停用或未启用提醒。`);
       }

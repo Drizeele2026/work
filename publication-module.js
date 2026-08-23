@@ -4,6 +4,12 @@
   const DEFAULT_REPO = "Drizeele2026/work";
   const DEFAULT_DRAFT_KEY_PREFIX = "duty-roster-team-config";
   const GITHUB_BASE_URL = "https://api.github.com";
+  const PUBLISH_DATE_FORMATTER = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Shanghai",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  });
 
   function createError(code, message) {
     const error = new Error(message);
@@ -24,6 +30,9 @@
     return {
       slug,
       name: text(organization?.name) || slug,
+      aliases: [...new Set((Array.isArray(organization?.aliases) ? organization.aliases : [])
+        .map(text)
+        .filter((alias) => alias && alias !== slug))],
       schedulePath
     };
   }
@@ -66,12 +75,10 @@
     return date;
   }
 
-  function pad2(value) {
-    return String(value).padStart(2, "0");
-  }
-
-  function dateKey(date) {
-    return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+  function beijingDateKey(date) {
+    const parts = PUBLISH_DATE_FORMATTER.formatToParts(date);
+    const value = (type) => parts.find((part) => part.type === type)?.value;
+    return `${value("year")}-${value("month")}-${value("day")}`;
   }
 
   function bytesToBinary(bytes) {
@@ -139,6 +146,8 @@
     const clock = options.clock || (() => new Date());
     const draftKeyPrefix = text(options.draftKeyPrefix) || DEFAULT_DRAFT_KEY_PREFIX;
     const draftKey = `${draftKeyPrefix}:${organization.slug}`;
+    const aliasDraftKeys = organization.aliases.map((alias) => `${draftKeyPrefix}:${alias}`);
+    const organizationSlugs = new Set([organization.slug, ...organization.aliases]);
 
     function requireStorage() {
       if (!storage
@@ -149,9 +158,13 @@
       }
     }
 
-    function removeDraft() {
+    function removeDraft(key = draftKey) {
       requireStorage();
-      storage.removeItem(draftKey);
+      storage.removeItem(key);
+    }
+
+    function removeAliasDrafts() {
+      aliasDraftKeys.forEach((key) => storage.removeItem(key));
     }
 
     function saveDraft(teams, remoteDocument = null, published = false) {
@@ -166,6 +179,7 @@
         teams: cloneTeams(teams)
       };
       storage.setItem(draftKey, JSON.stringify(draft));
+      removeAliasDrafts();
       return {
         teams: cloneTeams(draft.teams),
         savedAtIso: draft.savedAtIso,
@@ -176,30 +190,36 @@
 
     function restoreDraft(remoteDocument = null) {
       requireStorage();
-      const raw = storage.getItem(draftKey);
+      const sourceKey = [draftKey, ...aliasDraftKeys]
+        .find((key) => storage.getItem(key) !== null);
+      const raw = sourceKey ? storage.getItem(sourceKey) : null;
       if (!raw) return null;
 
       let draft;
       try {
         draft = JSON.parse(raw);
       } catch {
-        removeDraft();
+        removeDraft(sourceKey);
         return null;
       }
 
       const savedAt = Date.parse(draft?.savedAtIso || "");
       const remoteUpdatedAt = Date.parse(remoteDocument?.updatedAt || "");
       const invalid = draft?.version !== 2
-        || draft?.organizationSlug !== organization.slug
+        || !organizationSlugs.has(draft?.organizationSlug)
         || !Array.isArray(draft?.teams)
         || !draft.teams.length
         || !Number.isFinite(savedAt);
       const stale = Number.isFinite(remoteUpdatedAt) && remoteUpdatedAt > savedAt;
 
       if (invalid || stale) {
-        removeDraft();
+        removeDraft(sourceKey);
         return null;
       }
+
+      draft.organizationSlug = organization.slug;
+      storage.setItem(draftKey, JSON.stringify(draft));
+      removeAliasDrafts();
 
       return {
         teams: cloneTeams(draft.teams),
@@ -306,7 +326,7 @@
       const contentsUrl = `${GITHUB_BASE_URL}/repos/${encodeURIComponent(repo.owner)}/${encodeURIComponent(repo.repo)}/contents/${encodedPath(path)}`;
       const remote = await loadRemote(contentsUrl, publicationSettings.token);
       const publishedAt = clockDate(clock);
-      const publishDateKey = dateKey(publishedAt);
+      const publishDateKey = beijingDateKey(publishedAt);
       const document = scheduleUtils.buildPublishedDocument(remote.document, stagedTeams, {
         publishDateKey,
         updatedAt: publishedAt.toISOString()

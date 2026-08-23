@@ -107,6 +107,26 @@ test("interface 只暴露 restoreDraft、stageDraft、publish", () => {
   assert.equal(Object.isFrozen(publication), true);
 });
 
+test("publish 在任意运行时区都按北京时间确定生效日", async () => {
+  const originalTimeZone = process.env.TZ;
+  process.env.TZ = "UTC";
+  try {
+    const publication = createForTest({
+      clock: () => new Date("2026-08-11T16:30:00.000Z"),
+      fetchImpl: async (_url, request) => request.method === "GET"
+        ? response(404, { message: "Not Found" })
+        : response(200, { commit: { sha: "beijing-date" } })
+    });
+
+    const result = await publication.publish(teams);
+
+    assert.equal(result.document.ruleVersions[0].effectiveDate, "2026-08-12");
+  } finally {
+    if (originalTimeZone === undefined) delete process.env.TZ;
+    else process.env.TZ = originalTimeZone;
+  }
+});
+
 test("restoreDraft 恢复比远端更新的新鲜组织草稿", () => {
   const storage = memoryStorage({
     [draftKey()]: JSON.stringify(draft())
@@ -119,6 +139,47 @@ test("restoreDraft 恢复比远端更新的新鲜组织草稿", () => {
   assert.equal(restored.savedAtIso, "2026-08-12T03:00:00.000Z");
   assert.equal(restored.published, false);
   assert.ok(storage.read(draftKey()));
+});
+
+test("restoreDraft 把组织别名下的旧草稿迁移到 canonical key", () => {
+  const storage = memoryStorage({
+    [draftKey("default")]: JSON.stringify(draft({ organizationSlug: "default" }))
+  });
+  const publication = createForTest({
+    organization: {
+      slug: "intelligence",
+      name: "智慧门店",
+      aliases: ["default"],
+      schedulePath: "data/orgs/intelligence/schedule.json"
+    },
+    storage
+  });
+
+  const restored = publication.restoreDraft({ updatedAt: "2026-08-12T02:30:00.000Z" });
+
+  assert.deepEqual(restored.teams, teams);
+  assert.equal(JSON.parse(storage.read(draftKey("intelligence"))).organizationSlug, "intelligence");
+  assert.equal(storage.read(draftKey("default")), null);
+});
+
+test("stageDraft 只保留 canonical organization 的草稿", () => {
+  const storage = memoryStorage({
+    [draftKey("default")]: JSON.stringify(draft({ organizationSlug: "default" }))
+  });
+  const publication = createForTest({
+    organization: {
+      slug: "intelligence",
+      name: "智慧门店",
+      aliases: ["default"],
+      schedulePath: "data/orgs/intelligence/schedule.json"
+    },
+    storage
+  });
+
+  publication.stageDraft(teams);
+
+  assert.equal(JSON.parse(storage.read(draftKey("intelligence"))).organizationSlug, "intelligence");
+  assert.equal(storage.read(draftKey("default")), null);
 });
 
 test("restoreDraft 只有在成功发布标记与远端版本一致时才返回已发布", () => {

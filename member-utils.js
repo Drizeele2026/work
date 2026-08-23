@@ -52,18 +52,6 @@
       .filter((member) => member.name);
   }
 
-  function memberName(member) {
-    return normalizeMember(member).name;
-  }
-
-  function memberOpenId(member) {
-    return normalizeMember(member).feishuOpenId;
-  }
-
-  function memberNames(members) {
-    return normalizeMembers(members).map((member) => member.name);
-  }
-
   function formatMembers(members) {
     return normalizeMembers(members)
       .map((member) => member.feishuOpenId ? `${member.name} | ${member.feishuOpenId}` : member.name)
@@ -83,29 +71,32 @@
       .map(serializeMember);
   }
 
-  function mergeKnownIdentities(members, knownMembers) {
+  function restoreKnownIdentities(text, knownMembers) {
     const knownOpenIdsByName = new Map();
     normalizeMembers(knownMembers).forEach((member) => {
       if (member.feishuOpenId) knownOpenIdsByName.set(member.name, member.feishuOpenId);
     });
 
-    return normalizeMembers(members).map((member) => {
+    const current = parseMembers(text);
+    const members = current.map((member) => {
       if (member.feishuOpenId) return member;
       const knownOpenId = knownOpenIdsByName.get(member.name);
       return knownOpenId ? { ...member, feishuOpenId: knownOpenId } : member;
     });
+    const restoredText = formatMembers(members);
+    return {
+      members,
+      text: restoredText,
+      changed: restoredText !== formatMembers(current)
+    };
   }
 
-  return {
-    normalizeMember,
+  return Object.freeze({
     normalizeMembers,
     findMemberIndex,
     parseMembers,
-    memberName,
-    memberOpenId,
-    memberNames,
     formatMembers,
     serializeMembers,
-    mergeKnownIdentities
-  };
+    restoreKnownIdentities
+  });
 });

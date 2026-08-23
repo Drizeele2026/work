@@ -266,11 +266,6 @@
     };
   }
 
-  function todayDateKey() {
-    const now = new Date();
-    return dateKeyForDay(now.getFullYear(), now.getMonth() + 1, now.getDate());
-  }
-
   function buildVersionTeamsFromPublish(remoteDocument, currentTeams, publishDateKey) {
     const versions = getRuleVersions(remoteDocument);
     const remoteActiveIndex = findVersionIndexForDate(versions, publishDateKey);
@@ -287,7 +282,8 @@
   }
 
   function buildPublishedDocument(remoteDocument, currentTeams, options = {}) {
-    const publishDateKey = normalizeDateKey(options.publishDateKey) || todayDateKey();
+    const publishDateKey = normalizeDateKey(options.publishDateKey);
+    if (!publishDateKey) throw new Error("发布日期格式不正确，请使用 YYYY-MM-DD。");
     const updatedAt = options.updatedAt || new Date().toISOString();
     const normalizedTeams = normalizeTeams(currentTeams);
     if (!normalizedTeams.length) throw new Error("至少要配置一个团队和成员名单。");

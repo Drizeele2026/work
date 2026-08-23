@@ -50,6 +50,27 @@ test("resolveOrganization 按请求 slug 返回组织", () => {
   assert.equal(result.organization.schedulePath, "data/orgs/takeaway/schedule.json");
 });
 
+test("resolveOrganization 把组织别名归一为 canonical 组织", () => {
+  const result = orgUtils.resolveOrganization({
+    version: 1,
+    defaultOrg: "intelligence",
+    organizations: [
+      {
+        slug: "intelligence",
+        aliases: ["default"],
+        name: "智慧门店",
+        schedulePath: "data/orgs/intelligence/schedule.json",
+        enabled: true
+      }
+    ]
+  }, "default");
+
+  assert.equal(result.reason, "alias");
+  assert.equal(result.organization.slug, "intelligence");
+  assert.deepEqual(Array.from(result.organization.aliases), ["default"]);
+  assert.equal(result.organization.schedulePath, "data/orgs/intelligence/schedule.json");
+});
+
 test("resolveOrganization 停用组织不可用", () => {
   const result = orgUtils.resolveOrganization({
     version: 1,
@@ -157,4 +178,22 @@ test("resolveReminderTargets 具名组织必须有提醒资格", () => {
     }, "qa"),
     /不存在、已停用或未启用提醒/
   );
+});
+
+test("resolveReminderTargets 的组织别名只生成 canonical target", () => {
+  const result = orgUtils.resolveReminderTargets({
+    organizations: [
+      {
+        slug: "intelligence",
+        aliases: ["default"],
+        name: "智慧门店",
+        enabled: true,
+        reminder: { enabled: true, webhookSecretName: "FEISHU_WEBHOOK" }
+      }
+    ]
+  }, "default");
+
+  assert.equal(result.targets.length, 1);
+  assert.equal(result.targets[0].organization.slug, "intelligence");
+  assert.equal(result.targets[0].schedulePath, "data/orgs/intelligence/schedule.json");
 });

@@ -6,7 +6,7 @@ import organizationUtils from "../organization-utils.js";
 const DEFAULT_PUBLIC_URL = "https://drizeele2026.github.io/work/";
 const TIME_ZONE = "Asia/Shanghai";
 
-export function formatBeijingDate(date = new Date()) {
+function formatBeijingDate(date = new Date()) {
   const parts = new Intl.DateTimeFormat("zh-CN", {
     timeZone: TIME_ZONE,
     year: "numeric",
@@ -29,15 +29,6 @@ export function formatBeijingDate(date = new Date()) {
   };
 }
 
-export function findAssignmentForDate(schedule, dateKey) {
-  return scheduleUtils.findAssignmentForDateWithFallback(schedule, dateKey);
-}
-
-// 顺着今天往后取未来 days 天的值班，按已发布规则版本连续顺排。
-export function collectUpcoming(schedule, todayKey, days = 3) {
-  return scheduleUtils.collectUpcoming(schedule, todayKey, days);
-}
-
 // 团队色圆点，对应公开页的蓝/绿/紫色标，让飞书卡片和网页视觉统一。
 const TEAM_DOT = { blue: "🔵", green: "🟢", violet: "🟣", purple: "🟣", orange: "🟠", red: "🔴" };
 
@@ -46,7 +37,7 @@ function dutyPersonMarkdown(team) {
   return team.feishuOpenId ? `<at id=${team.feishuOpenId}></at>` : team.person;
 }
 
-export function buildFeishuCardMessage({ dateInfo, assignment, upcoming = [], publicUrl = DEFAULT_PUBLIC_URL }) {
+function buildFeishuCardMessage({ dateInfo, assignment, upcoming = [], publicUrl = DEFAULT_PUBLIC_URL }) {
   const dutyLines = assignment.teams.map((team) => ({
     tag: "div",
     text: {
@@ -208,8 +199,8 @@ async function postFeishuMessage(webhook, message, fetchImpl = globalThis.fetch)
   return payload;
 }
 
-// 单组织值班提醒的执行 interface；target 来自 organization-utils，I/O 只经过 adapter seam。
-export async function sendOrganizationReminder(target, options = {}, adapter = {}) {
+// 单组织提醒的内部执行；target 来自 organization-utils，I/O 只经过 adapter seam。
+async function sendOrganizationReminder(target, options = {}, adapter = {}) {
   const {
     dateInfo,
     dryRun = false,
@@ -221,8 +212,8 @@ export async function sendOrganizationReminder(target, options = {}, adapter = {
 
   if (dryRun) {
     const schedule = await loadSchedule(target.schedulePath, runtime);
-    const assignment = findAssignmentForDate(schedule, dateInfo.dateKey);
-    const upcoming = collectUpcoming(schedule, dateInfo.dateKey, 3);
+    const assignment = scheduleUtils.findAssignmentForDateWithFallback(schedule, dateInfo.dateKey);
+    const upcoming = scheduleUtils.collectUpcoming(schedule, dateInfo.dateKey, 3);
     const message = buildFeishuCardMessage({
       dateInfo,
       assignment,
@@ -248,8 +239,8 @@ export async function sendOrganizationReminder(target, options = {}, adapter = {
   }
 
   const schedule = await loadSchedule(target.schedulePath, runtime);
-  const assignment = findAssignmentForDate(schedule, dateInfo.dateKey);
-  const upcoming = collectUpcoming(schedule, dateInfo.dateKey, 3);
+  const assignment = scheduleUtils.findAssignmentForDateWithFallback(schedule, dateInfo.dateKey);
+  const upcoming = scheduleUtils.collectUpcoming(schedule, dateInfo.dateKey, 3);
   const message = buildFeishuCardMessage({
     dateInfo,
     assignment,

@@ -96,7 +96,7 @@ assert.doesNotMatch(workbenchJs, /\b(?:API_BASE|contentsUrl)\b|Authorization\s*:
 
 assert.match(publicationModule, /const draftKey = `\$\{draftKeyPrefix\}:\$\{organization\.slug\}`;/, "草稿 key 必须按组织隔离");
 assert.match(publicationModule, /organizationSlug:\s*organization\.slug/, "草稿内容必须记录组织归属");
-assert.match(publicationModule, /draft\?\.organizationSlug !== organization\.slug/, "恢复草稿时必须拒绝跨组织数据");
+assert.match(publicationModule, /const organizationSlugs = new Set\(\[organization\.slug, \.\.\.organization\.aliases\]\)[\s\S]*!organizationSlugs\.has\(draft\?\.organizationSlug\)/, "恢复草稿时只能接受 canonical 组织或其别名的数据");
 assert.match(publicationModule, /savedAtIso/, "组织草稿必须记录保存时间");
 assert.match(publicationModule, /remoteUpdatedAt/, "组织草稿必须记录远端版本时间");
 assert.match(publicationModule, /published: published === true/, "组织草稿必须记录是否已成功发布");
@@ -111,10 +111,8 @@ const defaultOrganization = organizations.organizations.find((org) => org.slug =
 assert.ok(defaultOrganization, "默认组织必须存在");
 assert.equal(defaultOrganization.name, "智慧门店");
 assert.equal(defaultOrganization.schedulePath, "data/orgs/intelligence/schedule.json");
-const legacyDefaultOrganization = organizations.organizations.find((org) => org.slug === "default");
-assert.ok(legacyDefaultOrganization, "需要保留 default 旧入口");
-assert.equal(legacyDefaultOrganization.schedulePath, "data/orgs/intelligence/schedule.json");
-assert.equal(legacyDefaultOrganization.reminder?.enabled, false, "default 旧入口不能重复发送提醒");
+assert.deepEqual(defaultOrganization.aliases, ["default"], "default 旧入口应是智慧门店的组织别名");
+assert.equal(organizations.organizations.some((org) => org.slug === "default"), false, "组织别名不能形成第二个组织");
 const shmOrganization = organizations.organizations.find((org) => org.slug === "shm");
 assert.ok(shmOrganization, "需要配置营运通组织");
 assert.equal(shmOrganization.name, "营运通");
@@ -133,6 +131,7 @@ assert.match(workflow, /git add data\/orgs\/\*\/reminder-state\.json/, "workflow
 assert.match(readme, /多组织/, "README 需要说明多组织");
 assert.match(readme, /\/work\/\?org=/, "README 需要说明按 org 查看排班");
 assert.match(readme, /data\/organizations\.json/, "README 需要说明组织索引文件");
+assert.match(readme, /aliases.*正式 `slug`/, "README 需要说明组织别名归一语义");
 assert.match(readme, /成功发送的组织.*reminder-state\.json.*提交/, "README 需要说明部分成功时已发送组织的状态仍会提交");
 assert.match(readme, /缺 secret.*修好.*重跑/, "README 需要说明失败组织补 secret 后重跑");
 

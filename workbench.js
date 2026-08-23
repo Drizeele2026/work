@@ -170,7 +170,7 @@
       }
 
       function setTeamForm(index, team) {
-        const members = Array.isArray(team.members) ? team.members : [];
+        const members = memberUtils.normalizeMembers(team.members);
         $(`team${index}Name`).value = team.name || "";
         $(`team${index}Members`).value = memberUtils.formatMembers(members);
         renderMemberPreview(index, members);
@@ -179,9 +179,9 @@
       function renderMemberPreview(index, members) {
         const preview = $(`team${index}Preview`);
         if (!preview) return;
-        const rows = members.map((member, i) => {
-          const name = memberUtils.memberName(member);
-          const oid = memberUtils.memberOpenId(member);
+        const normalizedMembers = memberUtils.normalizeMembers(members);
+        const rows = normalizedMembers.map((member, i) => {
+          const { name, feishuOpenId: oid } = member;
           return `
             <div class="mrow" data-i="${i}">
               <span class="mrow-grip" draggable="true" title="拖动排序" aria-hidden="true">⠿</span>
@@ -196,7 +196,7 @@
               </div>
             </div>`;
         }).join("");
-        const emptyHint = members.length ? "" : `<div class="mrow-empty">还没有成员，在下面添加第一个</div>`;
+        const emptyHint = normalizedMembers.length ? "" : `<div class="mrow-empty">还没有成员，在下面添加第一个</div>`;
         preview.innerHTML = `${emptyHint}${rows}
           <div class="mrow-add">
             <input class="mrow-addname" type="text" placeholder="输入姓名，回车或点「添加」" data-act="addname" aria-label="添加成员">
@@ -215,7 +215,7 @@
         if (!input) return;
         const name = input.value.trim().replace(/@/g, "");
         if (!name) return;
-        const members = parseMembers($(`team${index}Members`).value);
+        const members = memberUtils.parseMembers($(`team${index}Members`).value);
         members.push({ name, feishuOpenId: "" });
         commitMembers(index, members);
         $(`team${index}Preview`).querySelector(".mrow-addname")?.focus();
@@ -229,7 +229,7 @@
           if (!act) return;
           const row = event.target.closest(".mrow");
           const i = row ? Number(row.dataset.i) : -1;
-          const members = parseMembers($(`team${index}Members`).value);
+          const members = memberUtils.parseMembers($(`team${index}Members`).value);
           if (act === "add") {
             addMemberFromInput(index);
           } else if (act === "del" && i >= 0) {
@@ -265,7 +265,7 @@
           if (row) {
             const to = Number(row.dataset.i);
             if (to !== dragFrom) {
-              const members = parseMembers($(`team${index}Members`).value);
+              const members = memberUtils.parseMembers($(`team${index}Members`).value);
               const [moved] = members.splice(dragFrom, 1);
               members.splice(to, 0, moved);
               commitMembers(index, members);
@@ -282,14 +282,14 @@
           const row = event.target.closest(".mrow");
           if (!row || (act !== "name" && act !== "oid")) return;
           const i = Number(row.dataset.i);
-          const members = parseMembers($(`team${index}Members`).value);
+          const members = memberUtils.parseMembers($(`team${index}Members`).value);
           if (!members[i]) return;
           if (act === "name") {
             const name = event.target.value.trim().replace(/@/g, "");
             if (!name) { syncTeamCards(); return; }  // 不允许空名，恢复原值
-            members[i] = { name, feishuOpenId: memberUtils.memberOpenId(members[i]) };
+            members[i] = { name, feishuOpenId: members[i].feishuOpenId };
           } else {
-            members[i] = { name: memberUtils.memberName(members[i]), feishuOpenId: event.target.value.trim() };
+            members[i] = { name: members[i].name, feishuOpenId: event.target.value.trim() };
           }
           commitMembers(index, members);
         });
@@ -304,7 +304,7 @@
       function syncTeamCards() {
         [1, 2, 3].forEach((index) => {
           const name = $(`team${index}Name`).value.trim() || `团队 ${index}`;
-          const members = parseMembers($(`team${index}Members`).value);
+          const members = memberUtils.parseMembers($(`team${index}Members`).value);
           $(`team${index}Title`).textContent = name;
           $(`team${index}Count`).textContent = `${members.length} 人`;
           renderMemberPreview(index, members);
@@ -425,10 +425,6 @@
         if ($("nextMonthLabel")) $("nextMonthLabel").textContent = formatMonthKey(next.year, next.month);
         $("monthPicker").value = formatMonthKey(year, month);
         if ($("inspectorMonth")) $("inspectorMonth").textContent = formatMonthKey(year, month);
-      }
-
-      function parseMembers(text) {
-        return memberUtils.parseMembers(text);
       }
 
       function showError(message) {
@@ -590,7 +586,7 @@
       function readTeamFormState() {
         return [1, 2, 3].map((index) => ({
           name: $(`team${index}Name`).value.trim(),
-          members: parseMembers($(`team${index}Members`).value),
+          members: memberUtils.parseMembers($(`team${index}Members`).value),
           color: teamColors[index - 1]
         }));
       }
@@ -712,7 +708,7 @@
       function buildSummaryFromAssignments(teams, dailyAssignments) {
         const counts = {};
         teams.forEach((team) => {
-          counts[team.name] = Object.fromEntries(memberUtils.memberNames(team.members).map((member) => [member, 0]));
+          counts[team.name] = Object.fromEntries(memberUtils.normalizeMembers(team.members).map((member) => [member.name, 0]));
         });
         dailyAssignments.forEach((day) => {
           (day.teams || []).forEach((team) => {
@@ -727,9 +723,9 @@
         const lastDay = dailyAssignments[dailyAssignments.length - 1] || { teams: [] };
         return teams.map((team) => ({
           team: team.name,
-          members: memberUtils.memberNames(team.members).map((member) => ({
-            name: member,
-            count: counts[team.name]?.[member] || 0
+          members: memberUtils.normalizeMembers(team.members).map((member) => ({
+            name: member.name,
+            count: counts[team.name]?.[member.name] || 0
           })),
           lastPerson: (lastDay.teams || []).find((item) => item.name === team.name)?.person || "-"
         }));
@@ -764,10 +760,11 @@
 
       function normalizePublishedDutyTeam(team, index = 0) {
         const personValue = typeof team?.person === "object" && team.person ? team.person : { name: team?.person };
+        const person = memberUtils.normalizeMembers([personValue])[0] || { name: "", feishuOpenId: "" };
         return {
           name: String(team?.name || `团队${index + 1}`).trim(),
-          person: memberUtils.memberName(personValue),
-          feishuOpenId: String(team?.feishuOpenId || memberUtils.memberOpenId(personValue) || "").trim(),
+          person: person.name,
+          feishuOpenId: String(team?.feishuOpenId || person.feishuOpenId || "").trim(),
           color: resolveTeamColor(team?.color, index)
         };
       }
@@ -837,7 +834,7 @@
       function countPublishedAssignments(teams, dailyAssignments) {
         const counts = {};
         teams.forEach((team) => {
-          counts[team.name] = Object.fromEntries(memberUtils.memberNames(team.members).map((member) => [member, 0]));
+          counts[team.name] = Object.fromEntries(memberUtils.normalizeMembers(team.members).map((member) => [member.name, 0]));
         });
         dailyAssignments.forEach((day) => {
           (day.teams || []).forEach((team) => {
@@ -877,11 +874,9 @@
         [1, 2, 3].forEach((index) => {
           const field = $(`team${index}Members`);
           if (!field) return;
-          const current = memberUtils.parseMembers(field.value);
-          const merged = memberUtils.mergeKnownIdentities(current, knownMembers);
-          const formatted = memberUtils.formatMembers(merged);
-          if (formatted !== memberUtils.formatMembers(current)) changed = true;
-          field.value = formatted;
+          const restored = memberUtils.restoreKnownIdentities(field.value, knownMembers);
+          if (restored.changed) changed = true;
+          field.value = restored.text;
         });
 
         if (changed) {
@@ -893,14 +888,14 @@
       function buildTeamData() {
         const teams = [1, 2, 3].map((index) => {
           const name = $(`team${index}Name`).value.trim();
-          const members = parseMembers($(`team${index}Members`).value);
+          const members = memberUtils.parseMembers($(`team${index}Members`).value);
           return { name, members, color: teamColors[index - 1] };
         }).filter((team) => team.name || team.members.length);
 
         if (!teams.length) throw new Error("至少要配置一个团队和成员名单。");
 
         teams.forEach((team) => {
-          const names = memberUtils.memberNames(team.members);
+          const names = memberUtils.normalizeMembers(team.members).map((member) => member.name);
           if (!team.name) throw new Error("团队名称不能为空。");
           if (!names.length) throw new Error(`团队【${team.name}】至少要有一个成员。`);
         });
@@ -978,9 +973,9 @@
           const lastPerson = lastDay.teams.find((item) => item.name === team.name)?.person || "-";
           return {
             team: team.name,
-            members: team.members.map((member) => ({
-              name: memberUtils.memberName(member),
-              count: counts[team.name][memberUtils.memberName(member)] || 0
+            members: memberUtils.normalizeMembers(team.members).map((member) => ({
+              name: member.name,
+              count: counts[team.name][member.name] || 0
             })),
             lastPerson
           };

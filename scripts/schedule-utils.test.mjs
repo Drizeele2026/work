@@ -376,3 +376,10 @@ test("没有规则版本且没有 current.teams 时给中文错误", () => {
     /没有可用于顺排的团队规则/
   );
 });
+
+test("buildPublishedDocument 要求调用方显式提供发布日期", () => {
+  assert.throws(
+    () => utils.buildPublishedDocument(null, [{ name: "前端", members: ["A"] }]),
+    /发布日期格式不正确/
+  );
+});

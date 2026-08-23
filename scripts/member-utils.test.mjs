@@ -49,10 +49,11 @@ test("serializeMembers stores configured OpenIDs and keeps unconfigured names cl
   );
 });
 
-test("member helpers support old string members", async () => {
-  assert.equal(memberUtils.memberName("方思琪"), "方思琪");
-  assert.equal(memberUtils.memberOpenId("方思琪"), "");
-  assert.deepEqual(plain(memberUtils.memberNames([{ name: "方思琪" }, "唐宇宏"])), ["方思琪", "唐宇宏"]);
+test("normalizeMembers supports old string members", async () => {
+  assert.deepEqual(plain(memberUtils.normalizeMembers([{ name: "方思琪" }, "唐宇宏"])), [
+    { name: "方思琪", feishuOpenId: "" },
+    { name: "唐宇宏", feishuOpenId: "" }
+  ]);
 });
 
 test("findMemberIndex matches stable OpenID before display name", () => {
@@ -65,21 +66,35 @@ test("findMemberIndex matches stable OpenID before display name", () => {
   assert.equal(memberUtils.findMemberIndex(members, { name: "同名成员", feishuOpenId: "ou_old" }), 1);
 });
 
-test("mergeKnownIdentities fills missing OpenIDs without overwriting edits", () => {
-  const merged = memberUtils.mergeKnownIdentities([
+test("restoreKnownIdentities restores editable text without overwriting edits", () => {
+  const restored = memberUtils.restoreKnownIdentities([
     "方思琪",
-    { name: "唐宇宏", feishuOpenId: "ou_explicit" },
+    "唐宇宏 | ou_explicit",
     "谭贤"
-  ], [
+  ].join("\n"), [
     { name: "方思琪", feishuOpenId: "ou_frontend" },
     { name: "唐宇宏", feishuOpenId: "ou_remote" }
   ]);
 
-  assert.deepEqual(plain(merged), [
+  assert.equal(restored.changed, true);
+  assert.equal(restored.text, ["方思琪 | ou_frontend", "唐宇宏 | ou_explicit", "谭贤"].join("\n"));
+  assert.deepEqual(plain(restored.members), [
     { name: "方思琪", feishuOpenId: "ou_frontend" },
     { name: "唐宇宏", feishuOpenId: "ou_explicit" },
     { name: "谭贤", feishuOpenId: "" }
   ]);
+});
+
+test("interface 只暴露成员身份所需的六个动作", () => {
+  assert.deepEqual(Object.keys(memberUtils), [
+    "normalizeMembers",
+    "findMemberIndex",
+    "parseMembers",
+    "formatMembers",
+    "serializeMembers",
+    "restoreKnownIdentities"
+  ]);
+  assert.equal(Object.isFrozen(memberUtils), true);
 });
 
 test("root member module supports browser global and CommonJS loading", async () => {
@@ -87,6 +102,6 @@ test("root member module supports browser global and CommonJS loading", async ()
   const require = createRequire(import.meta.url);
   const commonJsUtils = require("../member-utils.js");
 
-  assert.equal(browserUtils.memberName("@方思琪"), "方思琪");
+  assert.equal(browserUtils.normalizeMembers(["@方思琪"])[0].name, "方思琪");
   assert.equal(commonJsUtils, memberUtils);
 });
