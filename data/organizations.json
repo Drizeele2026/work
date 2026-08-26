@@ -40,6 +40,18 @@
         "webhookSecretName": "FEISHU_WEBHOOK_CHOUJIAN",
         "publicUrl": "https://drizeele2026.github.io/work/?org=choujian"
       }
+    },
+    {
+      "slug": "zhongtai",
+      "name": "中台域",
+      "owners": [],
+      "schedulePath": "data/orgs/zhongtai/schedule.json",
+      "enabled": true,
+      "reminder": {
+        "enabled": true,
+        "webhookSecretName": "FEISHU_WEBHOOK_ZHONGTAI",
+        "publicUrl": "https://drizeele2026.github.io/work/?org=zhongtai"
+      }
     }
   ]
 }

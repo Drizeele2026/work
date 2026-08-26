@@ -1,0 +1,114 @@
+{
+  "version": 2,
+  "updatedAt": "2026-08-26T09:41:00Z",
+  "organization": {
+    "slug": "zhongtai",
+    "name": "中台域"
+  },
+  "current": {
+    "teams": [
+      {
+        "name": "前端",
+        "color": "blue",
+        "members": [
+          {
+            "name": "叶思豪",
+            "feishuOpenId": "ou_660fd5793d542ddefa624915ffeaf228"
+          }
+        ]
+      },
+      {
+        "name": "后端",
+        "color": "green",
+        "members": [
+          {
+            "name": "陈益清",
+            "feishuOpenId": "ou_0a7a27f18155789a9c30160c08cddf3b"
+          },
+          {
+            "name": "陈世峰",
+            "feishuOpenId": "ou_05644118b20bf1fbd360caeb175488be"
+          },
+          {
+            "name": "陈承旺",
+            "feishuOpenId": "ou_9a41ea27d5612972d103473361b7f45a"
+          },
+          {
+            "name": "王尘",
+            "feishuOpenId": "ou_b75611d1345968d90ad3ab4992b8996f"
+          }
+        ]
+      },
+      {
+        "name": "测试",
+        "color": "violet",
+        "members": [
+          {
+            "name": "王键宁",
+            "feishuOpenId": "ou_8e84a05a28b1fc1bbdc75d23636f8c89"
+          },
+          {
+            "name": "陈佳丽",
+            "feishuOpenId": "ou_87cc82dd54c342bd8dd269f485f8d78d"
+          }
+        ]
+      }
+    ]
+  },
+  "ruleVersions": [
+    {
+      "effectiveDate": "2026-08-26",
+      "teams": [
+        {
+          "name": "前端",
+          "color": "blue",
+          "startPerson": "叶思豪",
+          "members": [
+            {
+              "name": "叶思豪",
+              "feishuOpenId": "ou_660fd5793d542ddefa624915ffeaf228"
+            }
+          ]
+        },
+        {
+          "name": "后端",
+          "color": "green",
+          "startPerson": "陈益清",
+          "members": [
+            {
+              "name": "陈益清",
+              "feishuOpenId": "ou_0a7a27f18155789a9c30160c08cddf3b"
+            },
+            {
+              "name": "陈世峰",
+              "feishuOpenId": "ou_05644118b20bf1fbd360caeb175488be"
+            },
+            {
+              "name": "陈承旺",
+              "feishuOpenId": "ou_9a41ea27d5612972d103473361b7f45a"
+            },
+            {
+              "name": "王尘",
+              "feishuOpenId": "ou_b75611d1345968d90ad3ab4992b8996f"
+            }
+          ]
+        },
+        {
+          "name": "测试",
+          "color": "violet",
+          "startPerson": "王键宁",
+          "members": [
+            {
+              "name": "王键宁",
+              "feishuOpenId": "ou_8e84a05a28b1fc1bbdc75d23636f8c89"
+            },
+            {
+              "name": "陈佳丽",
+              "feishuOpenId": "ou_87cc82dd54c342bd8dd269f485f8d78d"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
