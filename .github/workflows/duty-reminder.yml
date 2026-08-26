@@ -34,6 +34,7 @@ jobs:
           FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
           FEISHU_WEBHOOK_TAKEAWAY: ${{ secrets.FEISHU_WEBHOOK_TAKEAWAY }}
           FEISHU_WEBHOOK_SHM: ${{ secrets.FEISHU_WEBHOOK_SHM }}
+          FEISHU_WEBHOOK_CHOUJIAN: ${{ secrets.FEISHU_WEBHOOK_CHOUJIAN }}
           REMINDER_ORG: ${{ github.event_name == 'workflow_dispatch' && inputs.org || '' }}
           FORCE_SEND: ${{ (github.event_name == 'workflow_dispatch' && inputs.force) && '1' || '0' }}
         run: |

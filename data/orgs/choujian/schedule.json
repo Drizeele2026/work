@@ -1,0 +1,162 @@
+{
+  "version": 2,
+  "updatedAt": "2026-08-26T07:10:43Z",
+  "organization": {
+    "slug": "choujian",
+    "name": "筹建域"
+  },
+  "current": {
+    "teams": [
+      {
+        "name": "前端",
+        "color": "blue",
+        "members": [
+          {
+            "name": "吉米(叶思豪)",
+            "feishuOpenId": "ou_660fd5793d542ddefa624915ffeaf228"
+          },
+          {
+            "name": "林贤熙",
+            "feishuOpenId": "ou_d4a79bd9fa728ad66401c3febea87ce3"
+          },
+          {
+            "name": "张良杰",
+            "feishuOpenId": "ou_682168373dbb5a92d9724d096df5f09d"
+          },
+          {
+            "name": "魏旻靓",
+            "feishuOpenId": "ou_738e5a5c83f4faf3748d6202626b791a"
+          }
+        ]
+      },
+      {
+        "name": "后端",
+        "color": "green",
+        "members": [
+          {
+            "name": "苏阿合",
+            "feishuOpenId": "ou_69fa569232fa493a3e347838d87bcc03"
+          },
+          {
+            "name": "林金亮",
+            "feishuOpenId": "ou_a3f7bb4908190a815a775b112a4023aa"
+          },
+          {
+            "name": "陈益清",
+            "feishuOpenId": "ou_0a7a27f18155789a9c30160c08cddf3b"
+          },
+          {
+            "name": "陈天柱",
+            "feishuOpenId": "ou_292844d35da1f7b305e62484074adfd5"
+          },
+          {
+            "name": "林隆炜",
+            "feishuOpenId": "ou_194545a3724c03c93604b880e5fb93ae"
+          },
+          {
+            "name": "王伟华",
+            "feishuOpenId": "ou_a0ec8ba1989ce872d780ece2f8f840b7"
+          }
+        ]
+      },
+      {
+        "name": "测试",
+        "color": "violet",
+        "members": [
+          {
+            "name": "马锦镛",
+            "feishuOpenId": "ou_25334a04fe0628bda1e253276e9da125"
+          },
+          {
+            "name": "王静",
+            "feishuOpenId": "ou_9c0248a519c5b7f724abc272713ef17a"
+          },
+          {
+            "name": "林晓晖",
+            "feishuOpenId": "ou_fbbf6992abbd117fb7ae9c341f2f71a5"
+          }
+        ]
+      }
+    ]
+  },
+  "ruleVersions": [
+    {
+      "effectiveDate": "2026-08-27",
+      "teams": [
+        {
+          "name": "前端",
+          "color": "blue",
+          "startPerson": "吉米(叶思豪)",
+          "members": [
+            {
+              "name": "吉米(叶思豪)",
+              "feishuOpenId": "ou_660fd5793d542ddefa624915ffeaf228"
+            },
+            {
+              "name": "林贤熙",
+              "feishuOpenId": "ou_d4a79bd9fa728ad66401c3febea87ce3"
+            },
+            {
+              "name": "张良杰",
+              "feishuOpenId": "ou_682168373dbb5a92d9724d096df5f09d"
+            },
+            {
+              "name": "魏旻靓",
+              "feishuOpenId": "ou_738e5a5c83f4faf3748d6202626b791a"
+            }
+          ]
+        },
+        {
+          "name": "后端",
+          "color": "green",
+          "startPerson": "苏阿合",
+          "members": [
+            {
+              "name": "苏阿合",
+              "feishuOpenId": "ou_69fa569232fa493a3e347838d87bcc03"
+            },
+            {
+              "name": "林金亮",
+              "feishuOpenId": "ou_a3f7bb4908190a815a775b112a4023aa"
+            },
+            {
+              "name": "陈益清",
+              "feishuOpenId": "ou_0a7a27f18155789a9c30160c08cddf3b"
+            },
+            {
+              "name": "陈天柱",
+              "feishuOpenId": "ou_292844d35da1f7b305e62484074adfd5"
+            },
+            {
+              "name": "林隆炜",
+              "feishuOpenId": "ou_194545a3724c03c93604b880e5fb93ae"
+            },
+            {
+              "name": "王伟华",
+              "feishuOpenId": "ou_a0ec8ba1989ce872d780ece2f8f840b7"
+            }
+          ]
+        },
+        {
+          "name": "测试",
+          "color": "violet",
+          "startPerson": "马锦镛",
+          "members": [
+            {
+              "name": "马锦镛",
+              "feishuOpenId": "ou_25334a04fe0628bda1e253276e9da125"
+            },
+            {
+              "name": "王静",
+              "feishuOpenId": "ou_9c0248a519c5b7f724abc272713ef17a"
+            },
+            {
+              "name": "林晓晖",
+              "feishuOpenId": "ou_fbbf6992abbd117fb7ae9c341f2f71a5"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
