@@ -952,6 +952,12 @@
 
           const list = document.createElement("div");
           list.className = "duty-list";
+          if (!data.teams.length) {
+            const empty = document.createElement("div");
+            empty.className = "empty-preview";
+            empty.textContent = "未排班";
+            list.appendChild(empty);
+          }
           data.teams.forEach((team) => {
             const color = resolveTeamColor(team.color, data.teams.indexOf(team));
             const pill = document.createElement("div");
@@ -1128,10 +1134,14 @@
             } else {
               const data = dailyAssignments[day - 1];
               const lines = [String(day)];
-              teams.forEach((team) => {
-                const found = data.teams.find((entry) => entry.name === team.name);
-                lines.push(`${team.name}：${found ? found.person : ""}`);
-              });
+              if (!data.teams.length) {
+                lines.push("未排班");
+              } else {
+                teams.forEach((team) => {
+                  const found = data.teams.find((entry) => entry.name === team.name);
+                  lines.push(`${team.name}：${found ? found.person : ""}`);
+                });
+              }
               row.push({ empty: false, text: lines.join("\n") });
             }
           }

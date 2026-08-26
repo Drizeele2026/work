@@ -92,6 +92,25 @@ test("main：普通触发发送后写入去重状态", async () => {
   assert.equal(saved.lastSentDate, "2026-06-20");
 });
 
+test("main：首个规则生效前不发送也不写去重状态", async () => {
+  const { schedulePath, statePath } = await setupTmp();
+  const logs = [];
+  const result = await main([], {
+    REMINDER_DATE: "2026-06-19T02:00:00Z",
+    SCHEDULE_PATH: schedulePath,
+    REMINDER_STATE_PATH: statePath,
+    FEISHU_WEBHOOK: "https://example.com/hook"
+  }, {
+    fetch: async () => { throw new Error("未排班不应发送请求"); },
+    log: (message) => logs.push(String(message))
+  });
+
+  assert.equal(result.skipped, true);
+  assert.equal(result.reason, "not-started");
+  assert.ok(logs.some((message) => message.includes("尚未生效，跳过值班提醒")));
+  await assert.rejects(() => fs.readFile(statePath, "utf8"));
+});
+
 test("main：发送失败的错误和日志不会泄露 webhook secret", async () => {
   const { schedulePath, statePath } = await setupTmp();
   const secret = "https://example.com/private-webhook-token";

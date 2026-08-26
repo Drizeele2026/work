@@ -72,6 +72,16 @@ test("findAssignmentForDateWithFallback 按规则版本计算当天值班", () =
   assert.equal(result.teams[0].feishuOpenId, "ou_a");
 });
 
+test("首个规则生效前未排班，生效日起按名单逐日轮转", () => {
+  const before = utils.findAssignmentForDateWithFallback(schedule, "2026-06-29");
+  const firstDay = utils.findAssignmentForDateWithFallback(schedule, "2026-06-30");
+  const secondDay = utils.findAssignmentForDateWithFallback(schedule, "2026-07-01");
+
+  assert.deepEqual(before.teams, []);
+  assert.deepEqual(firstDay.teams.map((team) => `${team.name}:${team.person}`), ["前端:C", "后端:E"]);
+  assert.deepEqual(secondDay.teams.map((team) => `${team.name}:${team.person}`), ["前端:A", "后端:D"]);
+});
+
 test("collectUpcoming 跨月返回未来三天", () => {
   const result = utils.collectUpcoming(schedule, "2026-06-30", 3);
 

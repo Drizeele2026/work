@@ -210,36 +210,28 @@ async function sendOrganizationReminder(target, options = {}, adapter = {}) {
   const runtime = createRuntimeAdapter(adapter);
   const { organization } = target;
 
-  if (dryRun) {
-    const schedule = await loadSchedule(target.schedulePath, runtime);
-    const assignment = scheduleUtils.findAssignmentForDateWithFallback(schedule, dateInfo.dateKey);
-    const upcoming = scheduleUtils.collectUpcoming(schedule, dateInfo.dateKey, 3);
-    const message = buildFeishuCardMessage({
-      dateInfo,
-      assignment,
-      upcoming,
-      publicUrl: target.publicUrl
-    });
-    runtime.log(JSON.stringify(target.legacy ? message : {
-      organization: organization.slug,
-      name: organization.name,
-      message
-    }, null, 2));
-    return target.legacy ? message : { organization, dryRun: true, message };
-  }
-
-  const state = await loadReminderState(target.statePath, runtime);
-  if (!force && hasSentOn(state, dateInfo.dateKey)) {
-    runtime.log(target.legacy
-      ? `${dateInfo.dateKey} 今天已发送过值班提醒，跳过。`
-      : `${organization.name} ${dateInfo.dateKey} 今天已发送过值班提醒，跳过。`);
-    return target.legacy
-      ? { skipped: true, dateKey: dateInfo.dateKey }
-      : { organization, skipped: true, dateKey: dateInfo.dateKey };
+  if (!dryRun) {
+    const state = await loadReminderState(target.statePath, runtime);
+    if (!force && hasSentOn(state, dateInfo.dateKey)) {
+      runtime.log(target.legacy
+        ? `${dateInfo.dateKey} 今天已发送过值班提醒，跳过。`
+        : `${organization.name} ${dateInfo.dateKey} 今天已发送过值班提醒，跳过。`);
+      return target.legacy
+        ? { skipped: true, dateKey: dateInfo.dateKey }
+        : { organization, skipped: true, dateKey: dateInfo.dateKey };
+    }
   }
 
   const schedule = await loadSchedule(target.schedulePath, runtime);
   const assignment = scheduleUtils.findAssignmentForDateWithFallback(schedule, dateInfo.dateKey);
+  if (!assignment.teams.length) {
+    runtime.log(target.legacy
+      ? `${dateInfo.dateKey} 尚未生效，跳过值班提醒。`
+      : `${organization.name} ${dateInfo.dateKey} 尚未生效，跳过值班提醒。`);
+    return target.legacy
+      ? { skipped: true, dateKey: dateInfo.dateKey, reason: "not-started" }
+      : { organization, skipped: true, dateKey: dateInfo.dateKey, reason: "not-started" };
+  }
   const upcoming = scheduleUtils.collectUpcoming(schedule, dateInfo.dateKey, 3);
   const message = buildFeishuCardMessage({
     dateInfo,
@@ -247,6 +239,15 @@ async function sendOrganizationReminder(target, options = {}, adapter = {}) {
     upcoming,
     publicUrl: target.publicUrl
   });
+
+  if (dryRun) {
+    runtime.log(JSON.stringify(target.legacy ? message : {
+      organization: organization.slug,
+      name: organization.name,
+      message
+    }, null, 2));
+    return target.legacy ? message : { organization, dryRun: true, message };
+  }
 
   await postFeishuMessage(webhookForTarget(target, env), message, runtime.fetch);
   if (!force) {

@@ -176,10 +176,11 @@
     const date = new Date(year, month - 1, day);
     const versions = getRuleVersions(schedule);
     const activeIndex = findVersionIndexForDate(versions, normalizedDate);
-    const teams = teamsFromRules(schedule, normalizedDate);
+    const beforeFirstVersion = versions.length > 0 && activeIndex < 0;
+    const teams = beforeFirstVersion ? [] : teamsFromRules(schedule, normalizedDate);
     const dutyTeams = activeIndex >= 0
       ? teams.map((team) => getTeamDutyFromVersion(versions, activeIndex, team.name, normalizedDate))
-      : teams.map((team) => {
+      : beforeFirstVersion ? [] : teams.map((team) => {
           const member = team.members[0];
           return {
             name: team.name,

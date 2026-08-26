@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "updatedAt": "2026-08-26T07:10:43Z",
+  "updatedAt": "2026-08-26T07:35:06Z",
   "organization": {
     "slug": "choujian",
     "name": "筹建域"
@@ -81,7 +81,7 @@
   },
   "ruleVersions": [
     {
-      "effectiveDate": "2026-08-27",
+      "effectiveDate": "2026-08-26",
       "teams": [
         {
           "name": "前端",
