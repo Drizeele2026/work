@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "updatedAt": "2026-10-08T02:19:38.337Z",
+  "updatedAt": "2026-10-08T02:55:08.352Z",
   "current": {
     "teams": [
       {
@@ -81,10 +81,6 @@
           {
             "name": "钟右梅",
             "feishuOpenId": "ou_a699ef811812abeb889986b37fc997c0"
-          },
-          {
-            "name": "李发元",
-            "feishuOpenId": "ou_7ee73c21e879ca9c5aa3955ade759c33"
           },
           {
             "name": "王冬雪",
@@ -559,10 +555,6 @@
             {
               "name": "钟右梅",
               "feishuOpenId": "ou_a699ef811812abeb889986b37fc997c0"
-            },
-            {
-              "name": "李发元",
-              "feishuOpenId": "ou_7ee73c21e879ca9c5aa3955ade759c33"
             },
             {
               "name": "王冬雪",
