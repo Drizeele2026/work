@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "updatedAt": "2026-10-08T02:11:43.430Z",
+  "updatedAt": "2026-10-08T02:19:38.337Z",
   "current": {
     "teams": [
       {
@@ -85,6 +85,10 @@
           {
             "name": "李发元",
             "feishuOpenId": "ou_7ee73c21e879ca9c5aa3955ade759c33"
+          },
+          {
+            "name": "王冬雪",
+            "feishuOpenId": "ou_f86aee3564d2b25f69b51306cf959975"
           }
         ],
         "color": "violet"
@@ -559,6 +563,10 @@
             {
               "name": "李发元",
               "feishuOpenId": "ou_7ee73c21e879ca9c5aa3955ade759c33"
+            },
+            {
+              "name": "王冬雪",
+              "feishuOpenId": "ou_f86aee3564d2b25f69b51306cf959975"
             }
           ],
           "color": "violet",
